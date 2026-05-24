@@ -21,9 +21,7 @@ def laplacian(u_pres, dx, boundary):
 def upwind(u_pres, dx, boundary):
     padded = boundary(u_pres)
     
-    # 2. Extract neighbors as flat 1D slices
     left = padded[0:-2]
     center = padded[1:-1]
     
-    # 3. Backward difference stencil (Upwind for c > 0)
     return (center - left) / dx
