@@ -1,9 +1,9 @@
 import numpy as np
-import grid
-import boundaries
-import operators
-import equations
-import integrators
+from Core import grid
+from Core import boundaries
+from Core import operators
+from Core import equations
+from Core import integrators
 
 # Spark the engine!
 grid.grid1d(
