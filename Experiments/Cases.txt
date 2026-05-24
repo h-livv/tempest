@@ -1,0 +1,11 @@
+Advection with Euler integration:
+
+1. Used gradient as operator --> Amplitude died (Bug, grad = 0)
+
+2. Used upwind as operator --> Wave generated and stopped at left edge (Physical PDE Behaviour, explore)
+
+3. Fixed gradient bug --> Amplitude exploded (Most likely integrator error accumulation)
+
+4. Initialized wave at the center, different initial conditions --> Wave propagated smoothly but broke into ripples at the edges (Explore different boundary conditions, most likely due to integrator)
+
+These are not ideal advection behaviours. Must explore numerical stability next.
