@@ -1,6 +1,6 @@
 import numpy as np
 
-def advection(t, u_pres, dx, boundary, operator, equation):
+def advection(t, u_pres, dx, boundary, operator):
     der = operator(u_pres, dx, boundary)
     
     c = 1.0
