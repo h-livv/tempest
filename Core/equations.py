@@ -7,3 +7,5 @@ def advection(t, u_pres, dx, boundary, operator, equation):
     dudt = -c*der
     
     return dudt
+
+#Todo: Add wave and diffusion equations
