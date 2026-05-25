@@ -11,6 +11,11 @@ A modular computational framework for simulating nonlinear dynamical systems usi
 
 ---
 
+## Visualization of wave propagation on a string (Sped up 4x):
+<img width="900" height="500" alt="Video Project 6" src="https://github.com/user-attachments/assets/d2fd7b71-93f0-468a-ac58-b58ff810a6c8" />
+
+---
+
 ## Module overview:
 1. **grid.py**
 * Describes the 1D grid and initial conditions.
