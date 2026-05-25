@@ -1,0 +1,7 @@
+25 MAY 2026
+
+1. Implemented the wave equation,
+2. Implemented RK4 integration for PDEs.
+3. Fixed operator misfit bug.
+4. Revamped all modules to accommodate second order PDEs.
+5. Visualizations and dashboard for tracking.
