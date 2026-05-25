@@ -38,8 +38,8 @@ A modular computational framework for simulating nonlinear dynamical systems usi
 ---
 
 ## Planned features:
-1. Leapfrog integrators.
-2. Diffusion equation implementations.
+1. Leapfrog integrator.
+2. Diffusion equation implementation.
 3. Stability analysis.
 4. Coupled multi-field systems.
 5. Shallow water equations.
