@@ -42,4 +42,4 @@ A modular computational framework for simulating nonlinear dynamical systems usi
 ---
 
 **observations.txt** includes behaviour observed using different initial conditions, operators, equations, and integrators.
-**logs.txt** contains progress logs.
+**Logs.txt** contains progress logs.
