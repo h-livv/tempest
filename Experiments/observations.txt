@@ -9,3 +9,21 @@ Advection with Euler integration:
 4. Initialized wave at the center, different initial conditions --> Wave propagated smoothly but broke into ripples at the edges (Explore different boundary conditions, most likely due to integrator)
 
 These are not ideal advection behaviours. Must explore numerical stability next.
+
+Wave equation
+
+1. Observed that the wave splits into two traveling in opposite directions. This is because of the general solution of the PDE.
+
+2. Works, but explodes eventually. Must explore RK4.
+
+3. Much more stable with RK4. Smooth reflection and interference.
+
+4. Perfect wave behaviour.
+
+Advection with RK4
+
+1. Boundary reflection still unstable, wave breaking into ripples.
+
+2. Used advection with upwind. Much more stable, but major loss in amplitude. 
+
+3. Also, advection waves aren't supposed to reflect. The PDE forces unidirectional propagation. Nod to point 2 in "Advection with Euler Integration)

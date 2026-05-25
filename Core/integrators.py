@@ -1,44 +1,24 @@
 import numpy as np
 
 #Euler integration
-def euler(u_pres, t, dt, dx, boundary, operator, equation):
-    acc = equation(t, u_pres, dx, boundary, operator, equation)
-    u_futr = u_pres + (acc*dt)
-    return u_futr
+def euler(state, t, dt, dx, boundary, operator, equation):
+    dudt = equation(t, state, dx, boundary, operator) #Returns first time derivative
+    state_futr = state + (dudt*dt) #Future state
+    return state_futr
     
-#Todo: Update RK4 and Leapfrog for PDEs
+
 #RK4 integration
-def rk4(pva_matrix, dt, get_acc):
+def rk4(state, t, dt, dx, boundary, operator, equation):
     
-    pos, vel, acc = pva_matrix
+    k1 = equation(t, state, dx, boundary, operator)
+    k2 = equation(t + dt/2, state + (k1*dt/2), dx, boundary, operator)
+    k3 = equation(t + dt/2, state + (k2*dt/2), dx, boundary, operator)
+    k4 = equation(t + dt, state + (k3*dt), dx, boundary, operator)
     
-    v1 = vel
-    a1 = acc
+    state_futr = state + (k1 + 2*k2 + 2*k3 + k4)*(dt/6.0)
+    return state_futr
     
-    x_mid1 = pos + v1*(dt/2)
-    v_mid1 = vel + a1*(dt/2)
-    
-    v2 = v_mid1
-    a2 = get_acc(x_mid1, v_mid1)
-    
-    x_mid2 = pos + v2*(dt/2)
-    v_mid2 = vel + a2*(dt/2)
-    
-    v3 = v_mid2
-    a3 = get_acc(x_mid2, v_mid2)
-    
-    x_end = pos + v3*dt
-    v_end = vel + a3*dt
-    
-    v4 = v_end
-    a4 = get_acc(x_end, v_end)
-    
-    pos_next = pos + (v1 + 2*v2 + 2*v3 + v4)*(dt/6)
-    vel_next = vel + (a1 + 2*a2 + 2*a3 + a4)*(dt/6)
-    
-    pva_matrix[0] = pos_next
-    pva_matrix[1] = vel_next
-    pva_matrix[2] = get_acc(pva_matrix[0], pva_matrix[1])
+#Todo: Update Leapfrog for PDEs
 
 #Leapfrog
 def leapfrog(pva_matrix, dt, get_acc):

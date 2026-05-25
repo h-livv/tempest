@@ -1,17 +1,17 @@
 import numpy as np
 
-def edge(u_pres):
-    u_padded = np.pad(u_pres, pad_width=1, mode='edge')
-    return u_padded
+def edge(state):
+    pad_width = [(0, 0)] * (state.ndim - 1) + [(1, 1)] #Dynamic pad width to accommodate both first and second order PDEs
+    return np.pad(state, pad_width=pad_width, mode='edge')
     
-def constant(u_pres):
-    u_padded = np.pad(u_pres, pad_width=1, mode='constant')
-    return u_padded
+def constant(state):
+    pad_width = [(0, 0)] * (state.ndim - 1) + [(1, 1)]
+    return np.pad(state, pad_width=pad_width, mode='constant')
 
-def reflect(u_pres):
-    u_padded = np.pad(u_pres, pad_width=1, mode='reflect')
-    return u_padded
+def reflect(state):
+    pad_width = [(0, 0)] * (state.ndim - 1) + [(1, 1)]
+    return np.pad(state, pad_width=pad_width, mode='reflect')
 
-def symmetric(u_pres):
-    u_padded = u_padded = np.pad(u_pres, pad_width=1, mode='symmetric')
-    return u_padded
+def symmetric(state):
+    pad_width = [(0, 0)] * (state.ndim - 1) + [(1, 1)]
+    return np.pad(state, pad_width=pad_width, mode='symmetric')

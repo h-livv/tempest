@@ -1,44 +1,34 @@
+# Core/grid.py
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from Visualizations.graphs import TempestVisualizer
 
-def grid1d(n, boundary, operator, equation, integrator, dt, dx):
+def grid1d(initial_state, boundary, operator, equation, integrator, dt, dx):
+    #Initial grid structure
+    state = np.copy(initial_state)
     
-    #Past, present, future states of the cells
-    # u(x, t-dt), u(x, t), u(x, t + dt)
-    u_pres = np.zeros(n)
+    #Visualizations handled by the graph file
+    visualizer = TempestVisualizer(state, dx, dt, equation.__name__)
     
-    x_axis = np.arange(n)
-
-    u_pres = np.exp(-((x_axis - 125) / 10)**2)
-    
-    #Visualization animation
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.set_xlim(0, n)
-    ax.set_ylim(-1.5, 1.5)
-    ax.set_title("1D")
-    ax.grid(True)
-    
-    x_axis = np.arange(n)
-    line, = ax.plot(x_axis, u_pres, color='dodgerblue', lw=2)
-    
-    def update_frame(t):
-        nonlocal u_pres #Creates new variables inside function, does not modify the original
+    def update_frame(frame):
+        nonlocal state      #Creates a new variable, does not modify original
+        current_time = frame * dt   #Current time
         
-        line.set_ydata(u_pres)
+        #State evolution using preffered integrator
+        state = integrator(state, current_time, dt, dx, boundary, operator, equation)
         
-        u_pres = integrator(u_pres, t, dt, dx, boundary, operator, equation)
-        
-        return line,
+        #Ship updated arrays to dedicated visualization file
+        updated = visualizer.render_frame(frame, state, current_time, integrator.__name__)
+        return updated
             
+    #Animation
     ani = animation.FuncAnimation(
-    fig, 
-    update_frame, 
-    frames=1000, 
-    interval=20, 
-    blit=True
+        visualizer.fig, 
+        update_frame, 
+        frames=visualizer.max_frames, 
+        interval=20, 
+        blit=True
     )
 
     plt.show()
-    
-    
