@@ -11,7 +11,7 @@ def grid1d(boundary, operator, equation, integrator, coefficient, dt, dx):
     x = np.linspace(0, N, N)
     
     if equation.__name__ == 'diffusion':
-        init_pos = np.where(x < N // 5, 0.5, 0.0)
+        init_pos = np.where(x < N // 5, 1.0, 0.0)
     
     else:
         init_pos = np.exp(-0.01 * (x - N/2)**2)
@@ -24,12 +24,15 @@ def grid1d(boundary, operator, equation, integrator, coefficient, dt, dx):
     #Visualizations handled by the graph file
     visualizer = TempestVisualizer(state, dx, dt, equation.__name__)
     
+    STEPS_PER_FRAME = 100
+    
     def update_frame(frame):
         nonlocal state      #Creates a new variable, does not modify original
-        current_time = frame * dt   #Current time
+        current_time = frame * dt * STEPS_PER_FRAME  #Current time
         
         #State evolution using preffered integrator
-        state = integrator(state, current_time, dt, dx, boundary, operator, equation, coefficient)
+        for _ in range(STEPS_PER_FRAME):
+            state = integrator(state, current_time, dt, dx, boundary, operator, equation, coefficient)
         
         '''center = state.shape[-1] // 2
         if state.ndim > 1:
@@ -48,7 +51,7 @@ def grid1d(boundary, operator, equation, integrator, coefficient, dt, dx):
         visualizer.fig, 
         update_frame, 
         frames=visualizer.max_frames, 
-        interval=10, 
+        interval=0, 
         blit=True,
         repeat = True
     )
