@@ -4,10 +4,10 @@ A modular computational framework for simulating nonlinear dynamical systems usi
 ## Current capabilities:
 1. A 1D grid system for field evolution over time.
 2. Finite-difference spatial operators.
-3. Governing evolution laws, currently including advection and wave propagation.
-4. Integration methods, currently including Euler and RK4.
+3. Governing evolution laws, including advection, wave propagation, and diffusion.
+4. Integration methods, including Euler, RK4, and Leapfrog.
 5. Customizable boundary conditions.
-6. Visualization.
+7. Energy graph for stability tracking.
 
 ---
 
@@ -27,10 +27,10 @@ A modular computational framework for simulating nonlinear dynamical systems usi
 * Finite-difference spatial operators. Includes the gradient, laplacian, and upwind.
 
 4. **equations.py**
-* Contains the governing physical equations. Currently includes advection and wave propagation.
+* Contains the governing physical equations. Includes advection, wave propagation, and diffusion.
 
 5. **integrators.py**
-* Contains the integrators used to evolve the grid state over time. Currently includes Euler and RK4.
+* Contains the integrators used to evolve the grid state over time. Includes Euler, RK4, and Leapfrog.
 
 6. **visualizations.py**
 * Handles all visualization.
@@ -38,11 +38,9 @@ A modular computational framework for simulating nonlinear dynamical systems usi
 ---
 
 ## Planned features:
-1. Leapfrog integrator.
-2. Diffusion equation implementation.
-3. Stability analysis.
-4. Coupled multi-field systems.
-5. Shallow water equations.
+1. Detailed stability analysis.
+2. Coupled multi-field systems.
+3. Shallow water equations.
 
 ---
 
