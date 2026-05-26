@@ -1,7 +1,7 @@
 import numpy as np
 from Core import operators
 
-def advection(t, state, dx, boundary, operator):
+def advection(t, state, dx, boundary, operator, coefficient):
     
     if operator.__name__ == 'laplacian':
         raise ValueError(
@@ -11,13 +11,19 @@ def advection(t, state, dx, boundary, operator):
         
     dudx = operator(state, dx, boundary) #First derivative of state
     
-    c = 1.0
+    c = coefficient
     dudt = -c*dudx #PDE equation for advection
     
     return dudt #Returns velocity
 
 
-def wave(t, state, dx, boundary, operator):
+def wave(t, state, dx, boundary, operator, coefficient):
+    
+    if operator.__name__ == 'gradient' or operator.__name__ == 'upwind':
+        raise ValueError(
+            "CRITICAL PHYSICS ERROR: Wave propagation is a 2nd-order spatial PDE. "
+            "You cannot pass 'gradient' or 'upwind' (1st-order) as its operator."
+        )
     
     #Break the state down into position and velocity
     u = state[0]
@@ -25,9 +31,26 @@ def wave(t, state, dx, boundary, operator):
     
     d2udx2 = operators.laplacian(u, dx, boundary) #Second derivative of state
     
-    c = 1.0
+    c = coefficient
     d2udt2 = (c**2)*d2udx2 #PDE equation for wave propagation
     
     return np.array([v, d2udt2]) #Input = [u, v] Output = [v, a]
 
 #Todo: Add diffusion equation
+
+def diffusion(t, state, dx, boundary, operator, coefficient):
+
+    if operator.__name__ == 'gradient' or operator.__name__ == 'upwind':
+        raise ValueError(
+            "CRITICAL PHYSICS ERROR: Diffusion is a 2nd-order spatial PDE. "
+            "You cannot pass 'gradient' or 'upwind' (1st-order) as its operator."
+        )
+        
+    d2udx2 = operators.laplacian(state, dx, boundary) #Second derivative of state
+    
+    d = coefficient
+    du_dt = d*(d2udx2)
+    
+    return du_dt
+    
+    
