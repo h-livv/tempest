@@ -5,3 +5,10 @@
 3. Fixed operator misfit bug.
 4. Revamped all modules to accommodate second order PDEs.
 5. Visualizations and dashboard for tracking.
+
+26 MAY 2026
+
+1. Implemented leapfrog integration for PDEs
+2. Implemented diffusion PDE solver.
+3. Implemented real-time energy graph for stability tracking.
+

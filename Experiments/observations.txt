@@ -26,4 +26,12 @@ Advection with RK4
 
 2. Used advection with upwind. Much more stable, but major loss in amplitude. 
 
-3. Also, advection waves aren't supposed to reflect. The PDE forces unidirectional propagation. Nod to point 2 in "Advection with Euler Integration)
+3. Also, advection waves aren't supposed to reflect. The PDE forces unidirectional propagation. (Nod to point 2 in "Advection with Euler Integration)
+
+4. Tried different coefficients and initial conditions (timestep played a huge role), and boundary interaction is now stable. Cleanly passes through. Still major loss in amplitude, though (more than double)
+
+5. Advection continuously loses energy due to numerical approximation --> Amplitude loss.
+
+Diffusion
+
+1. Works perfectly. Simulated a rod heated at one end. Temperature eventually reached uniformity.
