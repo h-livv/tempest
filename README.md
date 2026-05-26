@@ -4,15 +4,18 @@ A modular computational framework for simulating nonlinear dynamical systems usi
 ## Current capabilities:
 1. A 1D grid system for field evolution over time.
 2. Finite-difference spatial operators.
-3. Governing evolution laws, currently including advection and wave propagation.
-4. Integration methods, currently including Euler and RK4.
+3. Governing evolution laws, including advection, wave propagation, and diffusion.
+4. Integration methods, including Euler, RK4, and Leapfrog.
 5. Customizable boundary conditions.
-6. Visualization.
+7. Energy graph for stability tracking.
 
 ---
 
-## Visualization of wave propagation on a string (Sped up 4x):
-<img width="900" height="500" alt="Video Project 6" src="https://github.com/user-attachments/assets/d2fd7b71-93f0-468a-ac58-b58ff810a6c8" />
+## Visualization of wave propagation:
+<img width="800" height="400" alt="Figure 1 2026-05-26 16-44-40 - Trim" src="https://github.com/user-attachments/assets/0a8c2be2-bbe6-4165-9851-7b4c54830935" />
+
+## Visualization of diffusion (can be thought of as heat transfer on a rod):
+<img width="800" height="400" alt="Figure 1 2026-05-26 16-41-44 - Trim" src="https://github.com/user-attachments/assets/25ed40e4-c6c2-4476-b0d7-cd2bf81901ec" />
 
 ---
 
@@ -27,10 +30,10 @@ A modular computational framework for simulating nonlinear dynamical systems usi
 * Finite-difference spatial operators. Includes the gradient, laplacian, and upwind.
 
 4. **equations.py**
-* Contains the governing physical equations. Currently includes advection and wave propagation.
+* Contains the governing physical equations. Includes advection, wave propagation, and diffusion.
 
 5. **integrators.py**
-* Contains the integrators used to evolve the grid state over time. Currently includes Euler and RK4.
+* Contains the integrators used to evolve the grid state over time. Includes Euler, RK4, and Leapfrog.
 
 6. **visualizations.py**
 * Handles all visualization.
@@ -38,11 +41,9 @@ A modular computational framework for simulating nonlinear dynamical systems usi
 ---
 
 ## Planned features:
-1. Leapfrog integrator.
-2. Diffusion equation implementation.
-3. Stability analysis.
-4. Coupled multi-field systems.
-5. Shallow water equations.
+1. Detailed stability analysis.
+2. Coupled multi-field systems.
+3. Shallow water equations.
 
 ---
 
