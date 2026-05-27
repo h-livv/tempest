@@ -9,8 +9,8 @@ from Core import integrators
 #Run the engine
 grid.grid1d(
     boundary=boundaries.edge,    
-    operator=operators.gradient,      
-    equation=equations.advection,  
+    operator=operators.laplacian,      
+    equation=equations.diffusion,  
     integrator=integrators.rk4,
     coefficient=1.0,
     dt=0.1,                  
