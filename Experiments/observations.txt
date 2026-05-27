@@ -42,3 +42,5 @@ Advection with RK4
 Diffusion
 
 1. Works perfectly. Simulated a rod heated at one end. Temperature eventually reached uniformity.
+
+NOTE - Still not perfectly stable over long periods of time (> 1000s)

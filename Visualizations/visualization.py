@@ -42,9 +42,9 @@ class TempestVisualizer:
         elif self.eq_name == 'advection':
             self.line_pos, = self.ax_live.plot([], [], color='#00ffff', lw=2.5, label="Displacement (u)")
             self.ax_live.set_title("Linear Advection (1st Order PDE)", fontsize=12, fontweight='bold')
-        else:
+        elif self.eq_name == 'wave':
             self.line_pos, = self.ax_live.plot([], [], color='#00ffff', lw=2.5, label="Displacement (u)")
-            self.ax_live.set_title("Wave Engine Simulation", fontsize=12, fontweight='bold')
+            self.ax_live.set_title("Wave Propagation (2nd Order PDE)", fontsize=12, fontweight='bold')
 
         self.line_vel, = self.ax_live.plot([], [], color='#ff007f', linestyle='--', lw=1.5, label="Velocity (v)")
         self.ax_live.legend(loc="upper right")
