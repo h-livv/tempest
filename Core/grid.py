@@ -24,7 +24,15 @@ def grid1d(boundary, operator, equation, integrator, coefficient, dt, dx):
     #Visualizations handled by the graph file
     visualizer = TempestVisualizer(state, dx, dt, equation.__name__)
     
-    STEPS_PER_FRAME = 100
+    if equation.__name__ == 'advection' and boundary.__name__ == 'reflect' and operator.__name__ == 'gradient':
+        raise ValueError(
+            "BOUNDARY CONDITION ERROR: It is advised to not use the condition 'reflect' and operator 'gradient' with advection as this violates physical behaviour"
+        )
+    
+    if equation.__name__ == 'diffusion':
+        STEPS_PER_FRAME = 100
+    else:
+        STEPS_PER_FRAME = 10
     
     def update_frame(frame):
         nonlocal state      #Creates a new variable, does not modify original

@@ -32,6 +32,13 @@ Advection with RK4
 
 5. Advection continuously loses energy due to numerical approximation --> Amplitude loss.
 
+6. Used gradient operator instead of upwind, energy loss is contained. Loss using upwind was due to a truncation error that acts like a dampener.
+    Central gradient works, but must keep in mind physical causality.
+
+7. Boundary conditions still fragile. Must explore np.pad
+
+8. Fixed boundary conditions, advection works perfectly.
+
 Diffusion
 
 1. Works perfectly. Simulated a rod heated at one end. Temperature eventually reached uniformity.
