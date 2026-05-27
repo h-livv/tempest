@@ -42,8 +42,9 @@ A modular computational framework for simulating nonlinear dynamical systems usi
 
 ## Planned features:
 1. Detailed stability analysis.
-2. Coupled multi-field systems.
-3. Shallow water equations.
+2. Implement shallow water equations in 1D.
+3. Generalize multi-field systems.
+4. Extend simulation to 2D.
 
 ---
 
