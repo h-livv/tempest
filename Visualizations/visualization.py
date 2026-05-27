@@ -68,16 +68,31 @@ class TempestVisualizer:
         cbar.set_label("Displacement Intensity")
 
         # --- PANEL 3: LIVE ENERGY TRACKER ---
-        self.ax_energy.set_title("Real-Time Energy Conservation", fontsize=12, fontweight='bold')
         self.ax_energy.set_xlabel("Elapsed Time (t)")
-        self.ax_energy.set_ylabel("Energy Magnitude")
         self.ax_energy.grid(True, linestyle='--', alpha=0.5)
         
-        # Register line handles for diagnostics
+        # Instantiate line artists
         self.line_pe, = self.ax_energy.plot([], [], color='#ffaa00', lw=2, label="Potential Energy (PE)")
         self.line_ke, = self.ax_energy.plot([], [], color='#ff007f', lw=2, label="Kinetic Energy (KE)")
         self.line_total, = self.ax_energy.plot([], [], color='#00ff00', lw=2.5, label="Total Energy (E)")
-        self.ax_energy.legend(loc="upper right")
+
+        if self.eq_name in ['diffusion', 'advection']:
+            self.ax_energy.set_title("Real-Time Magnitude Conservation", fontsize=12, fontweight='bold')
+            self.ax_energy.set_ylabel("System Magnitude (L2 Norm)")
+            
+            self.line_pe.set_visible(False)
+            self.line_ke.set_visible(False)
+            self.line_total.set_label("Total Magnitude (L2 Norm)")
+            
+            # FIX: Force the legend to only register the visible total line object
+            self.ax_energy.legend(handles=[self.line_total], loc="upper right")
+        else:
+            self.ax_energy.set_title("Real-Time Energy Conservation", fontsize=12, fontweight='bold')
+            self.ax_energy.set_ylabel("Energy Magnitude")
+            
+            # For the wave equation, let auto-generation pick up all three handles
+            self.ax_energy.legend(loc="upper right")
+        
         
         plt.tight_layout()
         self.fig.subplots_adjust(wspace=0.3)
@@ -107,10 +122,16 @@ class TempestVisualizer:
         self.line_ke.set_data(self.time_history, self.ke_history)
         self.line_total.set_data(self.time_history, self.total_history)
         
-        # Dynamically scale energy axis viewing windows to prevent microscale compression
+        # Dynamically scale energy axis viewing windows
         if len(self.time_history) > 1:
             self.ax_energy.set_xlim(0, max(self.time_history))
-            all_energies = self.pe_history + self.ke_history + self.total_history
+            
+            # CONDITIONAL CHANGE: Only calculate limits based on curves that are actually visible
+            if self.eq_name in ['diffusion', 'advection']:
+                all_energies = self.total_history
+            else:
+                all_energies = self.pe_history + self.ke_history + self.total_history
+                
             min_e, max_e = min(all_energies), max(all_energies)
             margin = max(0.1, 0.2 * (max_e - min_e))
             self.ax_energy.set_ylim(min_e - margin, max_e + margin)
