@@ -12,3 +12,7 @@
 2. Implemented diffusion PDE solver.
 3. Implemented real-time energy graph for stability tracking.
 
+27 MAY 2026
+
+1. Found relatively stable configurations for all three PDEs, hard coded required ones.
+

@@ -1,6 +1,6 @@
 import numpy as np
 
-def gradient(state, dx, boundary):
+def gradient(state, dx, boundary, c = 1.0):
     u_x = boundary(state) #Apply boundary conditions
     
     #Ellipsis maintains dimensionality

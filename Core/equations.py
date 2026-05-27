@@ -1,7 +1,7 @@
 import numpy as np
 from Core import operators
 
-def advection(t, state, dx, boundary, operator, coefficient):
+def advection(t, state, dx, boundary, operator, coefficient, c = 1.0):
     
     if operator.__name__ == 'laplacian':
         raise ValueError(
@@ -10,6 +10,13 @@ def advection(t, state, dx, boundary, operator, coefficient):
         )
         
     dudx = operator(state, dx, boundary) #First derivative of state
+
+    if c > 0:
+        # Wave moves right: right-most active cell looks purely upstream (left)
+        dudx[..., -1] = (state[..., -1] - state[..., -2]) / dx
+    elif c < 0:
+        # Wave moves left: left-most active cell looks purely upstream (right)
+        dudx[..., 0] = (state[..., 1] - state[..., 0]) / dx
     
     c = coefficient
     dudt = -c*dudx #PDE equation for advection
