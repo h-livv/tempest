@@ -8,14 +8,15 @@ A modular computational framework for simulating nonlinear dynamical systems usi
 4. Integration methods, including Euler, RK4, and Leapfrog.
 5. Customizable boundary conditions.
 7. Energy graph for stability tracking.
+8. Stable configurations to experiment with.
 
 ---
 
 ## Visualization of wave propagation:
-<img width="800" height="400" alt="Figure 1 2026-05-26 16-44-40 - Trim" src="https://github.com/user-attachments/assets/0a8c2be2-bbe6-4165-9851-7b4c54830935" />
+<img width="800" height="400" alt="wave" src="https://github.com/user-attachments/assets/0bed2341-91ac-4105-8c7a-5daf75434808" />
 
 ## Visualization of diffusion (can be thought of as heat transfer on a rod):
-<img width="800" height="400" alt="Figure 1 2026-05-26 16-41-44 - Trim" src="https://github.com/user-attachments/assets/25ed40e4-c6c2-4476-b0d7-cd2bf81901ec" />
+<img width="800" height="400" alt="diffusion" src="https://github.com/user-attachments/assets/0499a55e-ed35-4412-908b-2be0d51250c2" />
 
 ---
 
@@ -41,12 +42,12 @@ A modular computational framework for simulating nonlinear dynamical systems usi
 ---
 
 ## Planned features:
-1. Detailed stability analysis.
-2. Implement shallow water equations in 1D.
-3. Generalize multi-field systems.
-4. Extend simulation to 2D.
+1. Implement shallow water equations in 1D.
+2. Generalize multi-field systems.
+3. Extend simulation to 2D.
 
 ---
 
+**configurations.txt** includes stable configurations that can directly be implemented. <br>
 **observations.txt** includes behaviour observed using different initial conditions, operators, equations, and integrators. <br>
 **logs.txt** contains progress logs.
