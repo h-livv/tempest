@@ -3,12 +3,12 @@ A modular computational framework for simulating nonlinear dynamical systems usi
 
 ## Current capabilities:
 1. A 1D grid system for field evolution over time.
-2. Finite-difference spatial operators.
-3. Governing evolution laws, including advection, wave propagation, and diffusion.
+2. Finite-difference schemes such as Lax-Friedrichs.
+3. Governing evolution laws, including advection, diffusion, wave propagation, and shallow water equations.
 4. Integration methods, including Euler, RK4, and Leapfrog.
 5. Customizable boundary conditions.
-7. Energy graph for stability tracking.
-8. Stable configurations to experiment with.
+6. Energy graph for stability tracking.
+7. Stable configurations to experiment with.
 
 ---
 
@@ -18,6 +18,9 @@ A modular computational framework for simulating nonlinear dynamical systems usi
 ## Visualization of diffusion (can be thought of as heat transfer on a rod):
 <img width="800" height="400" alt="diffusion" src="https://github.com/user-attachments/assets/0499a55e-ed35-4412-908b-2be0d51250c2" />
 
+## Visualization of shallow water equations (dam breaking):
+
+
 ---
 
 ## Module overview:
@@ -25,26 +28,28 @@ A modular computational framework for simulating nonlinear dynamical systems usi
 * Describes the 1D grid and initial conditions.
   
 2. **boundaries.py**
-* Various boundary conditions to experiment with. Includes edge, constant, reflected, symmetric.
+* Various boundary conditions to experiment with. Includes edge, constant, and reflected.
 
 3. **operators.py**
-* Finite-difference spatial operators. Includes the gradient, laplacian, and upwind.
+* Finite-difference spatial operators. Includes the gradient, laplacian, upwind.
 
 4. **equations.py**
-* Contains the governing physical equations. Includes advection, wave propagation, and diffusion.
+* Contains the governing physical equations. Includes advection, diffusion, wave propagation, and shallow water equations.
 
 5. **integrators.py**
-* Contains the integrators used to evolve the grid state over time. Includes Euler, RK4, and Leapfrog.
+* Contains the integrators used to evolve the grid state over time. Includes Euler, RK4, Leapfrog, and Lax-Friedrichs.
 
-6. **visualizations.py**
+6. **visualization.py**
 * Handles all visualization.
 
 ---
 
-## Planned features:
-1. Implement shallow water equations in 1D.
-2. Generalize multi-field systems.
-3. Extend simulation to 2D.
+## Planned Features
+1. Stability and convergence diagnostics.
+2. Validation against analytical solutions.
+3. Higher-order conservative schemes (Lax-Wendroff, Rusanov).
+4. Generalized multi-field framework.
+5. 2D structured grids.
 
 ---
 
