@@ -1,4 +1,5 @@
 import numpy as np
+from Core import operators
 
 #Euler integration
 def euler(state, t, dt, dx, boundary, operator, equation, coefficient):
@@ -40,4 +41,18 @@ def leapfrog(state, t, dt, dx, boundary, operator, equation, coefficient):
     
     return np.vstack([state_futr, dstatedt])
     
-    
+def lax(state, t, dt, dx, boundary, operator, equation, coefficient):
+    # 1. Transform variables if the function has transformation mappings
+    cons_state = equation.to_conservative(state) if hasattr(equation, "to_conservative") else state
+
+    # 2. Apply boundary conditions
+    padded_cons = boundary(cons_state)
+
+    # 3. Compute physical fluxes via the attached attribute
+    flux = equation.flux(padded_cons)
+
+    # 4. Spacetime update step via pure math stencils
+    cons_next = operators.spatial_average(padded_cons) - dt * operators.central_flux_divergence(flux, dx)
+
+    # 5. Transform back to primitive variables for visualization
+    return equation.to_primitive(cons_next) if hasattr(equation, "to_primitive") else cons_next

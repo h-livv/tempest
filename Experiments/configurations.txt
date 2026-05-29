@@ -11,6 +11,11 @@ operator = Laplacian
 integrator = rk4
 
 Advection:
-boundary (hard coded)
+boundary = edge
 operator = gradient
 integrator = rk4
+
+Shallow water:
+boundary = reflect
+operator = None
+integrator = lax

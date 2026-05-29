@@ -44,3 +44,13 @@ Diffusion
 1. Works perfectly. Simulated a rod heated at one end. Temperature eventually reached uniformity.
 
 NOTE - Still not perfectly stable over long periods of time (> 1000s)
+
+
+SHALLOW WATER EQUATIONS
+
+1. Implemeted a conservative form of the 1D shallow water equations.
+2. Used RK4 but found it to be extremely unstable. Ditched method of lines and used direct integration using gradient.
+3. Again found instability. Implemented Lax friedrichs solutions.
+4. Much more stable, but fluid loses energy. This is due to lax friedrichs injecting artificial diffusion. Numerical, not physical consequence.
+5. Experimented with various initial conditions such as dam break and collisions.
+6. Next, must explore less diffusive finite difference solutions.
