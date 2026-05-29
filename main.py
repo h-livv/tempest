@@ -5,14 +5,17 @@ from Core import boundaries
 from Core import operators
 from Core import equations
 from Core import integrators
+from Experiments import init_conditions
+
 
 #Run the engine
 grid.grid1d(
-    boundary=boundaries.edge,    
+    init_state=init_conditions.shallow_dam,
+    boundary=boundaries.reflect,    
     operator=operators.laplacian,      
-    equation=equations.diffusion,  
-    integrator=integrators.rk4,
+    equation=equations.shallow_water,  
+    integrator=integrators.lax,
     coefficient=1.0,
-    dt=0.1,                  
+    dt=0.01,                  
     dx=1.0                  
 )

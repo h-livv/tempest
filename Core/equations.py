@@ -33,8 +33,7 @@ def wave(t, state, dx, boundary, operator, coefficient):
         )
     
     #Break the state down into position and velocity
-    u = state[0]
-    v = state[1]
+    u, v = state
     
     d2udx2 = operators.laplacian(u, dx, boundary) #Second derivative of state
     
@@ -60,4 +59,46 @@ def diffusion(t, state, dx, boundary, operator, coefficient):
     
     return du_dt
     
+def shallow_water(t, state, dt, dx, boundary, operator, coefficient):
+    
+    if operator.__name__ == 'laplacian':
+        raise ValueError(
+            "CRITICAL PHYSICS ERROR: Shallow water equation is a 1st-order spatial PDE. "
+            "You cannot pass 'laplacian' (2nd-order) as its operator."
+        )
+        
+    h, v = state
+    q = h*v
+    g = 9.8
+        
+    dh_dt = -operator(q, dt, dx, boundary)
+    dq_dt = -operator(((q**2/h) + 0.5*g*(h**2)), dt, dx, boundary)
+        
+    return np.vstack([dh_dt, dq_dt])
+
+def _sw_flux(padded_cons):
+    h, q = padded_cons[0], padded_cons[1]
+    g = 9.81
+    f1 = q
+    
+    # Safe-division mask: Only compute q^2 / h where water depth is active
+    eps = 1e-5
+    q_sq_over_h = np.where(h > eps, (q**2) / h, 0.0)
+    
+    f2 = q_sq_over_h + 0.5 * g * (h**2)
+    return np.stack([f1, f2])
+
+def _sw_to_conservative(primitive_state):
+    h, v = primitive_state
+    return np.stack([h, h * v])
+
+def _sw_to_primitive(conservative_state):
+    h, q = conservative_state
+    eps = 1e-5
+    v = np.where(h > eps, q / h, 0.0)
+    return np.stack([h, v])
+
+shallow_water.flux = _sw_flux
+shallow_water.to_conservative = _sw_to_conservative
+shallow_water.to_primitive = _sw_to_primitive   
     

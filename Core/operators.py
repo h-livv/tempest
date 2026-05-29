@@ -27,3 +27,12 @@ def upwind(state, dx, boundary):
     
     return (center - left) / dx #Looks only backward in space, instead of both forward and backward like the gradient
                                 #Gradient is more accurate, but violates physical causality
+           
+#Components for the lax friedrichs solver                                 
+def spatial_average(padded_state):
+    """Pure geometric averaging: (U_{i+1} + U_{i-1}) / 2"""
+    return 0.5 * (padded_state[..., 2:] + padded_state[..., 0:-2])
+
+def central_flux_divergence(padded_flux, dx):
+    """Conservative central flux derivative: (F_{i+1} - F_{i-1}) / (2*dx)"""
+    return (padded_flux[..., 2:] - padded_flux[..., 0:-2]) / (2 * dx)

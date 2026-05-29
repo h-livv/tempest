@@ -15,4 +15,10 @@
 27 MAY 2026
 
 1. Found relatively stable configurations for all three PDEs, hard coded required ones.
+2. Implemented shallow water equations.
+
+28 MAY 2026
+
+1. Cleaned up code, decoupled the math code from the physics.
+2. Fixed bugs
 
