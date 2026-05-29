@@ -48,5 +48,5 @@ def grid1d(init_state, boundary, operator, equation, integrator, coefficient, dt
         blit=True,
         repeat = True
     )
-
+    
     plt.show()
