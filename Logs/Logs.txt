@@ -22,3 +22,15 @@
 1. Cleaned up code, decoupled the math code from the physics.
 2. Fixed bugs
 
+30 MAY 2026
+
+1. Refined boundary conditions, especially "reflect".
+
+31 MAY 2026
+
+1. Implemented validation against analytical solutions for the linear advection equation.
+2. Added periodic boundary conditions to enable meaningful studies in advection simulation.
+3. Implemented a data export pipeline for numerical diagnosis and error analysis.
+4. Conducted a detailed comparison between the central gradient and upwind operators for linear advection.
+5. Identified a domain mismatch between the numerical and analytical domains.
+6. Established error metrics and demonstrate that energy conservation alone is not a sufficient measure of numerical accuracy.
