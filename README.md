@@ -26,7 +26,7 @@ A modular computational framework for simulating and validating nonlinear dynami
 * Describes the 1D grid and initial conditions.
   
 2. **boundaries.py**
-* Various boundary conditions to experiment with. Includes edge, constant, and reflected.
+* Various boundary conditions to experiment with. Includes edge, constant, periodic and reflected.
 
 3. **operators.py**
 * Finite-difference spatial operators. Includes the gradient, laplacian, upwind.
