@@ -10,6 +10,11 @@ def constant(state):
     pad_width = [(0, 0)] * (state.ndim - 1) + [(1, 1)]
     return np.pad(state, pad_width=pad_width, mode='constant')
 
+#periodic
+def periodic(state):
+    pad_width = [(0, 0)] * (state.ndim - 1) + [(1, 1)]
+    return np.pad(state, pad_width=pad_width, mode='wrap')
+
 #Reflects
 def reflect(state):
     # 1. Use your elegant dynamic pad width logic

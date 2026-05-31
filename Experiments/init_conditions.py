@@ -1,7 +1,7 @@
 import numpy as np
 
 def wave_gauss(N, x):
-    init_pos = np.exp(-0.01 * (x - N/2)**2)
+    init_pos = np.exp(-0.01 * (x - N/5)**2)
     init_vel = np.zeros(N)
     
     init_state = np.vstack([init_pos, init_vel])
@@ -9,7 +9,7 @@ def wave_gauss(N, x):
     return init_state
 
 def shallow_gauss(N, x):
-    init_height = 1.0 + np.exp(-0.0001 * (x - N/2)**2)
+    init_height = 1.0 + np.exp(-0.0001 * (x - N/5)**2)
     init_vel = np.zeros(N)
     
     init_state = np.vstack([init_height, init_vel])

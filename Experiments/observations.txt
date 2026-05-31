@@ -1,11 +1,8 @@
 Advection with Euler integration:
 
 1. Used gradient as operator --> Amplitude died (Bug, grad = 0)
-
 2. Used upwind as operator --> Wave generated and stopped at left edge (Physical PDE Behaviour, explore)
-
 3. Fixed gradient bug --> Amplitude exploded (Most likely integrator error accumulation)
-
 4. Initialized wave at the center, different initial conditions --> Wave propagated smoothly but broke into ripples at the edges (Explore different boundary conditions, most likely due to integrator)
 
 These are not ideal advection behaviours. Must explore numerical stability next.
@@ -13,37 +10,27 @@ These are not ideal advection behaviours. Must explore numerical stability next.
 Wave equation
 
 1. Observed that the wave splits into two traveling in opposite directions. This is because of the general solution of the PDE.
-
 2. Works, but explodes eventually. Must explore RK4.
-
 3. Much more stable with RK4. Smooth reflection and interference.
-
 4. Perfect wave behaviour.
+
+NOTE - Still not stable over very long periods of time (t > 1000s)
 
 Advection with RK4
 
 1. Boundary reflection still unstable, wave breaking into ripples.
-
 2. Used advection with upwind. Much more stable, but major loss in amplitude. 
-
 3. Also, advection waves aren't supposed to reflect. The PDE forces unidirectional propagation. (Nod to point 2 in "Advection with Euler Integration)
-
 4. Tried different coefficients and initial conditions (timestep played a huge role), and boundary interaction is now stable. Cleanly passes through. Still major loss in amplitude, though (more than double)
-
 5. Advection continuously loses energy due to numerical approximation --> Amplitude loss.
-
 6. Used gradient operator instead of upwind, energy loss is contained. Loss using upwind was due to a truncation error that acts like a dampener.
     Central gradient works, but must keep in mind physical causality.
-
 7. Boundary conditions still fragile. Must explore np.pad
-
 8. Fixed boundary conditions, advection works perfectly.
 
 Diffusion
 
 1. Works perfectly. Simulated a rod heated at one end. Temperature eventually reached uniformity.
-
-NOTE - Still not perfectly stable over long periods of time (> 1000s)
 
 
 SHALLOW WATER EQUATIONS
@@ -54,3 +41,23 @@ SHALLOW WATER EQUATIONS
 4. Much more stable, but fluid loses energy. This is due to lax friedrichs injecting artificial diffusion. Numerical, not physical consequence.
 5. Experimented with various initial conditions such as dam break and collisions.
 6. Next, must explore less diffusive finite difference solutions.
+
+Advection
+
+1. Noticed that wave escapes simulation completely, providing misleading energy graphs. So, attempted to implement periodic boundary conditions.
+2. Energy loss is zero, but the shape breaks down. Definitely due to numerical approximations near the edges.
+3. Must choose between total energy conservation and shape retainment.
+
+
+Validation of Linear Advection
+
+1. Implemented an analytical comparison.
+2. Initial validation showed large error spikes at the boundaries.
+3. This was due to analytical solution not having the same periodicity as the numerical solution. (Numerical progressed 5x faster)
+4. After correcting this, the spikes dissapeared.
+5. Remaining error is a numerical artifact.
+
+6. Interestingly, the upwind operator displayed lower error than the gradient.
+7. Central gradient preserves energy perfectly, but introduces dispersive errors that break down the shape, leading to higher L2 and relative error.
+8. Upwind loses energy but maintains a smooth pulse, hence has relatively lower error.
+9. Conclusion: Gradient --> dispersive, Upwind --> Dissapative
