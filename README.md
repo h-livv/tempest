@@ -54,7 +54,7 @@ A modular computational framework for simulating and validating nonlinear dynami
 
 Project Tempest includes validation against analytical solutions where available. For the linear advection equation, a Gaussian pulse is compared against the exact periodically-shifted analytical solution throughout the simulation.
 
-#### Key Observations
+#### Observations
 
 1. Initial validation exhibited large error spikes during boundary crossings.
 2. Investigation revealed a mismatch between the analytical and numerical domains. The numerical solver used periodic boundary conditions, while the analytical solution assumed an infinite domain.
