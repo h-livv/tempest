@@ -7,14 +7,16 @@ class TempestVisualizer:
         self.dt = dt
         self.eq_name = eq_name
         self.ndim = initial_state.ndim
-        self.max_frames = 1000
+        self.max_frames = 200
         self.nx = initial_state.shape[-1]
         
-        # 1. Setup Live Data History Vaults (UNCOMMENTED)
+        # 1. Setup Live Data History Vaults
         self.time_history = []
         self.pe_history = []
         self.ke_history = []
         self.total_history = []
+        self.loss_history = []         # TRACKER ADDITION: Stores delta energy history
+        self.initial_energy = None     # TRACKER ADDITION: Captures baseline t=0 energy
         
         # Space-Time Matrix Allocation
         display_y = initial_state[0] if self.ndim > 1 else initial_state
@@ -23,7 +25,8 @@ class TempestVisualizer:
 
         # 2. Configure Widescreen 3-Panel Layout
         self.fig, (self.ax_live, self.ax_map, self.ax_energy) = plt.subplots(
-            1, 3, figsize=(20, 6), gridspec_kw={'width_ratios': [1, 1, 1]}
+            1, 3, figsize=(18, 8), gridspec_kw={'width_ratios': [1, 1, 1]},
+            layout='constrained'
         )
         self.fig.suptitle("Project Tempest: Computational Fluid & Wave Dashboard", fontsize=14, fontweight='bold')
 
@@ -78,7 +81,7 @@ class TempestVisualizer:
         cbar_label = "Water Depth (h)" if self.eq_name == 'shallow_water' else "Displacement Intensity"
         cbar.set_label(cbar_label)
 
-        # --- PANEL 3: LIVE ENERGY TRACKER (ACTIVATED) ---
+        # --- PANEL 3: LIVE ENERGY TRACKER ---
         self.ax_energy.set_xlabel("Elapsed Time (t)")
         self.ax_energy.set_ylabel("Energy State Value")
         self.ax_energy.grid(True, linestyle='--', alpha=0.5)
@@ -86,6 +89,7 @@ class TempestVisualizer:
         self.line_pe, = self.ax_energy.plot([], [], color='#ffaa00', lw=2, label="Potential Energy (PE)")
         self.line_ke, = self.ax_energy.plot([], [], color='#ff007f', lw=2, label="Kinetic Energy (KE)")
         self.line_total, = self.ax_energy.plot([], [], color='#00ff00', lw=2.5, label="Total Energy (E)")
+        self.line_loss, = self.ax_energy.plot([], [], color='#ff3333', linestyle='--', lw=2, label="Energy Loss (ΔE)") # TRACKER ADDITION
         
         if self.eq_name in ['wave', 'shallow_water']:
             self.ax_energy.set_title("System Energy Separation", fontsize=12, fontweight='bold')
@@ -93,25 +97,26 @@ class TempestVisualizer:
             self.ax_energy.set_title("Total Energy Track (Scalar Field)", fontsize=12, fontweight='bold')
             
         self.ax_energy.legend(loc="upper right")
-        
-        plt.tight_layout()
-        self.fig.subplots_adjust(wspace=0.3)
 
     def render_frame(self, frame_idx, state, current_time, scheme_name, energies=None):
+        pe, ke, total_e = energies
         
+        # --- FIX: FLUSH CACHES ON ANIMATION LOOP RESET ---
         if frame_idx == 0:
             self.time_history.clear()
             self.pe_history.clear()
             self.ke_history.clear()
             self.total_history.clear()
-            self.history_matrix.fill(0)
-        
+            self.loss_history.clear()        # TRACKER ADDITION
+            self.initial_energy = total_e     # TRACKER ADDITION: Freeze baseline state at frame 0
+            self.history_matrix.fill(0) 
+            
         display_y = state[0] if self.ndim > 1 else state
-        pe, ke, total_e = energies
         
         # 1. Update standard profile plots
         self.line_pos.set_data(np.arange(self.nx), display_y)
         
+        # Fix: Check actual row counts to prevent scalar PDE crashes
         if state.shape[0] > 1:
             if self.eq_name == 'shallow_water':
                 h_field = state[0]
@@ -127,22 +132,26 @@ class TempestVisualizer:
             self.history_matrix[frame_idx] = display_y
             self.im.set_data(self.history_matrix)
             
-        # 3. Append and update Energy History Lines
+        # 3. Calculate and Append Energy History Lines
+        energy_loss = self.initial_energy - total_e   # TRACKER ADDITION: ΔE calculation
+        
         self.time_history.append(current_time)
         self.pe_history.append(pe)
         self.ke_history.append(ke)
         self.total_history.append(total_e)
+        self.loss_history.append(energy_loss)         # TRACKER ADDITION
         
         self.line_pe.set_data(self.time_history, self.pe_history)
         self.line_ke.set_data(self.time_history, self.ke_history)
         self.line_total.set_data(self.time_history, self.total_history)
+        self.line_loss.set_data(self.time_history, self.loss_history) # TRACKER ADDITION
         
         if len(self.time_history) > 1:
             self.ax_energy.set_xlim(0, max(self.time_history))
             if self.eq_name in ['diffusion', 'advection']:
-                all_energies = self.total_history
+                all_energies = self.total_history + self.loss_history
             else:
-                all_energies = self.pe_history + self.ke_history + self.total_history
+                all_energies = self.pe_history + self.ke_history + self.total_history + self.loss_history
             
             min_e, max_e = min(all_energies), max(all_energies)
             margin = max(0.1, 0.2 * (max_e - min_e))
@@ -155,9 +164,10 @@ class TempestVisualizer:
             f"FRAME: {frame_idx:03d}\n"
             f"SOLVER: {scheme_name.upper()}\n"
             f"CFL RATIO: {cfl:.3f}\n"
-            f"NET ENERGY: {total_e:.2f}J"
+            f"NET ENERGY: {total_e:.2f}J\n"
+            f"ENERGY LOSS: {energy_loss:.2f}J"       # TRACKER ADDITION
         )
         
-        # CRITICAL FOR BLITTING: Must return all active line handles updated this frame
+        # Returned handles tuple for blitting configuration tracking
         return (self.line_pos, self.line_vel, self.im, 
-                self.line_pe, self.line_ke, self.line_total, self.txt)
+                self.line_pe, self.line_ke, self.line_total, self.line_loss, self.txt)

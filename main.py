@@ -10,12 +10,13 @@ from Experiments import init_conditions
 
 #Run the engine
 grid.grid1d(
-    init_state=init_conditions.shallow_dam,
-    boundary=boundaries.reflect,    
-    operator=operators.laplacian,      
-    equation=equations.shallow_water,  
-    integrator=integrators.lax,
+    init_state=init_conditions.advec_gauss,
+    boundary=boundaries.periodic,    
+    operator=operators.gradient,      
+    equation=equations.advection,  
+    integrator=integrators.rk4,
     coefficient=1.0,
     dt=0.01,                  
     dx=1.0                  
 )
+
