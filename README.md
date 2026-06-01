@@ -90,9 +90,16 @@ Furthermore, the study highlights that energy conservation alone is not a suffic
 ## Planned Features
 1. Validation against analytical solutions for wave propagation, diffusion, and shallow water equations.
 2. Higher-order conservative schemes (Lax-Wendroff, Rusanov).
-3. Convergence and accuracy studies.
+3. Convergence study.
 4. Generalized multi-field framework.
 5. 2D structured grids.
+
+## Future Scientific ML Directions
+
+- Neural PDE surrogates
+- Physics-informed neural networks
+- Neural operators
+- Hybrid numerical-learned solvers
 
 ---
 
