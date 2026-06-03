@@ -7,7 +7,7 @@ class TempestVisualizer:
         self.dt = dt
         self.eq_name = eq_name
         self.ndim = initial_state.ndim
-        self.max_frames = 200
+        self.max_frames = 500
         self.nx = initial_state.shape[-1]
         
         # 1. Setup Live Data History Vaults

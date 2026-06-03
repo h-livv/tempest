@@ -7,21 +7,79 @@ def relative_error(numerical, analytical):
     return (np.linalg.norm(numerical - analytical)/np.linalg.norm(analytical))
     
 
-def validation(equation, state, init_condition, N, x, t, c):
+def validation(equation, state, init_condition, N, x, t, c, bound_func):
     
     if equation.__name__ == "advection":
+        #Calculates length of the domain
         L = x[-1] - x[0]
 
+        # x - c*t is the shape of the wave at time t
+        # -x[0] to set the coordinates to 0
+        # %L to shift the out of bounds points back into [0,L]
+        # +x[0] to reset the coordinates
         x_shifted = (x - c*t - x[0]) % L + x[0]
         analytic_state = init_condition(N, x_shifted)[0]
     
         l2 = l2_error(state, analytic_state)
         relative = relative_error(state, analytic_state)
         max_error = np.max(np.abs(state - analytic_state))
+
+    if equation.__name__ == "wave":
+        L = x[-1] - x[0]
+        boundary = bound_func.__name__
         
-        #if equation.__name__ == "wave":
+        x_minus = x - c * t #moving to the right
+        x_plus  = x + c * t #moving to the left
+        
+        if boundary == "periodic":
+            x_R = (x_minus - x[0]) % L + x[0]
+            x_L = (x_plus - x[0]) % L + x[0]
             
-    
+            analytic_state = 0.5 * (init_condition(N, x_R)[0] + init_condition(N, x_L)[0])
+            
+        elif boundary == 'reflect':
+            def map_reflective(x_val):
+                rel_x = (x_val - x[0]) % (2 * L)
+                mask = rel_x > L
+                mapped = rel_x.copy()
+                mapped[mask] = 2 * L - rel_x[mask]
+                return mapped + x[0]
+            
+            analytic_state = 0.5 * (init_condition(N, map_reflective(x_minus))[0] + init_condition(N, map_reflective(x_plus))[0])
+            
+        elif boundary == "constant":
+            def map_constant(x_val):
+                rel_x = (x_val - x[0]) % (2 * L)
+                mask = rel_x > L
+                mapped = rel_x.copy()
+                mapped[mask] = 2 * L - rel_x[mask]
+                
+                sign = np.ones_like(x_val)
+                sign[mask] = -1.0
+                return mapped + x[0], sign
+            
+            x_R, sign_R = map_constant(x_minus)
+            x_L, sign_L = map_constant(x_plus)
+            
+            analytic_state = 0.5 * (sign_R * init_condition(N, x_R)[0] + sign_L * init_condition(N, x_L)[0])
+                
+        
+        elif boundary == "edge":
+            x_R = np.clip(x_minus, x[0], x[-1])
+            x_L = np.clip(x_plus, x[0], x[-1])
+            
+            analytic_state = 0.5 * (init_condition(N, x_R)[0] + init_condition(N, x_L)[0])
+            
+        else:
+            raise ValueError(f"Unknown boundary type for wave validation: {boundary}")
+        
+        actual_u = state[0] if (state.ndim > 1 and state.shape[0] == 2) else state
+
+        l2 = l2_error(actual_u, analytic_state)
+        relative = relative_error(actual_u, analytic_state)
+        max_error = np.max(np.abs(actual_u - analytic_state))
+        
+        
     return {"l2_error": l2, "relative_error": relative, "max_error": max_error, "relative": state, "analytic_state": analytic_state}
 
 
