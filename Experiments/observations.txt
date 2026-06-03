@@ -61,3 +61,10 @@ Validation of Linear Advection
 7. Central gradient preserved energy perfectly, but introduced dispersive errors that distorted the shape, leading to higher L2 and relative error.
 8. Upwind introduced numerical diffusion and lost energy but maintained a smooth pulse and hence had relatively lower error.
 9. Conclusion: Gradient --> dispersive, Upwind --> Dissapative
+
+
+Validation of wave propagation
+
+1. Implemented analytical comparision for all boundary conditions.
+2. Large spikes during interference and at boundaries. Most definitely a numerical artifact.
+3. Must explore less diffusive operator schemes.

@@ -34,3 +34,8 @@
 4. Conducted a detailed comparison between the central gradient and upwind operators for linear advection.
 5. Identified a domain mismatch between the numerical and analytical domains.
 6. Established error metrics and demonstrate that energy conservation alone is not a sufficient measure of numerical accuracy.
+
+3 JUN 2026
+
+1. Implemented validation against analytical solutions for wave propagation for all boundary conditions.
+2. Found that error is very volatile, spiking at interference and boundaries.

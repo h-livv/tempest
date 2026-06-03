@@ -18,15 +18,16 @@ def grid1d(init_state, boundary, operator, equation, integrator, coefficient, dt
     #Visualizations handled by the graph file
     visualizer = TempestVisualizer(state, dx, dt, equation.__name__)
     
-    if equation.__name__ == 'advection' and boundary.__name__ == 'reflect' and operator.__name__ == 'gradient':
+    if equation.__name__ == 'advection' and (boundary.__name__ == 'reflect' or boundary.__name__ == 'edge' or boundary.__name__ == 'constant'):
         raise ValueError(
-            "BOUNDARY CONDITION ERROR: It is advised to not use the condition 'reflect' and operator 'gradient' with advection as this violates physical behaviour"
+            '''BOUNDARY CONDITION ERROR: It is advised to only use the condition 'periodic' with advection as this most closely replicates physical
+            behaviour and enables validation and convergence study.'''
         )
     
     if equation.__name__ == 'diffusion':
         STEPS_PER_FRAME = 2000
     else:
-        STEPS_PER_FRAME = 500
+        STEPS_PER_FRAME = 200
         
     time_data = []
     disp = []
@@ -45,7 +46,7 @@ def grid1d(init_state, boundary, operator, equation, integrator, coefficient, dt
         for _ in range(STEPS_PER_FRAME):
             state = integrator(state, current_time, dt, dx, boundary, operator, equation, coefficient)
         
-        results = validation.validation(equation, state[0], init_conditions.advec_gauss, N, x, current_time, coefficient)
+        results = validation.validation(equation, state[0], init_conditions.advec_gauss, N, x, current_time, coefficient, boundary)
         
         time_data.append(current_time)
         disp.append(x)
@@ -54,8 +55,10 @@ def grid1d(init_state, boundary, operator, equation, integrator, coefficient, dt
         relative_state.append(results["relative"])
         analytic_state.append(results["analytic_state"])
         
-        print("Numerical peak:", np.argmax(state))
-        print("Expected peak:", N/2 + coefficient*current_time)
+        print(results["max_error"])
+        
+        '''print("Numerical peak:", np.argmax(state))
+        print("Expected peak:", N/2 + coefficient*current_time)'''
             
         energies = stability.tracking(state, dx, boundary, equation.__name__, coefficient)
         
@@ -86,18 +89,18 @@ def grid1d(init_state, boundary, operator, equation, integrator, coefficient, dt
         "l2_error": l2_data,
         "relative_error": rel_data
             })
-        
-    df.to_csv("Results/advection/advection_validation.csv", index=False)
     
-    np.save(
-    "Results/advection/numerical_states.npy",
-    np.array(relative_state)
-)
-
-    np.save(
-        "Results/advection/analytic_states.npy",
-        np.array(analytic_state)
-    )
+    if equation.__name__ == 'advection':
+        df.to_csv("Results/advection/advection_validation.csv", index=False)
+    
+    if equation.__name__ == 'wave':
+        df.to_csv("Results/wave/wave_validation.csv", index=False)
+        
+    if equation.__name__ == 'diffusion':
+        df.to_csv("Results/diffusion/diffusion_validation.csv", index=False)
+        
+    if equation.__name__ == 'shallow_water':
+        df.to_csv("Results/shallow/shallow_validation.csv", index=False)
         
 
     
