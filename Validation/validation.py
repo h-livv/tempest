@@ -79,6 +79,55 @@ def validation(equation, state, init_condition, N, x, t, c, bound_func):
         relative = relative_error(actual_u, analytic_state)
         max_error = np.max(np.abs(actual_u - analytic_state))
         
+    elif equation.__name__ == "diffusion":
+        L = x[-1] - x[0]
+        boundary = bound_func.__name__
+        
+        u0 = init_condition(N, x)[0]
+        x_c = x[np.argmax(u0)]
+        
+        # Sample non-peak grid points to isolate the coefficient 'a' from: u = exp(-a*(x-xc)^2)
+        curve_mask = (u0 > 0.01) & (u0 < 0.99)
+        if np.any(curve_mask):
+            a_estimates = -np.log(u0[curve_mask]) / (x[curve_mask] - x_c)**2
+            a = float(np.nanmean(a_estimates[np.isfinite(a_estimates)]))
+        else:
+            a = 100.0  # Safe fallback matching your physical coordinate setup
+            
+        # 2. Infinite-domain analytical Gaussian diffusion equation
+        def u_inf(x_arr, t_val, center):
+            if t_val == 0:
+                return np.exp(-a * (x_arr - center)**2)
+            variance_factor = 1.0 + 4.0 * a * c * t_val
+            return (1.0 / np.sqrt(variance_factor)) * np.exp(-a * (x_arr - center)**2 / variance_factor)
+
+        # 3. Sum over neighboring mirror images to satisfy boundary conditions
+        analytic_state = np.zeros_like(x, dtype=float)
+        
+        # Summing from -3 to 3 covers 7 virtual worlds (perfect for machine precision accuracy)
+        for m in range(-3, 4):
+            if boundary == "periodic":
+                # Periodic images repeat every full domain length
+                analytic_state += u_inf(x, t, x_c + m * L)
+                
+            elif boundary in ["reflect", "edge"]:
+                # Rigid walls: add overlapping right-side-up mirror profiles
+                analytic_state += u_inf(x, t, x_c + 2 * m * L)
+                analytic_state += u_inf(x, t, 2 * x[0] - x_c + 2 * m * L)
+                
+            elif boundary == "constant":
+                # Fixed walls (u=0): subtract inverted mirror profiles to force cancellation at boundaries
+                analytic_state += u_inf(x, t, x_c + 2 * m * L)
+                analytic_state -= u_inf(x, t, 2 * x[0] - x_c + 2 * m * L)
+                
+            else:
+                raise ValueError(f"Unknown boundary type for diffusion validation: {boundary}")
+
+        actual_u = state[0] if (state.ndim > 1 and state.shape[0] == 2) else state
+        l2 = l2_error(actual_u, analytic_state)
+        relative = relative_error(actual_u, analytic_state)
+        max_error = np.max(np.abs(actual_u - analytic_state))
+        
         
     return {"l2_error": l2, "relative_error": relative, "max_error": max_error, "relative": state, "analytic_state": analytic_state}
 

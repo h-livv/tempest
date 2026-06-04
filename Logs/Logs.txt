@@ -39,3 +39,8 @@
 
 1. Implemented validation against analytical solutions for wave propagation for all boundary conditions.
 2. Found that error is very volatile, spiking at interference and boundaries.
+
+4 JUN 2026
+
+1. Implemented validation against analytical solutions for diffusion for all boundary conditions.
+2. Found error to steadily decrease with time.
