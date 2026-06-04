@@ -10,10 +10,10 @@ from Experiments import init_conditions
 
 #Run the engine
 grid.grid1d(
-    init_state=init_conditions.wave_gauss,
-    boundary=boundaries.reflect,    
+    init_state=init_conditions.diff_gauss,
+    boundary=boundaries.constant,    
     operator=operators.laplacian,      
-    equation=equations.wave,  
+    equation=equations.diffusion,  
     integrator=integrators.rk4,
     coefficient=1.0,
     dt=0.01,                  
