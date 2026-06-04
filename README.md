@@ -42,6 +42,7 @@ Diagnostics
 Implemented:
 - Linear advection
 - Wave propagation
+- Diffusion
 
 Key findings:
 - Energy conservation alone is not a sufficient measure of numerical accuracy.
