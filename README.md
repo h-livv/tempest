@@ -66,7 +66,7 @@ These studies validate the numerical accuracy of the simulation and verify that 
 
 Observed that the slope of log(error) vs log(dx) approaches theoretical the order of convergence, validating the accuracy of the simulation.
 
-Detailed studies available in /Results and /docs
+Detailed convergence studies available in /Results and /docs
 
 ---
 
