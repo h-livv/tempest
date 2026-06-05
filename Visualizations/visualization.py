@@ -2,13 +2,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class TempestVisualizer:
-    def __init__(self, initial_state, dx, dt, eq_name):
+    def __init__(self, initial_state, dx, dt, eq_name, max_frames, steps_per_frame):
         self.dx = dx
         self.dt = dt
         self.eq_name = eq_name
+        self.max_frames = max_frames
+        self.steps_per_frame = steps_per_frame
         self.ndim = initial_state.ndim
-        self.max_frames = 500
         self.nx = initial_state.shape[-1]
+        self.x = np.arange(self.nx) * self.dx
         
         # 1. Setup Live Data History Vaults
         self.time_history = []
@@ -31,7 +33,7 @@ class TempestVisualizer:
         self.fig.suptitle("Project Tempest: Computational Fluid & Wave Dashboard", fontsize=14, fontweight='bold')
 
         # --- PANEL 1: LIVE SIMULATION ---
-        self.ax_live.set_xlim(0, self.nx)
+        self.ax_live.set_xlim(0, self.nx * self.dx)
         self.ax_live.grid(True, linestyle='--', alpha=0.5)
         self.ax_live.set_xlabel("Spatial Domain (x)")
         
@@ -71,7 +73,9 @@ class TempestVisualizer:
         vmax_val = 3.0 if self.eq_name == 'shallow_water' else 1.0
         self.im = self.ax_map.imshow(
             self.history_matrix, aspect='auto', cmap='inferno',
-            extent=[0, self.nx, self.max_frames * self.dt, 0], vmin=0.0, vmax=vmax_val
+            extent=[0, self.nx * self.dx,
+        self.max_frames * self.dt * self.steps_per_frame,
+        0], vmin=0.0, vmax=vmax_val
         )
         self.ax_map.set_title("Space-Time Fingerprint Matrix", fontsize=12, fontweight='bold')
         self.ax_map.set_xlabel("Spatial Domain (x)")
@@ -114,7 +118,7 @@ class TempestVisualizer:
         display_y = state[0] if self.ndim > 1 else state
         
         # 1. Update standard profile plots
-        self.line_pos.set_data(np.arange(self.nx), display_y)
+        self.line_pos.set_data(self.x, display_y)
         
         # Fix: Check actual row counts to prevent scalar PDE crashes
         if state.shape[0] > 1:
@@ -123,9 +127,9 @@ class TempestVisualizer:
                 q_field = state[1]
                 eps = 1e-5
                 velocity_display = np.where(h_field > eps, q_field / h_field, 0.0)
-                self.line_vel.set_data(np.arange(self.nx), velocity_display)
+                self.line_vel.set_data(self.x, velocity_display)
             else:
-                self.line_vel.set_data(np.arange(self.nx), state[1])
+                self.line_vel.set_data(self.x, state[1])
             
         # 2. Append history matrix data
         if frame_idx < self.max_frames:
