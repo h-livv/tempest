@@ -1,4 +1,4 @@
-# Project Tempest
+# Tempest
 A modular computational framework for simulating and validating non-linear dynamical systems using numerical PDE evolution methods. Implemented from scratch in Python using NumPy and Matplotlib.
 
 ---
@@ -34,6 +34,7 @@ Diagnostics
 - Energy tracking
 - Stability monitoring
 - Analytical validation tools
+- Automated data extraction pipeline
 
 ---
 
@@ -51,13 +52,31 @@ Key findings:
 - Central schemes exhibit numerical dispersion.
 - Numerical solutions converge toward analytical solutions under mesh refinement.
 
-Detailed validation studies are available in /Results
+Detailed validation studies are available in /Results and /docs
+
+---
+
+## Convergence study
+
+Implemented convergence study for:
+- Advection
+- Wave propagation
+
+These studies validate the numerical accuracy of the simulation and verify that the solutions converge.
+
+Observed that the slope of:
+
+**log(error) vs log(dx)**
+
+approaches the theoretical order of convergence, confirming correct implementation and expected behaviour.
+
+Detailed convergence studies available in /Results and /docs
 
 ---
 
 ## Module overview:
-1. **grid.py**
-* Describes the 1D grid and initial conditions.
+1. **solver.py**
+* The main PDE evolution engine.
   
 2. **boundaries.py**
 * Various boundary conditions to experiment with. Includes edge, constant, periodic and reflected.
@@ -81,7 +100,6 @@ Detailed validation studies are available in /Results
 * Code for comparison with analytical solutions.
 
 ---
-
 
 ## Roadmap
 ### Near-term
