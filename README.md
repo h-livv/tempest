@@ -66,9 +66,7 @@ These studies validate the numerical accuracy of the simulation and verify that 
 
 Observed that the slope of:
 
-[
-\log(\text{error}) \text{ vs } \log(dx)
-]
+**log(error) vs log(dx)**
 
 approaches the theoretical order of convergence, confirming correct implementation and expected behaviour.
 
