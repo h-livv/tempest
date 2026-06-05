@@ -44,3 +44,9 @@
 
 1. Implemented validation against analytical solutions for diffusion for all boundary conditions.
 2. Found error to steadily decrease with time.
+
+5 JUN 2026
+
+1. Implemented a data generation pipeline that takes in several initial conditions and outputs error data for all possible combinations.
+2. Carried out convergence study for advection and wave propagation. Satisfactory results for advection but must investigate wave in detail.
+3. Detailed excel sheet available in /Results

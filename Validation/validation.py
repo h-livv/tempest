@@ -3,29 +3,29 @@ import numpy as np
 def l2_error(numerical, analytical):
     return np.sqrt(np.mean((numerical - analytical)**2))
 
-def relative_error(numerical, analytical):
-    return (np.linalg.norm(numerical - analytical)/np.linalg.norm(analytical))
+def l1_error(numerical, analytical):
+    return (np.mean(np.abs(numerical - analytical)))
     
 
-def validation(equation, state, init_condition, N, x, t, c, bound_func):
+def validation(equation, state, init_condition, N, x, t, c, bound_func, dx):
     
     if equation.__name__ == "advection":
         #Calculates length of the domain
-        L = x[-1] - x[0]
+        L = N * dx
 
         # x - c*t is the shape of the wave at time t
         # -x[0] to set the coordinates to 0
         # %L to shift the out of bounds points back into [0,L]
-        # +x[0] to reset the coordinates
+        # +x[0] to reset the coordinates-
         x_shifted = (x - c*t - x[0]) % L + x[0]
         analytic_state = init_condition(N, x_shifted)[0]
     
         l2 = l2_error(state, analytic_state)
-        relative = relative_error(state, analytic_state)
+        l1 = l1_error(state, analytic_state)
         max_error = np.max(np.abs(state - analytic_state))
 
     if equation.__name__ == "wave":
-        L = x[-1] - x[0]
+        L = N * dx
         boundary = bound_func.__name__
         
         x_minus = x - c * t #moving to the right
@@ -76,11 +76,11 @@ def validation(equation, state, init_condition, N, x, t, c, bound_func):
         actual_u = state[0] if (state.ndim > 1 and state.shape[0] == 2) else state
 
         l2 = l2_error(actual_u, analytic_state)
-        relative = relative_error(actual_u, analytic_state)
+        l1 = l1_error(actual_u, analytic_state)
         max_error = np.max(np.abs(actual_u - analytic_state))
         
     elif equation.__name__ == "diffusion":
-        L = x[-1] - x[0]
+        L = N * dx
         boundary = bound_func.__name__
         
         u0 = init_condition(N, x)[0]
@@ -125,11 +125,11 @@ def validation(equation, state, init_condition, N, x, t, c, bound_func):
 
         actual_u = state[0] if (state.ndim > 1 and state.shape[0] == 2) else state
         l2 = l2_error(actual_u, analytic_state)
-        relative = relative_error(actual_u, analytic_state)
+        l1 = l1_error(actual_u, analytic_state)
         max_error = np.max(np.abs(actual_u - analytic_state))
         
         
-    return {"l2_error": l2, "relative_error": relative, "max_error": max_error, "relative": state, "analytic_state": analytic_state}
+    return {"l2_error": l2, "l1_error": l1, "max_error": max_error, "relative": state, "analytic_state": analytic_state}
 
 
     

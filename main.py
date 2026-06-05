@@ -1,6 +1,6 @@
 #Module imports
 import numpy as np
-from Core import grid
+from Core import solver
 from Core import boundaries
 from Core import operators
 from Core import equations
@@ -9,7 +9,8 @@ from Experiments import init_conditions
 
 
 #Run the engine
-grid.grid1d(
+solver.solver(
+    N=500,
     init_state=init_conditions.diff_gauss,
     boundary=boundaries.constant,    
     operator=operators.laplacian,      
