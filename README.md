@@ -64,7 +64,13 @@ Implemented convergence study for:
 
 These studies validate the numerical accuracy of the simulation and verify that the solutions converge.
 
-Observed that the slope of log(error) vs log(dx) approaches theoretical the order of convergence, validating the accuracy of the simulation.
+Observed that the slope of:
+
+[
+\log(\text{error}) \text{ vs } \log(dx)
+]
+
+approaches the theoretical order of convergence, confirming correct implementation and expected behaviour.
 
 Detailed convergence studies available in /Results and /docs
 
@@ -72,7 +78,7 @@ Detailed convergence studies available in /Results and /docs
 
 ## Module overview:
 1. **solver.py**
-* The main solver.
+* The main PDE evolution engine.
   
 2. **boundaries.py**
 * Various boundary conditions to experiment with. Includes edge, constant, periodic and reflected.
