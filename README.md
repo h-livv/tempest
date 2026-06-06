@@ -60,7 +60,6 @@ Detailed validation studies are available in /Results and /docs
 
 Implemented convergence study for:
 - Advection
-- Wave propagation
 
 These studies validate the numerical accuracy of the simulation and verify that the solutions converge.
 
@@ -75,28 +74,37 @@ Detailed convergence studies available in /Results and /docs
 ---
 
 ## Module overview:
-1. **solver.py**
+1. **main.py**
+* Consists of the main data pipeline in which multiple combinations of parameters can be passed into.
+
+2. **direct_solver.py**
+* Directly view the visualization without any diagnostic data generated.
+
+3. **solver.py**
 * The main PDE evolution engine.
   
-2. **boundaries.py**
+4. **boundaries.py**
 * Various boundary conditions to experiment with. Includes edge, constant, periodic and reflected.
 
-3. **operators.py**
+5. **operators.py**
 * Finite-difference spatial operators. Includes the gradient, laplacian, upwind.
 
-4. **equations.py**
+6. **equations.py**
 * Contains the governing physical equations. Includes advection, diffusion, wave propagation, and shallow water equations.
 
-5. **integrators.py**
+7. **integrators.py**
 * Contains the integrators used to evolve the grid state over time. Includes Euler, RK4, Leapfrog, and Lax-Friedrichs.
 
-6. **visualization.py**
+8. **init_conditions.py**
+* Contains multiple intial conditions to experiment with. Both uniform and irregular.
+
+9. **visualization.py**
 * Handles all visualization.
 
-7. **stability.py**
+10. **stability.py**
 * Computes diagnostics such as energy, conservation parameters, and numerical stability indicators.
 
-8. **validation.py**
+11. **validation.py**
 * Code for comparison with analytical solutions.
 
 ---
