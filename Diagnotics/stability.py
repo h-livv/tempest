@@ -2,6 +2,7 @@ import numpy as np
 from Core import operators
 
 def tracking(state, dx, boundary, equation, coefficient):
+    #equation is expected as a string name passed from the solver
     
     c = coefficient
     
