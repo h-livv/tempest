@@ -7,7 +7,6 @@ def euler(state, t, dt, dx, boundary, operator, equation, coefficient):
     state_futr = state + (dudt*dt) #Future state
     return state_futr
     
-
 #RK4 integration
 def rk4(state, t, dt, dx, boundary, operator, equation, coefficient):
     
@@ -19,11 +18,10 @@ def rk4(state, t, dt, dx, boundary, operator, equation, coefficient):
     state_futr = state + (k1 + 2*k2 + 2*k3 + k4)*(dt/6.0)
     return state_futr
 
-    
 #Leapfrog
 def leapfrog(state, t, dt, dx, boundary, operator, equation, coefficient):
 
-    if state.ndim < 2:
+    if state.shape[0] < 2:
         raise ValueError(
             "Leapfrog integration requires a multi-state coupled system matrix "
             "(like the Wave Equation) to separate positions and velocities."
@@ -42,17 +40,18 @@ def leapfrog(state, t, dt, dx, boundary, operator, equation, coefficient):
     return np.vstack([state_futr, dstatedt])
     
 def lax(state, t, dt, dx, boundary, operator, equation, coefficient):
-    # 1. Transform variables if the function has transformation mappings
+    # 1. Transform variables if the function has transformation mappings (primitive to conservative)
+    #Checks if the input equation has a "to_conservative" attribute, only then applies this transformation
     cons_state = equation.to_conservative(state) if hasattr(equation, "to_conservative") else state
 
-    # 2. Apply boundary conditions
-    padded_cons = boundary(cons_state)
+    # 2. Compute physical fluxes via the attached attribute
+    flux = equation.flux(cons_state) if hasattr(equation, "flux") else equation(t, cons_state, dx, boundary, operator, coefficient)
 
-    # 3. Compute physical fluxes via the attached attribute
-    flux = equation.flux(padded_cons)
+    # 3. Spacetime update step 
+    avg_term = operators.spatial_average(cons_state, boundary)
+    div_term = operators.central_flux_divergence(flux, dx, boundary)
+    
+    cons_next = avg_term - dt * div_term
 
-    # 4. Spacetime update step via pure math stencils
-    cons_next = operators.spatial_average(padded_cons) - dt * operators.central_flux_divergence(flux, dx)
-
-    # 5. Transform back to primitive variables for visualization
+    # 4. Transform back to primitive variables for pipeline visualization
     return equation.to_primitive(cons_next) if hasattr(equation, "to_primitive") else cons_next
