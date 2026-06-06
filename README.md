@@ -111,11 +111,12 @@ Detailed convergence studies available in /Results and /docs
 
 ## Roadmap
 ### Near-term
-1. Validation against analytical solutions for wave propagation, diffusion, and shallow water equations.
-2. Higher-order and conservative numerical schemes.
-3. Convergence study.
-4. Generalized multi-field framework.
-5. 2D structured grids.
+1. Validation and convergence study for wave propagation and diffusion
+2. Multi-field generalization
+3. Higher-order and conservative numerical schemes
+4. Addition of PDEs such as Burgers' equation
+5. Detailed validation and convergence
+6. Proceeding towards 2D expansion or ML research
 
 ### Long-term ML research directions
 - Neural PDE surrogates
@@ -125,7 +126,8 @@ Detailed convergence studies available in /Results and /docs
 
 ---
 
-**configurations.txt** includes stable configurations that can directly be implemented. <br>
+**docs** consists of details analysis of studies carried out on validation and convergence. <br>
+**Results** contains validation studies, numerical comparisons and outputs. <br>
 **observations.txt** includes behaviour observed using different initial conditions, operators, equations, and integrators. <br>
-**logs.txt** contains progress logs.<br>
-**Results** contains validation studies, numerical comparisons and outputs.
+**logs.txt** contains progress logs. <br?
+**configurations.txt** includes stable configurations that can directly be implemented.
