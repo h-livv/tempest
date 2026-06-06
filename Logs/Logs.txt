@@ -50,3 +50,9 @@
 1. Implemented a data generation pipeline that takes in several initial conditions and outputs error data for all possible combinations.
 2. Carried out convergence study for advection and wave propagation. Satisfactory results for advection but must investigate wave in detail.
 3. Detailed excel sheet available in /Results
+
+6 JUN 2026
+
+1. Detailed analysis of convergence study for advection available in /docs
+2. Cleaned up code and implemented much better interactions between modules
+3. Everything up and running, no observable bugs or errors
