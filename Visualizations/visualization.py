@@ -1,13 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 class TempestVisualizer:
-    def __init__(self, initial_state, dx, dt, eq_name, max_frames, steps_per_frame):
+    def __init__(self, initial_state, dx, dt, eq_name, max_frames, steps_per_frame, start_delay=0.0):
         self.dx = dx
         self.dt = dt
         self.eq_name = eq_name
         self.max_frames = max_frames
         self.steps_per_frame = steps_per_frame
+        self.start_delay = start_delay
         self.ndim = initial_state.ndim
         self.nx = initial_state.shape[-1]
         self.x = np.arange(self.nx) * self.dx
@@ -64,8 +66,8 @@ class TempestVisualizer:
 
         # Telemetry Box Layout
         self.txt = self.ax_live.text(
-            0.02, 0.05, "", transform=self.ax_live.transAxes,
-            color="white", fontsize=10, fontfamily="monospace",
+            0.02, 0.96, "", transform=self.ax_live.transAxes, verticalalignment='top',    # Anchors the text from the top edge of the bounding box
+            horizontalalignment='left', color="white", fontsize=9, fontfamily="monospace",
             bbox=dict(facecolor="#333333", alpha=0.8, edgecolor="none")
         )
 
@@ -178,5 +180,17 @@ class TempestVisualizer:
             f"ENERGY LOSS: {energy_loss:.2f}J"
         )
         
+        # ... your existing step 5 code: self.txt.set_text(...) ...
+        
+        # 6. Recording Guard: Catch frame 0, paint canvas, and hold
+        if frame_idx == 0 and self.start_delay > 0:
+            self.fig.canvas.draw_idle() 
+            plt.pause(0.001) # Forces Matplotlib to completely render the window UI
+            
+            import time
+            print(f"Dashboard primed. Holding Frame 0 static for {self.start_delay}s for screen capture...")
+            time.sleep(self.start_delay)
+            print("Simulation timeline released!")
+
         return (self.line_pos, self.line_vel, self.im, 
                 self.line_pe, self.line_ke, self.line_total, self.line_loss, self.txt)

@@ -1,0 +1,18 @@
+#Module imports
+from Core import boundaries, operators, equations, integrators, init_conditions
+
+#Define stable grid configurations (protects CFL stability)
+grid_configs = [
+    {"N": 1000, "dx": 0.5, "dt": 0.05}
+]
+
+#Define custom conditions for automated pipeline, as many parameters as required
+initial_conditions = [init_conditions.shallow_dam]
+boundary_functions = [boundaries.reflect]
+operators_list = [operators.central_flux_divergence]
+equations_list = [equations.shallow_water]
+integrators_list = [integrators.lax]
+coefficients = [1.0]
+
+FINAL_TIME = 2500
+STEPS_PER_FRAME = 50
