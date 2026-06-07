@@ -3,11 +3,14 @@ A modular computational framework for simulating and validating non-linear dynam
 
 ---
 
-## Visualization of wave propagation:
-<img width="800" height="400" alt="wave" src="https://github.com/user-attachments/assets/0bed2341-91ac-4105-8c7a-5daf75434808" />
+## Shallow water equations - Dam break
+<img width="2000" height="400" alt="shallow_dam" src="https://github.com/user-attachments/assets/af5b4136-dcfb-4e13-9077-32decffff339" />
 
-## Visualization of diffusion (can be thought of as heat transfer on a rod):
-<img width="800" height="400" alt="diffusion" src="https://github.com/user-attachments/assets/0499a55e-ed35-4412-908b-2be0d51250c2" />
+## Diffusion - Heat transfer on a rod
+<img width="2000" height="400" alt="diffusion" src="https://github.com/user-attachments/assets/825feab3-8dcf-4c4b-88e2-2863c8853a0c" />
+
+## Wave propagation - Disturbance on a string
+<img width="2000" height="400" alt="wave_prop" src="https://github.com/user-attachments/assets/f0800786-4009-43ce-a661-33874ac1b61d" />
 
 ---
 
@@ -60,7 +63,6 @@ Detailed validation studies are available in /Results and /docs
 
 Implemented convergence study for:
 - Advection
-- Wave propagation
 
 These studies validate the numerical accuracy of the simulation and verify that the solutions converge.
 
@@ -75,39 +77,49 @@ Detailed convergence studies available in /Results and /docs
 ---
 
 ## Module overview:
-1. **solver.py**
+1. **main.py**
+* Consists of the main data pipeline in which multiple combinations of parameters can be passed into.
+
+2. **direct_solver.py**
+* Directly view the visualization without any diagnostic data generated.
+
+3. **solver.py**
 * The main PDE evolution engine.
   
-2. **boundaries.py**
+4. **boundaries.py**
 * Various boundary conditions to experiment with. Includes edge, constant, periodic and reflected.
 
-3. **operators.py**
+5. **operators.py**
 * Finite-difference spatial operators. Includes the gradient, laplacian, upwind.
 
-4. **equations.py**
+6. **equations.py**
 * Contains the governing physical equations. Includes advection, diffusion, wave propagation, and shallow water equations.
 
-5. **integrators.py**
+7. **integrators.py**
 * Contains the integrators used to evolve the grid state over time. Includes Euler, RK4, Leapfrog, and Lax-Friedrichs.
 
-6. **visualization.py**
+8. **init_conditions.py**
+* Contains multiple intial conditions to experiment with. Both uniform and irregular.
+
+9. **visualization.py**
 * Handles all visualization.
 
-7. **stability.py**
+10. **stability.py**
 * Computes diagnostics such as energy, conservation parameters, and numerical stability indicators.
 
-8. **validation.py**
+11. **validation.py**
 * Code for comparison with analytical solutions.
 
 ---
 
 ## Roadmap
 ### Near-term
-1. Validation against analytical solutions for wave propagation, diffusion, and shallow water equations.
-2. Higher-order and conservative numerical schemes.
-3. Convergence study.
-4. Generalized multi-field framework.
-5. 2D structured grids.
+1. Validation and convergence study for wave propagation and diffusion
+2. Multi-field generalization
+3. Higher-order and conservative numerical schemes
+4. Addition of PDEs such as Burgers' equation
+5. Detailed validation and convergence
+6. Proceeding towards 2D expansion or ML research
 
 ### Long-term ML research directions
 - Neural PDE surrogates
@@ -117,7 +129,8 @@ Detailed convergence studies available in /Results and /docs
 
 ---
 
-**configurations.txt** includes stable configurations that can directly be implemented. <br>
+**docs** consists of detailed analysis of studies carried out on validation and convergence. <br>
+**Results** contains validation studies, numerical comparisons and outputs. <br>
 **observations.txt** includes behaviour observed using different initial conditions, operators, equations, and integrators. <br>
-**logs.txt** contains progress logs.<br>
-**Results** contains validation studies, numerical comparisons and outputs.
+**logs.txt** contains progress logs. <br?
+**configurations.txt** includes stable configurations that can directly be implemented.
