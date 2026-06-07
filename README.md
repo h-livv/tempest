@@ -132,5 +132,5 @@ Detailed convergence studies available in /Results and /docs
 **docs** consists of detailed analysis of studies carried out on validation and convergence. <br>
 **Results** contains validation studies, numerical comparisons and outputs. <br>
 **observations.txt** includes behaviour observed using different initial conditions, operators, equations, and integrators. <br>
-**logs.txt** contains progress logs. <br?
+**logs.txt** contains progress logs. <br>
 **configurations.txt** includes stable configurations that can directly be implemented.
