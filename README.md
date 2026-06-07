@@ -4,13 +4,13 @@ A modular computational framework for simulating and validating non-linear dynam
 ---
 
 ## Shallow water equations - Dam break
-<img width="2000" height="400" alt="shallow_water" src="https://github.com/user-attachments/assets/616f3572-be84-46ae-9f24-8d035ceaaa78" />
+<img width="2000" height="400" alt="shallow_dam" src="https://github.com/user-attachments/assets/af5b4136-dcfb-4e13-9077-32decffff339" />
 
 ## Diffusion - Heat transfer on a rod
 <img width="2000" height="400" alt="diffusion" src="https://github.com/user-attachments/assets/825feab3-8dcf-4c4b-88e2-2863c8853a0c" />
 
 ## Wave propagation - Disturbance on a string
-<img width="2000" height="400" alt="wave_prop" src="https://github.com/user-attachments/assets/dfaee77b-a7e1-4116-8c32-01773032c586" />
+<img width="2000" height="400" alt="wave_prop" src="https://github.com/user-attachments/assets/f0800786-4009-43ce-a661-33874ac1b61d" />
 
 ---
 
