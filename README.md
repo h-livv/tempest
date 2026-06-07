@@ -3,11 +3,14 @@ A modular computational framework for simulating and validating non-linear dynam
 
 ---
 
-## Visualization of wave propagation:
-<img width="800" height="400" alt="wave" src="https://github.com/user-attachments/assets/0bed2341-91ac-4105-8c7a-5daf75434808" />
+## Shallow water equations - Dam break
+<img width="2000" height="400" alt="shallow_water" src="https://github.com/user-attachments/assets/616f3572-be84-46ae-9f24-8d035ceaaa78" />
 
-## Visualization of diffusion (can be thought of as heat transfer on a rod):
-<img width="800" height="400" alt="diffusion" src="https://github.com/user-attachments/assets/0499a55e-ed35-4412-908b-2be0d51250c2" />
+## Diffusion - Heat transfer on a rod
+<img width="2000" height="400" alt="diffusion" src="https://github.com/user-attachments/assets/825feab3-8dcf-4c4b-88e2-2863c8853a0c" />
+
+## Wave propagation - Disturbance on a string
+<img width="2000" height="400" alt="wave_prop" src="https://github.com/user-attachments/assets/dfaee77b-a7e1-4116-8c32-01773032c586" />
 
 ---
 
@@ -126,7 +129,7 @@ Detailed convergence studies available in /Results and /docs
 
 ---
 
-**docs** consists of details analysis of studies carried out on validation and convergence. <br>
+**docs** consists of detailed analysis of studies carried out on validation and convergence. <br>
 **Results** contains validation studies, numerical comparisons and outputs. <br>
 **observations.txt** includes behaviour observed using different initial conditions, operators, equations, and integrators. <br>
 **logs.txt** contains progress logs. <br?
