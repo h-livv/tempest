@@ -1,5 +1,5 @@
 #Module imports
-from Core import boundaries, operators, equations, integrators, init_conditions
+from src import boundaries, operators, equations, integrators, init_conditions
 
 #Define stable grid configurations (protects CFL stability)
 grid_configs = [
@@ -15,4 +15,5 @@ integrators_list = [integrators.lax]
 coefficients = [1.0]
 
 FINAL_TIME = 2500
-STEPS_PER_FRAME = 50
+STEPS_PER_FRAME = 50    # animation only
+RECORD_INTERVAL = 50    # metrics: snapshot every N timesteps

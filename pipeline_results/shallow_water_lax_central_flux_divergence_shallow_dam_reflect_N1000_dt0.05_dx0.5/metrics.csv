@@ -1,2 +1,0 @@
-Equation,N,Initial Condition,Boundary Function,DX,DT,L2 Error,Avg L2 Error,Median L2 Error,L1 Error,Avg L1 Error,Median L1 Error,Peak Max Error,log(dx),log(L2),log(mean L2),log(median L2),log(L1),log(mean L1),log(median L1)
-shallow_water,1000,shallow_dam,reflect,0.5,0.05,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-0.6931471805599453,-36.841361487904734,-36.841361487904734,-36.841361487904734,-36.841361487904734,-36.841361487904734,-36.841361487904734

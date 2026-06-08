@@ -3,13 +3,24 @@ import matplotlib.pyplot as plt
 
 
 class TempestVisualizer:
-    def __init__(self, initial_state, dx, dt, eq_name, max_frames, steps_per_frame, start_delay=0.0):
+    def __init__(
+        self,
+        initial_state,
+        dx,
+        dt,
+        eq_name,
+        max_frames,
+        steps_per_frame,
+        start_delay=0.0,
+        final_time=None,
+    ):
         self.dx = dx
         self.dt = dt
         self.eq_name = eq_name
         self.max_frames = max_frames
         self.steps_per_frame = steps_per_frame
         self.start_delay = start_delay
+        self.final_time = final_time if final_time is not None else max_frames * dt * steps_per_frame
         self.ndim = initial_state.ndim
         self.nx = initial_state.shape[-1]
         self.x = np.arange(self.nx) * self.dx
@@ -75,7 +86,7 @@ class TempestVisualizer:
         vmax_val = 3.5 if self.eq_name == 'shallow_water' else 1.0
         self.im = self.ax_map.imshow(
             self.history_matrix, aspect='auto', cmap='inferno',
-            extent=[0, self.nx * self.dx, self.max_frames * self.dt * self.steps_per_frame, 0],
+            extent=[0, self.nx * self.dx, self.final_time, 0],
             vmin=0.0, vmax=vmax_val
         )
         self.ax_map.set_title("Space-Time Fingerprint Matrix", fontsize=12, fontweight='bold')

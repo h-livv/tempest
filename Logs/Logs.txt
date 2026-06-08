@@ -56,3 +56,14 @@
 1. Detailed analysis of convergence study for advection available in /docs
 2. Cleaned up code and implemented much better interactions between modules
 3. Everything up and running, no observable bugs or errors
+
+7 JUN 2026
+
+1. Separated initial parameter input from main.py 
+2. Refined the data automation pipeline.
+
+8 JUN 2026
+
+1. Focused on validation and convergence studies for available PDEs.
+2. Realized that visual and data collection variables are coupled, worked on decoupling them
+3. 

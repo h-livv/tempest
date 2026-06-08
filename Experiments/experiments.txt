@@ -1,3 +1,0 @@
-1. Implement standing waves.
-2. Collect data for dam breaking over multiple configurations.
-3. 
