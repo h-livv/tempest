@@ -13,6 +13,38 @@ A modular computational framework for simulating and validating non-linear dynam
 <img width="2000" height="400" alt="wave_prop" src="https://github.com/user-attachments/assets/f0800786-4009-43ce-a661-33874ac1b61d" />
 
 ---
+## Quick start
+
+```bash
+git clone https://github.com/yourusername/Tempest.git
+cd Tempest
+pip install -r requirements.txt
+```
+Run the direct visualization (no diagnostics):
+```
+python src/direct_solver.py
+```
+Run the full automated data pipeline:
+```
+python main.py configs/{any available configuration}
+```
+---
+
+## Validation & Convergence
+
+Tempest includes an automated continuous testing pipeline to verify physical fidelity and asymptotic convergence.
+
+**Key Findings from the Advection, Diffusion, and Wave Studies:**
+
+* The slope of log(error) vs log(dx) perfectly approaches theoretical truncation limits, confirming implementation integrity.
+* Energy conservation alone is not a sufficient measure of numerical accuracy; boundary consistency between analytical and numerical solutions is equally critical.
+* Spatial operator choice dictates physical artifacts: Upwind schemes introduce numerical diffusion (smearing), while Central schemes introduce numerical dispersion (oscillations).
+
+The full formal methodology paper is available in [docs/validation_study.md](./docs/validation_study.md)
+
+(Detailed numerical outputs, comparisons, and convergence CSVs are available in the /pipeline_results).
+
+---
 
 ## Current capabilities:
 
@@ -22,10 +54,8 @@ Grid Infrastructure
 - Configurable boundary conditions
 
 Numerical Methods
-- Upwind gradients
-- Central gradients
-- Lax-Friedrichs scheme
-- Euler, RK4 and Leapfrog integration
+- **Integration**: Explicit Euler, Runge-Kutta 4 (RK4), Leapfrog, Lax-Friedrichs
+- **Spatial Operators**: Upwind gradients, Central gradients, Laplacian
 
 Physical Systems
 - Linear advection
@@ -36,80 +66,26 @@ Physical Systems
 Diagnostics
 - Energy tracking
 - Stability monitoring
-- Analytical validation tools
 - Automated data extraction pipeline
 
 ---
 
-## Validation & Numerical Findings
-
-Implemented:
-- Linear advection
-- Wave propagation
-- Diffusion
-
-Key findings:
-- Energy conservation alone is not a sufficient measure of numerical accuracy.
-- Boundary consistency between analytical and numerical solutions is essential for meaningful validation.
-- Upwind schemes exhibit numerical diffusion.
-- Central schemes exhibit numerical dispersion.
-- Numerical solutions converge toward analytical solutions under mesh refinement.
-
-Detailed validation studies are available in /Results and /docs
-
----
-
-## Convergence study
-
-Implemented convergence study for:
-- Advection
-
-These studies validate the numerical accuracy of the simulation and verify that the solutions converge.
-
-Observed that the slope of:
-
-**log(error) vs log(dx)**
-
-approaches the theoretical order of convergence, confirming correct implementation and expected behaviour.
-
-Detailed convergence studies available in /Results and /docs
-
----
-
 ## Module overview:
-1. **main.py**
-* Consists of the main data pipeline in which multiple combinations of parameters can be passed into.
 
-2. **direct_solver.py**
-* Directly view the visualization without any diagnostic data generated.
-
-3. **solver.py**
-* The main PDE evolution engine.
-  
-4. **boundaries.py**
-* Various boundary conditions to experiment with. Includes edge, constant, periodic and reflected.
-
-5. **operators.py**
-* Finite-difference spatial operators. Includes the gradient, laplacian, upwind.
-
-6. **equations.py**
-* Contains the governing physical equations. Includes advection, diffusion, wave propagation, and shallow water equations.
-
-7. **integrators.py**
-* Contains the integrators used to evolve the grid state over time. Includes Euler, RK4, Leapfrog, and Lax-Friedrichs.
-
-8. **init_conditions.py**
-* Contains multiple intial conditions to experiment with. Both uniform and irregular.
-
-9. **visualization.py**
-* Handles all visualization.
-
-10. **stability.py**
-* Computes diagnostics such as energy, conservation parameters, and numerical stability indicators.
-
-11. **validation.py**
-* Code for comparison with analytical solutions.
-
+```
+Tempest/
+│
+├── configs/                  # Stored configurations for stable PDE runs
+├── diagnostics/              # Analysis & Verification Tools (energy, stability)
+├── docs/                     # Formal mathematical documentation and studies
+├── pipeline_results/         # Automated CI/CT CSV outputs and validation data
+├── src/                      # Core PDE Evolution Engine (equations, integrators)
+├── visualizations/           # Decoupled matplotlib plotting architecture
+│
+├── main.py                   # Automated data pipeline entry point
+├── README.md                 # Project documentation and quick start guide
+└── requirements.txt          # Minimal dependencies (numpy, pandas, matplotlib)
+```
 ---
 
 ## Roadmap
@@ -128,9 +104,3 @@ Detailed convergence studies available in /Results and /docs
 - Hybrid numerical-learned solvers
 
 ---
-
-**docs** consists of detailed analysis of studies carried out on validation and convergence. <br>
-**Results** contains validation studies, numerical comparisons and outputs. <br>
-**observations.txt** includes behaviour observed using different initial conditions, operators, equations, and integrators. <br>
-**logs.txt** contains progress logs. <br>
-**configurations.txt** includes stable configurations that can directly be implemented.
