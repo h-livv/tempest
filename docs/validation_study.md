@@ -4,7 +4,7 @@
 
 This document summarizes the initial validation and convergence studies conducted using **Tempest**, a modular framework for simulating and analyzing partial differential equations (PDEs) using finite-difference methods.
 
-Three canonical PDE systems were investigated:
+Three PDE systems were investigated:
 - Linear Advection
 - Diffusion
 - Wave Propagation
@@ -27,7 +27,7 @@ The framework evaluates numerical schemes along two complementary dimensions:
 
 For validation studies:
 - a fixed numerical configuration is evolved over time
-- exact analytical solution
+- compared against the exact analytical solution
 - the evolution of the global error norm is tracked
 
 Analytical comparisons were performed using boundary-consistent exact solutions, including periodic wrapping and reflective mappings where applicable.
