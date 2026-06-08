@@ -1,4 +1,22 @@
+# Byte-compiled / optimized / DLL files
 __pycache__/
-core/__pycache__/
-visualizations/__pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+
+# TEMPEST specific development folders
+Logs/
+future/
+
+# Virtual Environments
+venv/
+env/
+.env
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Optional: Ignore massive raw data files if your CSVs are too large for GitHub (uncomment if needed)
+# pipeline_results/**/*.csv
