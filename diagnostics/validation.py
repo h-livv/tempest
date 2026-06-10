@@ -92,7 +92,8 @@ def validation(equation, state, init_condition, N, x, t, c, boundary, dx):
         # Sample non-peak grid points to isolate the coefficient 'a' from: u = exp(-a*(x-xc)^2)
         curve_mask = (u0 > 0.01) & (u0 < 0.99)
         if np.any(curve_mask):
-            a_estimates = -np.log(u0[curve_mask]) / (x[curve_mask] - x_c)**2
+            eps = 1e-5
+            a_estimates = -np.log(u0[curve_mask]) / (x[curve_mask] - x_c + eps)**2
             a = float(np.nanmean(a_estimates[np.isfinite(a_estimates)]))
         else:
             a = 100.0  # Safe fallback matching your physical coordinate setup

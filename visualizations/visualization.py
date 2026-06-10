@@ -203,5 +203,4 @@ class TempestVisualizer:
             time.sleep(self.start_delay)
             print("Simulation timeline released!")
 
-        return (self.line_pos, self.line_vel, self.im, 
-                self.line_pe, self.line_ke, self.line_total, self.line_loss, self.txt)
+        return

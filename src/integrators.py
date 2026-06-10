@@ -39,17 +39,21 @@ def leapfrog(state, t, dt, dx, boundary, operator, equation, coefficient):
     
     return np.vstack([state_futr, dstatedt])
     
-def lax(state, t, dt, dx, boundary, operator, equation, coefficient):
+def lax_f(state, t, dt, dx, boundary, operator, equation, coefficient):
     # 1. Transform variables if the function has transformation mappings (primitive to conservative)
     #Checks if the input equation has a "to_conservative" attribute, only then applies this transformation
     cons_state = equation.to_conservative(state) if hasattr(equation, "to_conservative") else state
+    
+    parity = equation.parity if hasattr(equation, "parity") else [1] * state.shape[0]
+    
+    padded_cons = boundary(cons_state, parity)
 
     # 2. Compute physical fluxes via the attached attribute
-    flux = equation.flux(cons_state) if hasattr(equation, "flux") else equation(t, cons_state, dx, boundary, operator, coefficient)
+    flux = equation.flux(padded_cons) if hasattr(equation, "flux") else equation(t, cons_state, dx, boundary, operator, coefficient)
 
     # 3. Spacetime update step 
-    avg_term = operators.spatial_average(cons_state, boundary)
-    div_term = operators.central_flux_divergence(flux, dx, boundary)
+    avg_term = operators.spatial_average(padded_cons)
+    div_term = operators.central_flux_divergence(flux, dx)
     
     cons_next = avg_term - dt * div_term
 
