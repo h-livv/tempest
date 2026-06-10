@@ -8,7 +8,11 @@ def advection(t, state, dx, boundary, operator, coefficient):
             "You cannot pass 'laplacian' (2nd-order) as its operator."
         )
         
-    dudx = operator(state, dx, boundary, velocity=coefficient) #First derivative of state
+    parity = [1]
+    
+    padded_state = boundary(state, parity)
+    
+    dudx = operator(padded_state, dx, velocity=coefficient) #First derivative of state
     
     dudt = -coefficient*dudx #PDE equation for advection
     
@@ -23,14 +27,19 @@ def wave(t, state, dx, boundary, operator, coefficient):
             "You cannot pass 'gradient' or 'upwind' (1st-order) as its operator."
         )
     
-    #Break the state down into position and velocity
-    u, v = state
+    parity = [1, -1] #Position is symmetric, velocity is asymmetric
     
-    d2udx2 = operator(u, dx, boundary) #Second derivative of state
+    #Break the state down into position and velocity
+    
+    padded_state = boundary(state, parity)
+    
+    u, v = padded_state
+    
+    d2udx2 = operator(u, dx) #Second derivative of state
     
     d2udt2 = (coefficient**2)*d2udx2 #PDE equation for wave propagation
     
-    return np.vstack([v, d2udt2]) #Input = [u, v] Output = [v, a]
+    return np.vstack([state[1], d2udt2]) #Input = [u, v] Output = [v, a]
 
 #Todo: Add diffusion equation
 
@@ -42,7 +51,11 @@ def diffusion(t, state, dx, boundary, operator, coefficient):
             "You cannot pass 'gradient' or 'upwind' (1st-order) as its operator."
         )
         
-    d2udx2 = operator(state, dx, boundary) #Second derivative of state
+    parity = [1]
+    
+    padded_state = boundary(state, parity)
+    
+    d2udx2 = operator(padded_state, dx) #Second derivative of state
     du_dt = coefficient*(d2udx2)
     
     return du_dt
@@ -55,17 +68,23 @@ def shallow_water(t, state, dx, boundary, operator, coefficient):
             "You cannot pass 'laplacian' (2nd-order) as its operator."
         )
     
+    parity = [1,-1]
+    
+    padded_state = boundary(state, parity)
+    
     g = 9.81 
     eps = 1e-5
     
-    h, v = state
+    v_unpadded = state[1]
+    h, v = padded_state
     q = h*v
     q_sq_by_h = np.where(h > eps, (q**2) / h, 0.0)
     
-    dh_dt = -operator(q, dx, boundary)
-    dq_dt = -operator((q_sq_by_h + 0.5*g*(h**2)), dx, boundary)
+    dh_dt = -operator(q, dx)
+    dq_dt = -operator((q_sq_by_h + 0.5*g*(h**2)), dx)
+    dv_dt = -v_unpadded * operator(v, dx) - g * operator(h, dx)
         
-    return np.vstack([dh_dt, dq_dt])
+    return np.vstack([dh_dt, dv_dt])
 
 #Flux calculation for lax-friedrichs
 def _sw_flux(padded_cons):
@@ -89,7 +108,12 @@ def _sw_to_primitive(conservative_state):
     h, q = conservative_state
     eps = 1e-5
     v = np.where(h > eps, q / h, 0.0)
-    return np.vstack([h, v])
+    return np.vstack([h, v])   
+
+advection.parity = [1]          # 1-field: scalar is symmetric
+diffusion.parity = [1]          # 1-field: temperature is symmetric
+wave.parity = [1, -1]           # 2-fields: position (u) is symmetric, velocity (v) is anti-symmetric
+shallow_water.parity = [1, -1]  # 2-fields: height (h) is symmetric, velocity (v) is anti-symmetric
 
 #Connecting back to integrators.py
 shallow_water.flux = _sw_flux

@@ -75,11 +75,10 @@ def diff_gauss(N, x):
 def shallow_peak(N, x):
     ambient_depth = 1.0
     center_idx = N // 2
-    half_width = 1
     
     init_h = np.ones(N) * ambient_depth
 
-    init_h[center_idx - half_width : center_idx + half_width] = 100.0
+    init_h[center_idx] = 100.0
     
     init_v = np.zeros(N)
     init_state = np.vstack([init_h, init_v])
@@ -142,10 +141,8 @@ def shallow_collision(N, x):
     return init_state
 
 #Constant for diagnostic purposes
-def constant(N, x):
-    init_h = np.ones(N)
-    init_v = np.zeros(N)
-    
-    init_state = np.vstack([init_h, init_v])
-    
+def constant(N, x, num_fields=1, default_val=1.0):
+
+    init_state = np.zeros((num_fields, N))
+    init_state[0, :] = default_val 
     return init_state

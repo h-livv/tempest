@@ -9,7 +9,9 @@ def tracking(state, dx, boundary, equation, coefficient):
     if equation == 'wave':
         u,v = state
     
-        dudx = operators.gradient(u, dx, boundary)
+        u_padded = boundary(u, parity=[1])
+    
+        dudx = operators.gradient(u_padded, dx)
         
         pe = ((c**2)/2)*(np.sum(dudx**2))*dx
         

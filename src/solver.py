@@ -114,7 +114,7 @@ def solver(
         update_frame,
         frames=visualizer.max_frames,
         interval=0,
-        blit=True,
+        blit=False,
         repeat=False
     )
 
