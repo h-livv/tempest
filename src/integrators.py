@@ -50,7 +50,7 @@ def lax_f(state, t, dt, dx, boundary, operator, equation, coefficient):
 
     # 2. Compute physical fluxes via the attached attribute
     if hasattr(equation, "flux"):
-        flux = equation.flux(padded_cons)
+        flux = equation.flux(padded_cons, coefficient, dx)
     else: 
         raise AttributeError(f"CRITICAL: Equation '{equation.__name__}' must register a .flux method to run under Lax.")
     
