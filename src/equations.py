@@ -18,6 +18,10 @@ def advection(t, state, dx, boundary, operator, coefficient):
     
     return dudt #Returns velocity
 
+#Linear Advection: F(u) = c * u
+def _advection_flux(padded_state, coefficient, dx):
+    return coefficient * padded_state
+
 
 def wave(t, state, dx, boundary, operator, coefficient):
     
@@ -41,7 +45,24 @@ def wave(t, state, dx, boundary, operator, coefficient):
     
     return np.vstack([state[1], d2udt2]) #Input = [u, v] Output = [v, a]
 
-#Todo: Add diffusion equation
+#Wave Equation: F(U) = [0, -c² * du/dx]ᵀ  |  S(U) = [v, 0]ᵀ
+def _wave_flux(padded_state, coefficient, dx):
+    u, v = padded_state
+    from src import operators
+    
+    dudx = operators.gradient(u, dx)
+    padded_dudx = np.pad(dudx, pad_width=(1, 1), mode='edge')
+    
+    f1 = np.zeros_like(padded_dudx)
+    f2 = -(coefficient**2) * padded_dudx
+    return np.vstack([f1, f2])
+
+def _wave_source(padded_state, coefficient, dx):
+    u, v = padded_state
+    # Note: Because avg_term and div_term output unpadded shapes [2, N],
+    # our source term matrix must also return sliced, unpadded values matching domain size N.
+    return np.vstack([v[1:-1], np.zeros_like(v[1:-1])])
+
 
 def diffusion(t, state, dx, boundary, operator, coefficient):
 
@@ -59,6 +80,15 @@ def diffusion(t, state, dx, boundary, operator, coefficient):
     du_dt = coefficient*(d2udx2)
     
     return du_dt
+
+# Diffusion: F(u) = -D * du/dx
+def _diffusion_flux(padded_state, coefficient, dx):
+    from src import operators
+    # Gradient drops shape from N+2 to N
+    dudx = operators.gradient(padded_state, dx)
+    # Pad the flux back to N+2 so central_flux_divergence can slice it down to N later
+    padded_flux = np.pad(dudx, pad_width=[(0, 0)] * (dudx.ndim - 1) + [(1, 1)], mode='edge')
+    return -coefficient * padded_flux
     
 def shallow_water(t, state, dx, boundary, operator, coefficient):
     
@@ -86,7 +116,7 @@ def shallow_water(t, state, dx, boundary, operator, coefficient):
         
     return np.vstack([dh_dt, dv_dt])
 
-#Flux calculation for lax-friedrichs
+#Shallow water lux calculation for lax-friedrichs
 def _sw_flux(padded_cons):
     h, q = padded_cons[0], padded_cons[1]
     g = 9.81
@@ -97,6 +127,9 @@ def _sw_flux(padded_cons):
     
     f2 = q_sq_over_h + 0.5 * g * (h**2)
     return np.vstack([f1, f2])
+
+'''def _LW_flux(padded_cons):
+    h,q = '''
 
 #Primitive [h,v] to Conservative [h,q]
 def _sw_to_conservative(primitive_state):
@@ -114,6 +147,13 @@ advection.parity = [1]          # 1-field: scalar is symmetric
 diffusion.parity = [1]          # 1-field: temperature is symmetric
 wave.parity = [1, -1]           # 2-fields: position (u) is symmetric, velocity (v) is anti-symmetric
 shallow_water.parity = [1, -1]  # 2-fields: height (h) is symmetric, velocity (v) is anti-symmetric
+
+advection.flux = _advection_flux
+
+diffusion.flux = _diffusion_flux
+
+wave.flux = _wave_flux
+wave.source = _wave_source
 
 #Connecting back to integrators.py
 shallow_water.flux = _sw_flux

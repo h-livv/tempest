@@ -26,7 +26,7 @@ def reflect(state, parity):
     pad_width = [(0, 0)] * (state.ndim - 1) + [(1, 1)]
     
     #edge creates a zero-gradient condition, telling the wave that the exact same shape exists on the other side of the boundary
-    #this handles symmetric fields
+    #true for even parity. For odd parity, reflected field is inverted
     padded = np.pad(state, pad_width=pad_width, mode='edge')
     
     if parity is not None:
