@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib
+matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import pandas as pd
@@ -109,7 +111,7 @@ def solver(
         return updated
 
     # Animation (visual cadence only)
-    ani = animation.FuncAnimation(
+    anim = animation.FuncAnimation(
         visualizer.fig,
         update_frame,
         frames=visualizer.max_frames,

@@ -49,13 +49,22 @@ def lax_f(state, t, dt, dx, boundary, operator, equation, coefficient):
     padded_cons = boundary(cons_state, parity)
 
     # 2. Compute physical fluxes via the attached attribute
-    flux = equation.flux(padded_cons) if hasattr(equation, "flux") else equation(t, cons_state, dx, boundary, operator, coefficient)
+    if hasattr(equation, "flux"):
+        flux = equation.flux(padded_cons)
+    else: 
+        raise AttributeError(f"CRITICAL: Equation '{equation.__name__}' must register a .flux method to run under Lax.")
+    
+    # Query source terms if they exist (crucial for systems like the Wave Equation), else default to 0
+    if hasattr(equation, "source"):
+        source_term = equation.source(padded_cons, coefficient, dx) # Yields shape [num_fields, N]
+    else:
+        source_term = 0.0
 
     # 3. Spacetime update step 
     avg_term = operators.spatial_average(padded_cons)
     div_term = operators.central_flux_divergence(flux, dx)
     
     cons_next = avg_term - dt * div_term
-
+    
     # 4. Transform back to primitive variables for pipeline visualization
     return equation.to_primitive(cons_next) if hasattr(equation, "to_primitive") else cons_next
