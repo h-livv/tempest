@@ -117,7 +117,7 @@ def shallow_water(t, state, dx, boundary, operator, coefficient):
     return np.vstack([dh_dt, dv_dt])
 
 #Shallow water lux calculation for lax-friedrichs
-def _sw_flux(padded_cons):
+def _sw_flux(padded_cons, coefficient, dx):
     h, q = padded_cons[0], padded_cons[1]
     g = 9.81
     f1 = q

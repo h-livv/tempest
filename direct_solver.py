@@ -6,7 +6,7 @@ solver.solver(
     N=2500,
     init_state=init_conditions.shallow_gauss,
     boundary=boundaries.reflect,    
-    operator=operators.upwind,      
+    operator=operators.laplacian,      
     equation=equations.shallow_water,  
     integrator=integrators.lax_f,
     coefficient=1.0,
