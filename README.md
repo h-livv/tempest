@@ -1,5 +1,5 @@
 # Tempest
-A modular computational framework for simulating and validating non-linear dynamical systems using numerical PDE evolution methods. Implemented from scratch in Python using NumPy and Matplotlib.
+A framework for simulating and validating non-linear dynamical systems using numerical PDE evolution methods.
 
 ---
 
