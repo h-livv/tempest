@@ -57,7 +57,7 @@ Tempest features an experimental surrogate model to emulate linear advection at 
 * Data-first training strategy
 * Stochastic batching to generalize across multiple shapes
 
-The entire optimization process was documented in [Surrogate Setup](https://github.com/h-livv/tempest/blob/main/docs/surrogate_setup.md).
+The entire optimization process was documented in [docs/surrogate_setup.md](https://github.com/h-livv/tempest/blob/main/docs/surrogate_setup.md).
 
 ---
 
