@@ -46,6 +46,21 @@ The full formal methodology paper is available in [docs/validation_study.md](./d
 
 ---
 
+## Neural Surrogate Model (PINN)
+
+Tempest features an experimental surrogate model to emulate linear advection at a fraction of the computational cost required numerically.
+
+**Key highlights:**
+
+* 1D Linear CNN
+* Dynamic energy conservation
+* Data-first training strategy
+* Stochastic batching to generalize across multiple shapes
+
+The entire optimization process was documented in [Surrogate Setup](https://github.com/h-livv/tempest/blob/main/docs/surrogate_setup.md).
+
+---
+
 ## Current capabilities:
 
 Grid Infrastructure
