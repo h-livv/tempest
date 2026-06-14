@@ -11,7 +11,7 @@ initial_conditions = [init_conditions.shallow_dam]
 boundary_functions = [boundaries.reflect]
 operators_list = [operators.central_flux_divergence]
 equations_list = [equations.shallow_water]
-integrators_list = [integrators.lax]
+integrators_list = [integrators.lax_f]
 coefficients = [1.0]
 
 FINAL_TIME = 2500

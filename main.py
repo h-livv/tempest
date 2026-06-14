@@ -207,7 +207,8 @@ def main():
             os.path.join(run_dir_path, "spatial_data.npz"),
             x=sim_output["x"],
             u_numerical=sim_output["final_numerical"],
-            u_analytical=sim_output["final_analytic"]
+            u_analytical=sim_output["final_analytic"],
+            ml_tensor_data=sim_output["raw_tensor_data"]
         )
 
     print("\nEvaluating data for automated grid convergence studies...")
