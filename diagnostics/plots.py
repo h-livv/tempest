@@ -1,9 +1,11 @@
+import matplotlib
+matplotlib.use("Qt5Agg")
+
 import csv
 import os
 
 import numpy as np
-import matplotlib
-matplotlib.use("TkAgg")
+
 import matplotlib.pyplot as plt
 from matplotlib import style
 

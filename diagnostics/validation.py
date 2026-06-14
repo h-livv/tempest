@@ -1,12 +1,5 @@
 import numpy as np
 
-def l2_error(numerical, analytical):
-    return np.sqrt(np.mean((numerical - analytical)**2))
-
-def l1_error(numerical, analytical):
-    return (np.mean(np.abs(numerical - analytical)))
-    
-
 def validation(equation, state, init_condition, N, x, t, c, boundary, dx):
     
     #Calculates length of the domain
@@ -29,7 +22,6 @@ def validation(equation, state, init_condition, N, x, t, c, boundary, dx):
         L_clean = x.max() + dx_clean
         
         # 2. Sample the initial profile shape ONCE on the pristine grid.
-        # This keeps init_conditions.py completely safe and happy!
         clean_profile = init_condition(N, x)[0]
         
         x_minus = x - c * t  # moving to the right
@@ -130,19 +122,11 @@ def validation(equation, state, init_condition, N, x, t, c, boundary, dx):
     else:
         # Returns clean placeholder logs so your data.py pipelines can run uninterrupted
         return {
-            "l2_error": 0.0, 
-            "l1_error": 0.0, 
-            "max_error": 0.0, 
-            "relative": actual_u, 
-            "analytic_state": np.zeros_like(actual_u)
+            np.zeros_like(actual_u)
         }
-
-    l2 = l2_error(actual_u, analytic_state)
-    l1 = l1_error(actual_u, analytic_state)
-    max_error = np.max(np.abs(actual_u - analytic_state))
         
         
-    return {"l2_error": l2, "l1_error": l1, "max_error": max_error, "relative": actual_u, "analytic_state": analytic_state}
+    return analytic_state
 
 
     

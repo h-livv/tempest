@@ -7,13 +7,13 @@ grid_configs = [
 ]
 
 #Define custom conditions for automated pipeline, as many parameters as required
-initial_conditions = [init_conditions.advec_gauss]
+initial_conditions = [init_conditions.advec_gauss, init_conditions.advec_square]
 boundary_functions = [boundaries.periodic]
-operators_list = [operators.upwind, operators.gradient]
+operators_list = [operators.upwind]
 equations_list = [equations.advection]
-integrators_list = [integrators.rk4, integrators.euler]
+integrators_list = [integrators.rk4]
 coefficients = [1.0]
 
-FINAL_TIME = 10
+FINAL_TIME = 50
 STEPS_PER_FRAME = 100   # animation only: steps between plot refreshes
 RECORD_INTERVAL = 20    # metrics: snapshot every N timesteps (fixed for all runs)

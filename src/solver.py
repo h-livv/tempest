@@ -1,11 +1,12 @@
-import numpy as np
 import matplotlib
-matplotlib.use("TkAgg")
+matplotlib.use("Qt5Agg")
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import pandas as pd
 from visualizations.visualization import TempestVisualizer
 from diagnostics import stability, validation
+from diagnostics.tracker import DataTracker
 
 def solver(
     N,
@@ -51,28 +52,20 @@ def solver(
             behaviour and enables accurate validation and convergence study.'''
         )
 
-    # Lists for data collection (independent of animation cadence)
-    time_data = []
-    l2_data = []
-    l1_data = []
-    max_err_data = []
-    numerical_history = []
-    analytic_history = []
+    # Initialize the Tracker
+    tracker = DataTracker(FINAL_TIME, dt, RECORD_INTERVAL, N)
 
     def _extract_field(s):
         return s[0] if s.ndim > 1 else s
 
     def _append_snapshot():
         actual_u = _extract_field(state)
-        results = validation.validation(
+        # Fetch clean analytical state
+        true_u = validation.validation(
             equation, state, init_state, N, x, current_time, coefficient, boundary.__name__, dx
         )
-        time_data.append(current_time)
-        l2_data.append(results["l2_error"])
-        l1_data.append(results["l1_error"])
-        max_err_data.append(results["max_error"])
-        numerical_history.append(actual_u.copy())
-        analytic_history.append(results["analytic_state"].copy())
+        # Delegate storage and error computation
+        tracker.record(current_time, actual_u, true_u)
 
     def _advance_to(target_step):
         nonlocal state, current_time, step
@@ -103,10 +96,15 @@ def solver(
             if step < total_steps:
                 _advance_to(total_steps)
             print(
-                f"Simulation complete. Recorded {len(time_data)} snapshots "
+                f"Simulation complete. Recorded {len(tracker.time[:tracker.idx])} snapshots "
                 f"(every {record_interval} step(s)). Closing plot window..."
             )
-            plt.close(visualizer.fig)
+            
+            # THE FIX: Attach the timer to the visualizer so the Garbage Collector doesn't kill it!
+            visualizer.close_timer = visualizer.fig.canvas.new_timer(interval=50) 
+            visualizer.close_timer.single_shot = True
+            visualizer.close_timer.add_callback(visualizer.close)
+            visualizer.close_timer.start()
 
         return updated
 
@@ -121,17 +119,12 @@ def solver(
     )
 
     plt.show()
-
-    history_df = pd.DataFrame({
-        "time": time_data,
-        "l2_error": l2_data,
-        "l1_error": l1_data,
-        "max_error": max_err_data
-    })
+    
 
     return {
         "x": x,
-        "final_numerical": numerical_history[-1],
-        "final_analytic": analytic_history[-1],
-        "history_dataframe": history_df
+        "final_numerical": tracker.numerical[-1] if tracker.idx > 0 else None,
+        "final_analytic": tracker.analytical[-1] if tracker.idx > 0 else None,
+        "history_dataframe": tracker.get_history_dataframe(),
+        "raw_tensor_data": tracker.numerical[:tracker.idx]
     }
