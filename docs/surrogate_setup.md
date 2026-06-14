@@ -56,7 +56,7 @@
 - Increased the contribution of the physics loss.
 - Gradients exploded quickly, even after implementing gradient clipping.
 
-<img src="assets/explosion.png" alt="explosion" width="500"><img src="assets/explosion2.png" alt="explosion" width="543"> <br>
+<img src="assets/explosion.png" alt="explosion" width="500"><img src="assets/explosion2.png" alt="explosion" width="500"> <br>
 
 - The model works around the constraints by pumping energy into the wave instead of respecting its shape and movement.
 
@@ -66,7 +66,7 @@
 - Implemented dynamic energy conservation. Step T+2 is optimized based on the energy of predicted step T+1, not the original energy.
 - Over long periods of time (T = 500s), stability and shape was excellently preserved. However, phase lag or dispersion was still observed. The model learned a slightly slower wave speed.
 
-<img src="assets/stable.png" alt="stable" width="550"><img src="assets/square.png" alt="stable" width="550"> <br>
+<img src="assets/stable.png" alt="stable" width="500"><img src="assets/square.png" alt="stable" width="500"> <br>
 
 ## Final notes
 
