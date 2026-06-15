@@ -1,5 +1,5 @@
 # Evolution of the Advection Surrogate
-    Building on the previous document [surrogate_setup.md](surrogate_setup.md) (highly recommended read), this document provides a breakdown of how the ML pipeline was optimized to achieve a highly stable, generalized, physics-informed surrogate model.
+Building on the previous document [surrogate_setup.md](https://github.com/h-livv/tempest/blob/main/docs/surrogate_setup.md) (highly recommended read), this document provides a breakdown of how the ML pipeline was optimized to achieve a highly stable, generalized, physics-informed surrogate model.
 
 ---
 
