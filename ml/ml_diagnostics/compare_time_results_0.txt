@@ -1,0 +1,6 @@
+=== Summary ===
+Numerical Solver: 461.35 seconds
+ML Training (1000 epochs): 32.42 seconds
+Training the ML model is 14.23x faster than running the numerical solver.
+
+Note: ML inference (generating rollouts *after* training) is nearly instantaneous.

@@ -1,0 +1,11 @@
+{
+    "learning_rate": 0.005,
+    "lambda_physics": 5.0,
+    "epochs": 1000,
+    "batch_size": 64,
+    "max_unroll_steps": 8,
+    "seed": 42,
+    "test_timesteps": 500,
+    "training_data_path": "pipeline_results/sweeps/advection_rk4_upwind_advec_gauss_advec_peak_advec_square_sweep_20260615_124402",
+    "datasets_loaded": 3
+}
