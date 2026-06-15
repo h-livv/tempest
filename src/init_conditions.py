@@ -45,6 +45,14 @@ def advec_gauss(N, x):
     init_state = np.vstack([init_pos])
     return init_state
 
+def advec_shifted_gauss(N, x):
+    center = 0.25 * x.max()
+    sigma = 10.0
+
+    init_pos = np.exp(-((x - center)**2) / (2 * sigma**2))
+    
+    return np.vstack([init_pos])
+
 '''def diff_gauss(N, x):
     center = 0.5 * x.max()
     

@@ -64,23 +64,23 @@
 - Set physics loss contribution to zero for the first 200 epochs to make sure the model learns the basic shape and movement of the wave first. 
 - Removed GeLU that might have been driving amplification behaviour, because advection is linear process.
 - Implemented dynamic energy conservation. Step T+2 is optimized based on the energy of predicted step T+1, not the original energy.
-- Over long periods of time (T = 500s), stability and shape was excellently preserved. However, phase lag or dispersion was still observed. The model learned a slightly slower wave speed.
+- Over long periods of time (T > 100s), stability and shape was excellently preserved. However, phase lag or dispersion was still observed. The model learned a slightly slower wave speed.
 
 <img src="assets/stable.png" alt="stable" width="500"><img src="assets/square.png" alt="stable" width="500"> <br>
 
 ## Final notes
 
-Through the use of master_dataset.npz and randomized batch sampling, the model moved beyond simple curve-fitting. It learned the universal advection operator, successfully generalizing it over both Gaussian and square waveforms.
+Through the use of master_dataset.npz and randomized batch sampling, the model moved beyond simple curve-fitting, successfully generalizing it over both Gaussian and square waveforms.
 
 Dynamic energy conservation ensures that the model is aware of the energy in each of its predicted steps, preventing explosions or dampening.
 
 Furthermore, by stripping off the GeLU activator, the model was prevented from "cheating" the energy constraints through artifical amplitude amplification.
 
-It is demonstrated that the surrogate reproduces numerical artifacts similar to classical solvers. This means that the model itself behaves like a numerical scheme.
+It is demonstrated that the surrogate reproduces numerical artifacts similar to classical solvers. This shows that the model itself behaves like a numerical scheme.
 
 ## Conclusion
 
-This study roots from the very basics of ML. It assumes a simple linear neural network and through continuous optimization, produces an accurate and stable physics-informed model that is significantly faster than a finite-difference numerical solver.
+This study roots from the very basics of ML. It assumes a simple linear neural network and through continuous optimization, produces a relatively accurate and stable physics-informed model that is faster than a finite-difference numerical solver.
 
 ## Technical summary
 
@@ -89,11 +89,10 @@ This study roots from the very basics of ML. It assumes a simple linear neural n
 | Architecture      | 1D Linear Convolutional Neural Network (Circular Padding) |
 | Loss Function     | MSE + Dynamic Energy Conservation (Step T→T+1)            |
 | Training Strategy | Data-only → Physics-informed                              |                  
-| Performance       | Significant speedup over 4th-order Finite Difference solvers|
+| Performance       | Considerable speedup over 4th-order Finite Difference solvers|
 
 ## Future Work
 
-- This study approaches the limit of purely local CNN modelling.
 - To reduce phase lag, the model naturally leads to:
     * Fourier methods
     * Neural operators
