@@ -46,18 +46,26 @@ The full formal methodology paper is available in [docs/validation_study.md](./d
 
 ---
 
-## Neural Surrogate Model (PINN)
+## Neural Surrogate Model
 
-Tempest features an experimental surrogate model to emulate linear advection at a fraction of the computational cost required numerically.
+Tempest features an experimental ML surrogate model that learns to emulate the linear advection equation much faster than solving it numerically step-by-step.
+
+Starting from a simple one-step predictor, the model was gradually optimized into a stable long-horizon transport surrogate through iterative testing and physics-informed constraints.
 
 **Key highlights:**
 
-* 1D Linear CNN
-* Dynamic energy conservation
-* Data-first training strategy
-* Stochastic batching to generalize across multiple shapes
+* Lightweight 1D CNN architecture
+* Stable autoregressive rollout over 10,000+ timesteps
+* Strong shape and energy conservation
+* Generalization to previously unseen initial conditions
+* Translation-consistent wave transport
+* Near-instant rollout generation after training
 
-The entire optimization process was documented in [docs/surrogate_setup.md](https://github.com/h-livv/tempest/blob/main/docs/surrogate_setup.md).
+The full optimization process, experiments, and failure analysis are documented in:
+
+* [docs/surrogate_setup.md](https://github.com/h-livv/tempest/blob/main/docs/surrogate_setup.md)
+* [docs/surrogate_evolution.md](https://github.com/h-livv/tempest/blob/main/docs/advec_surrogate.md)
+
 
 ---
 
