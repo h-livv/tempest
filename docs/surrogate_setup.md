@@ -1,5 +1,6 @@
 # Initial exploration of a stable and working surrogate model
-    This document explores an attempt to develop a surrogate model for the linear advection equation.
+This document explores an attempt to develop a surrogate model for the linear advection equation.
+
 ---
 
 ## One-step prediction
