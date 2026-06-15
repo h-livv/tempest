@@ -20,6 +20,7 @@ env/
 Thumbs.db
 
 pipeline_results/sweeps/**/**/*.csv
+ml/runs/sweeps/**/*.csv
 
 # large outputs
 external_data/
@@ -28,6 +29,7 @@ external_data/
 *.pt
 *.pth
 *.ckpt
+*.csv
 
 # caches
 __pycache__/
