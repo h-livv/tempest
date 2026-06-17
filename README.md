@@ -36,10 +36,10 @@ Tempest includes an automated continuous testing pipeline designed to rigorously
 
 **Key Findings from the validation study**
 
-* The Diffusion-Dispersion Tradeoff (Advection): Empirical testing clearly isolates this compromise, contrasting the severe artificial dissipation of upwind schemes against the dispersive nature of central differencing.
-* Spatial Error Dominance (Diffusion): Convergence testing confirms that under strict parabolic stability constraints, spatial truncation error overwhelmingly dominates. This proves that computationally expensive higher-order time integrators (like RK4) offer no practical advantage over Forward Euler for explicitly integrated diffusion.
-* Hamiltonian Conservation (Wave Equation): Evaluates the absolute necessity of symplectic integration for conservative systems. While standard RK4 introduces truncation-induced energy fluctuations, Tempest's symplectic Leapfrog implementation perfectly preserves the shadow Hamiltonian, maintaining total system energy.
-* Shock-Capturing Limitations (Shallow Water Equations): Captures the fundamental breakdown of standard linear schemes in discontinuous regimes (e.g., dam breaks). The convergence data empirically demonstrates how artificial viscosity in Lax-Friedrichs yields sub-first-order convergence, while Lax-Wendroff suffers from severe numerical dispersion and Gibbs oscillations in the presence of infinite gradients.
+* **The Diffusion-Dispersion Tradeoff (Advection):** Contrasts the severe artificial dissipation of upwind schemes against the dispersive nature of central differencing.
+* **Spatial Error Dominance (Diffusion):** Under parabolic stability constraints, spatial truncation error overwhelmingly dominates. Computationally expensive higher-order time integrators (like RK4) offer no practical advantage over Forward Euler for explicitly integrated diffusion.
+* **Hamiltonian Conservation (Wave Equation):** While standard RK4 introduces truncation-induced energy fluctuations, Tempest's symplectic Leapfrog implementation perfectly preserves the shadow Hamiltonian, maintaining total system energy.
+* **Shock-Capturing Limitations (Shallow Water Equations):** Captures the fundamental breakdown of standard linear schemes in discontinuous regimes (e.g., dam breaks).Artificial viscosity in Lax-Friedrichs yields sub-first-order convergence, while Lax-Wendroff suffers from severe numerical dispersion and Gibbs oscillations in the presence of infinite gradients.
 
 The full formal methodology paper is available in [docs/validation_study_final.md](./docs/validation_study_final.md).
 
@@ -77,7 +77,7 @@ Grid Infrastructure
 - Configurable boundary conditions
 
 Numerical Methods
-- **Integration**: Explicit Euler, Runge-Kutta 4 (RK4), Leapfrog, Lax-Friedrichs
+- **Integration**: Explicit Euler, Runge-Kutta 4 (RK4), Leapfrog, Lax-Friedrichs, Lax-Wendroff
 - **Spatial Operators**: Upwind gradients, Central gradients, Laplacian
 
 Physical Systems
@@ -91,6 +91,10 @@ Diagnostics
 - Stability monitoring
 - Automated data extraction pipeline
 
+Machine Learning
+- Lightweight model for quick training and outputs
+- Ongoing optimization for a general PDE surrogate
+
 ---
 
 ## Module overview:
@@ -101,6 +105,7 @@ Tempest/
 ├── configs/                  # Stored configurations for stable PDE runs
 ├── diagnostics/              # Analysis & Verification Tools (energy, stability)
 ├── docs/                     # Formal mathematical documentation and studies
+├── ml/                       # Code and outputs related to machine learning
 ├── pipeline_results/         # Automated CI/CT CSV outputs and validation data
 ├── src/                      # Core PDE Evolution Engine (equations, integrators)
 ├── visualizations/           # Decoupled matplotlib plotting architecture
@@ -113,10 +118,9 @@ Tempest/
 
 ## Roadmap
 ### Near-term
-1. Higher-order and conservative numerical schemes
-2. Addition of PDEs such as Burgers' equation
-3. Detailed validation and convergence
-4. Proceeding towards 2D expansion or ML research
+1. Addition of PDEs such as Burgers' equation and advection-diffusion
+2. Detailed validation and convergence
+3. Proceeding towards 2D expansion and ML research
 
 ### Long-term ML research directions
 - Neural PDE surrogates
