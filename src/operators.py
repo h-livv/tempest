@@ -47,4 +47,4 @@ def central_flux_divergence(flux, dx):
     Conservative central flux derivative: 
     (F_{i+1} - F_{i-1}) / (2*dx)
     """
-    return (flux[..., 2:] - flux[..., 0:-2]) / (2 * dx)
+    return (flux[..., 2:] - flux[..., 0:-2]) / (2 * dx) 

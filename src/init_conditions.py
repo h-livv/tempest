@@ -36,6 +36,24 @@ def shallow_gauss(N, x):
     init_state = np.vstack([init_height, init_vel])
     return init_state
 
+def shallow_linear_gauss(N, x):
+    # 1. Extract the step size directly from the data array
+    dx_extracted = x[1] - x[0]
+    
+    # 2. Compute the true domain length L
+    L = x.max() + dx_extracted
+    
+    # 3. Set center to exactly 50%
+    center = 0.5 * L
+    
+    # 4. Use a massive sigma and extreme microscopic amplitude for a pristine linear regime
+    sigma = 20.0
+    init_height = 1.0 + 1e-6 * np.exp(-((x - center)**2) / (2 * sigma**2))
+    init_vel = np.zeros(N)
+    
+    init_state = np.vstack([init_height, init_vel])
+    return init_state
+
 def advec_gauss(N, x):
     center = 0.5 * x.max()
     sigma = 10.0

@@ -18,10 +18,11 @@ class DataTracker:
         self.l1 = np.zeros(num_snapshots)
         self.l2 = np.zeros(num_snapshots)
         self.max_err = np.zeros(num_snapshots)
+        self.energy = np.zeros(num_snapshots)
         
         self.idx = 0
 
-    def record(self, t, num_state, anal_state):
+    def record(self, t, num_state, anal_state, energy=0.0):
         self.time[self.idx] = t
         self.numerical[self.idx, :] = num_state
         self.analytical[self.idx, :] = anal_state
@@ -31,6 +32,7 @@ class DataTracker:
         self.l1[self.idx] = np.mean(np.abs(diff))
         self.l2[self.idx] = np.sqrt(np.mean(diff**2))
         self.max_err[self.idx] = np.max(np.abs(diff))
+        self.energy[self.idx] = energy
         
         self.idx += 1
         
@@ -40,5 +42,6 @@ class DataTracker:
             "time": self.time[:self.idx],
             "l2_error": self.l2[:self.idx],
             "l1_error": self.l1[:self.idx],
-            "max_error": self.max_err[:self.idx]
+            "max_error": self.max_err[:self.idx],
+            "energy": self.energy[:self.idx]
         })

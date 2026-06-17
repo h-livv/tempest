@@ -64,8 +64,11 @@ def solver(
         true_u = validation.validation(
             equation, state, init_state, N, x, current_time, coefficient, boundary.__name__, dx
         )
+        
+        _, _, total_e = stability.tracking(state, dx, boundary, equation.__name__, coefficient)
+        
         # Delegate storage and error computation
-        tracker.record(current_time, actual_u, true_u)
+        tracker.record(current_time, actual_u, true_u, total_e)
 
     def _advance_to(target_step):
         nonlocal state, current_time, step
@@ -108,17 +111,22 @@ def solver(
 
         return updated
 
-    # Animation (visual cadence only)
-    anim = animation.FuncAnimation(
-        visualizer.fig,
-        update_frame,
-        frames=visualizer.max_frames,
-        interval=0,
-        blit=False,
-        repeat=False
-    )
-
-    plt.show()
+    import matplotlib
+    if matplotlib.get_backend().lower() == 'agg':
+        # Headless mode: run the simulation loop manually
+        for f in range(visualizer.max_frames):
+            update_frame(f)
+    else:
+        # Animation (visual cadence only)
+        anim = animation.FuncAnimation(
+            visualizer.fig,
+            update_frame,
+            frames=visualizer.max_frames,
+            interval=0,
+            blit=False,
+            repeat=False
+        )
+        plt.show()
     
 
     return {

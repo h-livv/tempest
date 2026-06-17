@@ -3,7 +3,7 @@ from src import boundaries, operators, equations, integrators, init_conditions
 
 #Define stable grid configurations (protects CFL stability)
 grid_configs = [
-    {"N": 2000, "dx": 0.05, "dt": 0.0025},   # CFL = 1.0·0.0025/0.05 = 0.05
+    {"N": 4000, "dx": 0.025, "dt": 0.025},   # CFL = 1.0
 ]
 
 #Define custom conditions for automated pipeline, as many parameters as required
@@ -14,6 +14,6 @@ equations_list = [equations.wave]
 integrators_list = [integrators.rk4, integrators.euler, integrators.leapfrog]
 coefficients = [1.0]
 
-FINAL_TIME = 20
-STEPS_PER_FRAME = 200    # animation only
-RECORD_INTERVAL = 50    # metrics: snapshot every N timesteps
+FINAL_TIME = 5000
+STEPS_PER_FRAME = 50    # animation only
+RECORD_INTERVAL = 25    # metrics: snapshot every N timesteps

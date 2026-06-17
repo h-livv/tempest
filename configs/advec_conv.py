@@ -12,7 +12,7 @@ grid_configs = [
 #Define custom conditions for automated pipeline, as many parameters as required
 initial_conditions = [init_conditions.advec_gauss]
 boundary_functions = [boundaries.periodic]
-operators_list = [operators.gradient]
+operators_list = [operators.upwind, operators.gradient]
 equations_list = [equations.advection]
 integrators_list = [integrators.rk4]
 coefficients = [1.0]

@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use("Qt5Agg")  # Smoother than TkAgg
+matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -450,14 +450,17 @@ class TempestVisualizer:
             min_e = min(all_energies)
             max_e = max(all_energies)
 
-            dynamic_range = max(abs(max_e), abs(min_e))
+            if np.isnan(min_e) or np.isnan(max_e) or np.isinf(min_e) or np.isinf(max_e):
+                pass
+            else:
+                dynamic_range = max(abs(max_e), abs(min_e))
 
-            margin = max(1e-6, 0.15 * dynamic_range)
+                margin = max(1e-6, 0.15 * dynamic_range)
 
-            self.ax_energy.set_ylim(
-                min_e - margin,
-                max_e + margin
-            )
+                self.ax_energy.set_ylim(
+                    min_e - margin,
+                    max_e + margin
+                )
 
         # ============================================================
         # TELEMETRY UPDATE

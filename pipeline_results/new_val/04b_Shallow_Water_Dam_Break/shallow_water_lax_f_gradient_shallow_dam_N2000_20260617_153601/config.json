@@ -1,0 +1,14 @@
+{
+    "equation": "shallow_water",
+    "integrator": "lax_f",
+    "operator": "gradient",
+    "initial_condition": "shallow_dam",
+    "boundary_function": "edge",
+    "N": 2000,
+    "dt": 0.005,
+    "dx": 0.25,
+    "coefficient": 1.0,
+    "final_time": 15,
+    "steps_per_frame": 50,
+    "record_interval": 100
+}
