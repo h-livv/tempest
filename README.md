@@ -16,13 +16,13 @@ A framework for simulating and validating non-linear dynamical systems using num
 ## Quick start
 
 ```bash
-git clone https://github.com/yourusername/Tempest.git
-cd Tempest
+git clone https://github.com/h-livv/tempest.git
+cd tempest
 pip install -r requirements.txt
 ```
 Run the direct visualization (no diagnostics):
 ```
-python src/direct_solver.py
+python direct_solver.py
 ```
 Run the full automated data pipeline:
 ```
