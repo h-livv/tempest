@@ -114,10 +114,15 @@ def run_single_simulation(params):
     log_run("sweep" if is_sweep else "single", "main", eq_name, op_name, ic_name, run_dir_path, metadata={"N": N, "dt": dt, "dx": dx})
 
     plotter = TempestPlotter(output_dir=run_dir_path)
+    if int_name.startswith("lax") or int_name in ["maccormack"]:
+        display_solver_name = int_name
+    else:
+        display_solver_name = f"{int_name} + {op_name}"
+
     plotter.plot_validation(
         time_history_df=run_history_df,
         eq_name=eq_name,
-        solver_name=int_name,
+        solver_name=display_solver_name,
         run_id="transient_errors",
         N=N,
         dx=dx,
@@ -290,7 +295,17 @@ if __name__ == '__main__':
             f"(CFL dt/dx={cfl_n})"
         )
 
-        target_order = 1 if "upwind" in op_n.lower() else 2
+        if "upwind" in op_n.lower():
+            target_order = 1
+        elif "shallow_dam" in ic_n.lower():
+            target_order = {"avg_l1": 1.0, "avg_l2": 0.5, "final_l1": 1.0, "final_l2": 0.5}
+        else:
+            target_order = 2
+
+        if int_n.startswith("lax") or int_n in ["maccormack"]:
+            display_solver_name = int_n
+        else:
+            display_solver_name = f"{int_n} + {op_n}"
 
         plotter.plot_convergence_suite(
             dx_values=data["dx_values"],
@@ -298,6 +313,7 @@ if __name__ == '__main__':
             eq_name=study_name,
             expected_order=target_order,
             metrics=convergence_metrics,
+            title_display_name=f"{eq_n} ({display_solver_name})",
         )
 
     print(f"\nPipeline Complete. Datasets successfully written to '{output_dir}/'")

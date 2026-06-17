@@ -14,7 +14,7 @@ initial_conditions = [init_conditions.diff_gauss]
 boundary_functions = [boundaries.periodic]
 operators_list = [operators.laplacian]
 equations_list = [equations.diffusion]
-integrators_list = [integrators.euler]
+integrators_list = [integrators.euler, integrators.rk4]
 coefficients = [1.0]
 
 FINAL_TIME = 30

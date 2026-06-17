@@ -1,5 +1,5 @@
 #Module imports
-from src import boundaries, operators, equations, integrators, init_conditions
+from src import boundaries, operators, equations, integrators, direct_solvers, init_conditions
 
 #Define stable grid configurations (protects CFL stability)
 grid_configs = [
@@ -11,7 +11,7 @@ initial_conditions = [init_conditions.shallow_dam]
 boundary_functions = [boundaries.reflect]
 operators_list = [operators.central_flux_divergence]
 equations_list = [equations.shallow_water]
-integrators_list = [integrators.lax_f]
+integrators_list = [direct_solvers.lax_f]
 coefficients = [1.0]
 
 FINAL_TIME = 2500

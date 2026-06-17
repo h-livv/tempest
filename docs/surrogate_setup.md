@@ -7,7 +7,7 @@ This document explores an attempt to develop a surrogate model for the linear ad
 - Started with a standard, dense linear neural network with no physics constraints trained on mean squared error (MSE) to predict just T ---> T+1.
 - It worked decently for a single step. <br>
 
-<img src="assets/single_step.png" alt="one_step" width="500"> <br>
+<img src="assets/surrogate_setup/single_step.png" alt="one_step" width="500"> <br>
 
 - The model must have learned local correlations without learning long-term dynamics. It probably had no understanding of the physics, space, or waves.
 
@@ -15,7 +15,7 @@ This document explores an attempt to develop a surrogate model for the linear ad
 - Fed the model's prediction into itself in an autoregressive loop to simulate continuous time (T ---> T+100).
 - Numerical dispersion was observed in the form of phase lag. <br>
 
-<img src="assets/multi_step.png" alt="multiple_step" width="500"> <br>
+<img src="assets/surrogate_setup/multi_step.png" alt="multiple_step" width="500"> <br>
 
 
 - The model must have figured out how to move the wave, but struggled with speed and energy conservation.
@@ -24,7 +24,7 @@ This document explores an attempt to develop a surrogate model for the linear ad
 - The first physical constraint intertwined with the loss function.
 - The wave still degraded and lost its shape. <br>
 
-<img src="assets/total_mass.png" alt="total_mass" width="500"><img src="assets/mean_mass.png" alt="mean_mass" width="500"> <br>
+<img src="assets/surrogate_setup/total_mass.png" alt="total_mass" width="500"><img src="assets/surrogate_setup/mean_mass.png" alt="mean_mass" width="500"> <br>
 
 - Mass conservation was definitely too loose of a constraint. A peak and a flat puddle can have the same mass. The model just smeared out the wave to follow the constraint.
 
@@ -32,7 +32,7 @@ This document explores an attempt to develop a surrogate model for the linear ad
 - Upgraded the constraint to punish changes in the MSE energy. Also implemented autoregressive unrolling, in which the model uses predicted step T+1 to train step T + 2 and so on.
 - This worked perfectly for short time periods but on a large enough timeline, phase lag was observed. Dissapation was solved but dispersion was introduced. <br>
 
-<img src="assets/l2_100.png" alt="l2_100" width="500"><img src="assets/l2_500_3.png" alt="l2_500" width="500"> <br>
+<img src="assets/surrogate_setup/l2_100.png" alt="l2_100" width="500"><img src="assets/surrogate_setup/l2_500_3.png" alt="l2_500" width="500"> <br>
 
 - A linear neural network is inherently blind to geometry. It has no concept of a "grid" and processes each point of the grid independently. It probably memorized the location of the wave, not its behaviour.
 
@@ -40,7 +40,7 @@ This document explores an attempt to develop a surrogate model for the linear ad
 - Replaced the dense network with a convolutional neural network with periodic padding.
 - Even though energy and mass was conserved, the shape broke down and "terracing" was observed. <br>
 
-<img src="assets/cnn.png" alt="cnn" width="500"> <br>
+<img src="assets/surrogate_setup/cnn.png" alt="cnn" width="500"> <br>
 
 - The activation function "ReLU" was the most probable culprit. It is a piecewise linear function that poorly represents smooth oscillatory dynamics.
 
@@ -49,7 +49,7 @@ This document explores an attempt to develop a surrogate model for the linear ad
 - Introduced data for a square wave along with gaussian, and implemented random batch sampling.
 - Faced with a floating baseline and diffused shape. <br>
 
-<img src="assets/floating.png" alt="floating" width="500"> <br>
+<img src="assets/surrogate_setup/floating.png" alt="floating" width="500"> <br>
 
 - The model "cheated" the energy conservation law by adding a "pedestal" which mathematically satisfies the constraint, but is physically nonsensical. Also noticed that the physical loss was being minimized very slowly.
 
@@ -57,7 +57,7 @@ This document explores an attempt to develop a surrogate model for the linear ad
 - Increased the contribution of the physics loss.
 - Gradients exploded quickly, even after implementing gradient clipping.
 
-<img src="assets/explosion.png" alt="explosion" width="500"><img src="assets/explosion2.png" alt="explosion" width="500"> <br>
+<img src="assets/surrogate_setup/explosion.png" alt="explosion" width="500"><img src="assets/surrogate_setup/explosion2.png" alt="explosion" width="500"> <br>
 
 - The model works around the constraints by pumping energy into the wave instead of respecting its shape and movement.
 
@@ -67,7 +67,7 @@ This document explores an attempt to develop a surrogate model for the linear ad
 - Implemented dynamic energy conservation. Step T+2 is optimized based on the energy of predicted step T+1, not the original energy.
 - Over long periods of time (T > 100s), stability and shape was excellently preserved. However, phase lag or dispersion was still observed. The model learned a slightly slower wave speed.
 
-<img src="assets/stable.png" alt="stable" width="500"><img src="assets/square.png" alt="stable" width="500"> <br>
+<img src="assets/surrogate_setup/stable.png" alt="stable" width="500"><img src="assets/surrogate_setup/square.png" alt="stable" width="500"> <br>
 
 ## Final notes
 

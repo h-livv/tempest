@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use("Qt5Agg")
+matplotlib.use("Agg")
 
 import csv
 import os
@@ -173,6 +173,7 @@ class TempestPlotter:
         error_metric="avg_l2",
         deduplicate=True,
         save_sidecar=True,
+        title_display_name=None,
     ):
         """
         Log-log convergence study with linear regression.
@@ -259,8 +260,9 @@ class TempestPlotter:
                 label=rf"Reference $O(\Delta x^{{{expected_order}}})$",
             )
 
+            display_eq = title_display_name if title_display_name else eq_name
             ax.set_title(
-                f"Grid Convergence: {eq_name}\n({metric_label})",
+                f"Grid Convergence: {display_eq}\n({metric_label})",
                 fontsize=12,
                 fontweight="bold",
             )
@@ -318,6 +320,7 @@ class TempestPlotter:
         expected_order=2,
         *,
         metrics=None,
+        title_display_name=None,
     ):
         """
         Generate convergence plots for multiple error metrics on the same dx sweep.
@@ -332,12 +335,19 @@ class TempestPlotter:
         for metric_name in metrics:
             if metric_name not in metrics_map:
                 continue
+            
+            if isinstance(expected_order, dict):
+                current_expected_order = expected_order.get(metric_name, 2)
+            else:
+                current_expected_order = expected_order
+
             slope = self.plot_convergence(
                 dx_values=dx_values,
                 error_values=metrics_map[metric_name],
                 eq_name=eq_name,
-                expected_order=expected_order,
+                expected_order=current_expected_order,
                 error_metric=metric_name,
+                title_display_name=title_display_name,
             )
             if slope is not None:
                 slopes[metric_name] = slope

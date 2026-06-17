@@ -21,7 +21,7 @@ Particular emphasis was placed on long-horizon autoregressive stability, where t
 ## Baseline:
 The model was trained on 2000 steps of numerical solution and asked to predict the next 2000 steps. The model perfomed poorly, inflated artificial amplitude and in the case of the sharp peak, completely broke down. 
 
-<img src="assets/advec_gauss_base.png" alt="advec_gauss" width="500"> <br>
+<img src="assets/advec_surrogate/advec_gauss_base.png" alt="advec_gauss" width="500"> <br>
 
 - Possible issue: The kernel size was small. It must not have had enough grid context for accurate prediction, compensating through artificial amplification.
 
@@ -29,7 +29,7 @@ The model was trained on 2000 steps of numerical solution and asked to predict t
 The kernel size was expanded from 9 to 25.
 - However, the wave's shape broke down and exploded into Gibb's oscillations.
 
-<img src="assets/advec_disp.png" alt="advec_disp" width="500"> <br>
+<img src="assets/advec_surrogate/advec_disp.png" alt="advec_disp" width="500"> <br>
 
 - Possible issue: The CNN was unconstrained. The initial random weights had no limit and were random. This may have been artificially magnifying the energy of the system. This, coupled with a high kernel size may have caused Gibb's phenomenon.
 
@@ -37,7 +37,7 @@ The kernel size was expanded from 9 to 25.
 The kernel weights were initialized in a way that all were strictly positive and add to one (a Markov Stochastic Matrix).
 - This solved the energy explosion, but now the wave predictions still didn't hold shape over a long time period. 
 
-<img src="assets/advec_square_shape.png" alt="advec_sq" width="500"><img src="assets/advec_gauss_shape.png" alt="advec_gauss" width="500"> <br>
+<img src="assets/advec_surrogate/advec_square_shape.png" alt="advec_sq" width="500"><img src="assets/advec_surrogate/advec_gauss_shape.png" alt="advec_gauss" width="500"> <br>
 
 - Possible issue: The system was overpowered by the "Data" Loss, which found it easier to smear out the wave than hold its shape. But at the same time, the physics loss was forcing shape consistency.
 
@@ -45,7 +45,7 @@ The kernel weights were initialized in a way that all were strictly positive and
 The physics loss function was dropped entirely, focusing on the Softmax Markov model. This constrained the weights to remain positive and normalized, stabilizing rollout behavior and preventing artificial amplification.
 -  The shape retention was much better, but still devolved over a long period of time.
 
-<img src="assets/advec_sq_sm.png" alt="advec_sq" width="500"><img src="assets/advec_gaus_sm.png" alt="advec_gauss" width="500"> <br>
+<img src="assets/advec_surrogate/advec_sq_sm.png" alt="advec_sq" width="500"><img src="assets/advec_surrogate/advec_gaus_sm.png" alt="advec_gauss" width="500"> <br>
 
 - Possible issue: The softmax function is inherently "soft". Since its sum cannot exceed one, it averages out the weights into a flat distribution, mixing data from neighboring cells and acting like a blurring function.
 
@@ -53,13 +53,13 @@ The physics loss function was dropped entirely, focusing on the Softmax Markov m
 The kernel weights were multiplied by 1000 before applying the softmax, which forced a hardmax/dirac-delta kernel distribution. This significantly reduced numerical blurring by ensuring the network deterministically copies the exact state of the previous cell.
 - For relatively short periods of time (T < 2000s), the wave closely matched the analytical solution. The error plots agreed with this observation.
 
-<img src="assets/advec_sq.png" alt="advec_sq" width="500"><img src="assets/advec_sq_err.png" alt="advec_sq_err" width="440"> <br>
+<img src="assets/advec_surrogate/advec_sq.png" alt="advec_sq" width="500"><img src="assets/advec_surrogate/advec_sq_err.png" alt="advec_sq_err" width="440"> <br>
 
 ## Iteration 5:
 To test the true capabilities of this model, it was used to predict 10000 simulation steps on just 2500 steps of numerical training. Furthermore, it was also asked to predict a completely unseen intial condition of a gaussian wave shifted from its center.
 - Shape was perfectly conserved with zero energy loss, even on the unseen initial condition. However, a severe phase lag was observed in all cases. The predicted wave was travelling much slower than expected.
 
-<img src="assets/advec_sq_lag.gif" alt="advec_sq_lag" width="500"><img src="assets/advec_gauss_lag.gif" alt="advec_gauss_lag" width="500"> <br>
+<img src="assets/advec_surrogate/advec_sq_lag.gif" alt="advec_sq_lag" width="500"><img src="assets/advec_surrogate/advec_gauss_lag.gif" alt="advec_gauss_lag" width="500"> <br>
 
 - This observation called for analysis on the velocity. The wave peak was plotted against physical time, and the following was obtained:
 
@@ -84,7 +84,7 @@ To test the true capabilities of this model, it was used to predict 10000 simula
 - The surrogate model closely matched the analytical solution and combatted the diffusive effects of the upwind scheme, even though it was trained purely on numerically generated data.
 - Furthermore, accurate rollout on shifted gaussian profiles demonstrates that the surrogate learned the underlying transport behaviour rather than memorizing fixed patterns.
 
-<img src="assets/advec_sq_final.gif" alt="advec_sq_final" width="500"><img src="assets/advec_gauss_final.gif" alt="advec_gauss_final" width="500"> <br>
+<img src="assets/advec_surrogate/advec_sq_final.gif" alt="advec_sq_final" width="500"><img src="assets/advec_surrogate/advec_gauss_final.gif" alt="advec_gauss_final" width="500"> <br>
 
 
 | Parameter         | Value |

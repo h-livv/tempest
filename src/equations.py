@@ -59,9 +59,7 @@ def _wave_flux(padded_state, coefficient, dx):
 
 def _wave_source(padded_state, coefficient, dx):
     u, v = padded_state
-    # Note: Because avg_term and div_term output unpadded shapes [2, N],
-    # our source term matrix must also return sliced, unpadded values matching domain size N.
-    return np.vstack([v[1:-1], np.zeros_like(v[1:-1])])
+    return np.vstack([v, np.zeros_like(v)])
 
 
 def diffusion(t, state, dx, boundary, operator, coefficient):
@@ -143,20 +141,41 @@ def _sw_to_primitive(conservative_state):
     v = np.where(h > eps, q / h, 0.0)
     return np.vstack([h, v])   
 
+# Wave Speed methods for Direct Upwind
+def _advection_wave_speed(padded_state, coefficient):
+    return coefficient
+
+def _diffusion_wave_speed(padded_state, coefficient):
+    return 0.0
+
+def _wave_wave_speed(padded_state, coefficient):
+    return coefficient
+
+def _sw_wave_speed(padded_state, coefficient):
+    h, q = padded_state
+    g = 9.81
+    eps = 1e-5
+    v = np.where(h > eps, q / h, 0.0)
+    return np.abs(v) + np.sqrt(g * h)
+
 advection.parity = [1]          # 1-field: scalar is symmetric
 diffusion.parity = [1]          # 1-field: temperature is symmetric
 wave.parity = [1, -1]           # 2-fields: position (u) is symmetric, velocity (v) is anti-symmetric
 shallow_water.parity = [1, -1]  # 2-fields: height (h) is symmetric, velocity (v) is anti-symmetric
 
 advection.flux = _advection_flux
+advection.wave_speed = _advection_wave_speed
 
 diffusion.flux = _diffusion_flux
+diffusion.wave_speed = _diffusion_wave_speed
 
 wave.flux = _wave_flux
 wave.source = _wave_source
+wave.wave_speed = _wave_wave_speed
 
-#Connecting back to integrators.py
+#Connecting back to integrators.py / direct_solvers.py
 shallow_water.flux = _sw_flux
 shallow_water.to_conservative = _sw_to_conservative
 shallow_water.to_primitive = _sw_to_primitive   
+shallow_water.wave_speed = _sw_wave_speed
     

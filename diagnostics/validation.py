@@ -118,12 +118,85 @@ def validation(equation, state, init_condition, N, x, t, c, boundary, dx):
                 
             else:
                 raise ValueError(f"Unknown boundary type for diffusion validation: {boundary}")
+                
+    elif equation.__name__ == "shallow_water":
+        dx_clean = x[1] - x[0]
+        L_clean = x.max() + dx_clean
+        
+        full_profile = init_condition(N, x)[0]
+        h_max = np.max(full_profile)
+        h_min = np.min(full_profile)
+        is_dam_break = (h_max - h_min) > 1.0
+        
+        if not is_dam_break:
+            h0 = h_min
+            clean_profile = full_profile - h0
+            g = 9.81
+            c_wave = np.sqrt(g * h0)
+            
+            x_minus = x - c_wave * t
+            x_plus  = x + c_wave * t
+            
+            if boundary == "periodic":
+                x_R = (x_minus - x[0]) % L_clean + x[0]
+                x_L = (x_plus - x[0]) % L_clean + x[0]
+                u_R = np.interp(x_R, x, clean_profile)
+                u_L = np.interp(x_L, x, clean_profile)
+                analytic_state = h0 + 0.5 * (u_R + u_L)
+            else:
+                return np.zeros_like(actual_u)
+        else:
+            # Stoker's Exact 1D Dam Break Riemann Solver
+            if t == 0:
+                return full_profile
+                
+            h_L = h_max
+            h_R = h_min
+            g = 9.81
+            x_0 = 0.5 * x.max()
+            
+            c_L = np.sqrt(g * h_L)
+            c_R = np.sqrt(g * h_R)
+            
+            # Root finding for intermediate depth h_m (Bisection)
+            def f(hm):
+                return 2 * (c_L - np.sqrt(g * hm)) - (hm - h_R) * np.sqrt((g * (hm + h_R)) / (2 * hm * h_R))
+                
+            low, high = h_R + 1e-6, h_L - 1e-6
+            for _ in range(50):
+                mid = 0.5 * (low + high)
+                if f(mid) > 0:
+                    low = mid
+                else:
+                    high = mid
+            h_m = 0.5 * (low + high)
+            
+            c_m = np.sqrt(g * h_m)
+            u_m = 2 * (c_L - c_m)
+            S = np.sqrt((g * h_m * (h_m + h_R)) / (2 * h_R))
+            
+            x_head = x_0 - c_L * t
+            x_tail = x_0 + (u_m - c_m) * t
+            x_shock = x_0 + S * t
+            
+            analytic_state = np.zeros_like(x)
+            
+            mask_L = x <= x_head
+            analytic_state[mask_L] = h_L
+            
+            mask_fan = (x > x_head) & (x <= x_tail)
+            c_fan = (2 * c_L - (x[mask_fan] - x_0) / t) / 3.0
+            analytic_state[mask_fan] = (c_fan**2) / g
+            
+            mask_m = (x > x_tail) & (x <= x_shock)
+            analytic_state[mask_m] = h_m
+            
+            mask_R = x > x_shock
+            analytic_state[mask_R] = h_R
             
     else:
         # Returns clean placeholder logs so your data.py pipelines can run uninterrupted
-        return {
-            np.zeros_like(actual_u)
-        }
+        return np.zeros_like(actual_u)
         
         
     return analytic_state
