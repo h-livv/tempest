@@ -8,12 +8,10 @@ def validation(equation, state, init_condition, N, x, t, c, boundary, dx):
     actual_u = state[0] if (state.ndim > 1 and state.shape[0] >= 1) else state
     
     if equation.__name__ == "advection":
-
-        # x - c*t is the shape of the wave at time t
-        # -x[0] to set the coordinates to 0
-        # %L to shift the out of bounds points back into [0,L]
-        # +x[0] to reset the coordinates-
-        x_shifted = (x - c*t - x[0]) % L + x[0]
+        if boundary == "dirichlet":
+            x_shifted = x - c*t
+        else:
+            x_shifted = (x - c*t - x[0]) % L + x[0]
         analytic_state = init_condition(N, x_shifted)[0]
 
     elif equation.__name__ == "wave":
@@ -47,7 +45,7 @@ def validation(equation, state, init_condition, N, x, t, c, boundary, dx):
             u_L = np.interp(map_reflective(x_plus), x, clean_profile)
             analytic_state = 0.5 * (u_R + u_L)
             
-        elif boundary == "constant":
+        elif boundary in ["constant", "dirichlet"]:
             def map_constant(x_val):
                 rel_x = (x_val - x[0]) % (2 * L_clean)
                 mask = rel_x > L_clean
@@ -194,12 +192,43 @@ def validation(equation, state, init_condition, N, x, t, c, boundary, dx):
             mask_R = x > x_shock
             analytic_state[mask_R] = h_R
             
+    elif equation.__name__ == "burgers":
+        u0 = init_condition(N, x)[0]
+        # Route based on the initial condition function name
+        if "stationary" in init_condition.__name__:
+            # Estimate U from the maximum amplitude
+            U_est = float(np.max(np.abs(u0)))
+            analytic_state = -U_est * np.tanh(U_est * x / (2.0 * c))
+        elif "traveling" in init_condition.__name__:
+            # u_L is on the left, u_R is on the right
+            u_L_est = float(u0[0])
+            u_R_est = float(u0[-1])
+            c_speed = 0.5 * (u_L_est + u_R_est)
+            # Find the point where u0 crosses c_speed (shock center)
+            idx_left = np.where(u0 >= c_speed)[0]
+            if len(idx_left) > 0 and len(idx_left) < N:
+                idx = idx_left[-1]
+                # Linear interpolation for x_0
+                x_0_est = x[idx] + (c_speed - u0[idx]) * (x[idx+1] - x[idx]) / (u0[idx+1] - u0[idx] + 1e-12)
+            else:
+                x_0_est = 0.5 * (x.max() + (x[1] - x[0]))
+            
+            dx_clean = x[1] - x[0]
+            L_clean = x.max() + dx_clean
+            
+            # Map spatial coordinates to [-L/2, L/2) relative to the moving center
+            rel_x = x - (x_0_est + c_speed * t)
+            
+            if boundary == 'dirichlet':
+                wrapped_rel_x = rel_x
+            else:
+                wrapped_rel_x = (rel_x + 0.5 * L_clean) % L_clean - 0.5 * L_clean
+            
+            analytic_state = c_speed - 0.5 * (u_L_est - u_R_est) * np.tanh(((u_L_est - u_R_est) / (4.0 * c)) * wrapped_rel_x)
+        else:
+            analytic_state = np.zeros_like(actual_u)
     else:
         # Returns clean placeholder logs so your data.py pipelines can run uninterrupted
         return np.zeros_like(actual_u)
         
-        
     return analytic_state
-
-
-    

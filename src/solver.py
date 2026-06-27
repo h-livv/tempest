@@ -7,6 +7,8 @@ import pandas as pd
 from visualizations.visualization import TempestVisualizer
 from diagnostics import stability, validation
 from diagnostics.tracker import DataTracker
+from src.grid import Grid
+from src.fields import ScalarField, VectorField
 
 def solver(
     N,
@@ -22,11 +24,22 @@ def solver(
     STEPS_PER_FRAME,
     RECORD_INTERVAL=1,
 ):
-    # Initial grid structure
-    x = np.arange(N, dtype=float) * dx
+    # Construct unified Grid
+    grid = Grid(shape=(N,), spacing=(dx,))
 
-    # Initial state - multidimensional array based on number of fields
-    state = init_state(N, x)
+    # Initial state initialization agnostic of dimensions
+    if equation.__name__ == 'burgers':
+        state_data = init_state(*grid.shape, *grid.coordinates, nu=coefficient)
+    else:
+        state_data = init_state(*grid.shape, *grid.coordinates)
+
+    # Wrap raw data in appropriate Field abstraction
+    if state_data.shape == grid.shape or (state_data.ndim == grid.ndim + 1 and state_data.shape[0] == 1):
+        if state_data.ndim == grid.ndim + 1 and state_data.shape[0] == 1:
+            state_data = state_data[0] # Unpack single field
+        state = ScalarField(grid, state_data)
+    else:
+        state = VectorField(grid, state_data)
 
     total_steps = int(FINAL_TIME / dt)
     record_interval = max(1, int(RECORD_INTERVAL))
@@ -53,19 +66,23 @@ def solver(
         )
 
     # Initialize the Tracker
+    # Tracker currently assumes N, will be refactored later if needed
     tracker = DataTracker(FINAL_TIME, dt, RECORD_INTERVAL, N)
 
     def _extract_field(s):
-        return s[0] if s.ndim > 1 else s
+        data = s.data if hasattr(s, 'data') else s
+        return data[0] if data.ndim > grid.ndim else data
 
     def _append_snapshot():
         actual_u = _extract_field(state)
         # Fetch clean analytical state
+        # Pass raw grid coordinate for compatibility
+        x_compat = grid.coordinates[0] if grid.ndim == 1 else grid.coordinates
         true_u = validation.validation(
-            equation, state, init_state, N, x, current_time, coefficient, boundary.__name__, dx
+            equation, state.data, init_state, N, x_compat, current_time, coefficient, boundary.__name__, dx
         )
         
-        _, _, total_e = stability.tracking(state, dx, boundary, equation.__name__, coefficient)
+        _, _, total_e = stability.tracking(state.data, dx, boundary, equation.__name__, coefficient)
         
         # Delegate storage and error computation
         tracker.record(current_time, actual_u, true_u, total_e)
@@ -84,16 +101,16 @@ def solver(
 
     # Record and render the initial condition once (guards duplicate frame-0 callbacks).
     _append_snapshot()
-    visualizer.render_frame(0, state, current_time, integrator.__name__, stability.tracking(
-        state, dx, boundary, equation.__name__, coefficient
+    visualizer.render_frame(0, state.data, current_time, integrator.__name__, stability.tracking(
+        state.data, dx, boundary, equation.__name__, coefficient
     ))
 
     def update_frame(frame):
         if frame > 0:
             _advance_to(frame * steps_per_frame)
 
-        energies = stability.tracking(state, dx, boundary, equation.__name__, coefficient)
-        updated = visualizer.render_frame(frame, state, current_time, integrator.__name__, energies)
+        energies = stability.tracking(state.data, dx, boundary, equation.__name__, coefficient)
+        updated = visualizer.render_frame(frame, state.data, current_time, integrator.__name__, energies)
 
         if frame == visualizer.max_frames - 1:
             if step < total_steps:
@@ -130,7 +147,7 @@ def solver(
     
 
     return {
-        "x": x,
+        "x": grid.coordinates[0] if grid.ndim == 1 else grid.coordinates,
         "final_numerical": tracker.numerical[-1] if tracker.idx > 0 else None,
         "final_analytic": tracker.analytical[-1] if tracker.idx > 0 else None,
         "history_dataframe": tracker.get_history_dataframe(),

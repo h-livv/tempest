@@ -45,4 +45,9 @@ def tracking(state, dx, boundary, equation, coefficient):
         
         total_e = pe + ke
         return pe, ke, total_e
+
+    elif equation == 'burgers':
+
+        total_e = np.sum(0.5 * state**2) * dx
+        return 0.0, 0.0, total_e
         

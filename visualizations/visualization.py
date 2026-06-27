@@ -172,6 +172,25 @@ class TempestVisualizer:
                 fontweight="bold"
             )
 
+        elif self.eq_name == "burgers":
+
+            self.ax_live.set_ylim(-3, 3)
+            self.ax_live.set_ylabel("Amplitude (u)")
+
+            self.line_pos, = self.ax_live.plot(
+                [],
+                [],
+                color="#00ffff",
+                lw=2.5,
+                label="Displacement (u)"
+            )
+
+            self.ax_live.set_title(
+                "Burgers' Equation (Non-linear PDE)",
+                fontsize=12,
+                fontweight="bold"
+            )
+
         velocity_label = (
             "Velocity (u)"
             if self.eq_name == "shallow_water"
@@ -187,6 +206,7 @@ class TempestVisualizer:
             label=velocity_label
         )
 
+    
         self.ax_live.legend(loc="upper right")
 
         # ============================================================

@@ -172,3 +172,41 @@ def constant(N, x, num_fields=1, default_val=1.0):
     init_state = np.zeros((num_fields, N))
     init_state[0, :] = default_val 
     return init_state
+
+def burgers_stationary_shock(N, x, nu=0.1, U=1.0):
+    """
+    Initial condition for the stationary shock of Burgers' equation:
+    u(x, 0) = -U * tanh(U * x / (2 * nu))
+    
+    WARNING: For periodic boundary conditions, ensure the domain size is large
+    enough and validation time t is small enough so boundary discontinuities
+    do not wrap around and interact with the main shock.
+    """
+    u = -U * np.tanh(U * x / (2.0 * nu))
+    return np.vstack([u])
+
+def burgers_traveling_shock(N, x, nu=0.1, u_L=2.0, u_R=1.0, x_0=None):
+    """
+    Initial condition for the traveling shock of Burgers' equation:
+    u(x, 0) = c - ((u_L - u_R) / 2) * tanh(((u_L - u_R) / (4 * nu)) * (x - x_0))
+    where c = (u_L + u_R) / 2.
+    
+    WARNING: Because we are using periodic boundary conditions, it is strongly
+    recommended to center x_0 in the middle of the domain and keep the validation
+    time t small enough so that the shock does not wrap around and interact with the
+    boundary discontinuities.
+    """
+    if x_0 is None:
+        dx = x[1] - x[0]
+        L = x.max() + dx
+        x_0 = 0.5 * L
+    c = 0.5 * (u_L + u_R)
+    u = c - 0.5 * (u_L - u_R) * np.tanh(((u_L - u_R) / (4.0 * nu)) * (x - x_0))
+    return np.vstack([u])
+
+def burgers_traveling_smooth(N, x, nu=2.0, u_L=2.0, u_R=1.0, x_0=None):
+    """
+    A significantly smoothed version of the traveling shock, acting as a gentle curve.
+    Achieved by defaulting to a large viscosity (nu).
+    """
+    return burgers_traveling_shock(N, x, nu=nu, u_L=u_L, u_R=u_R, x_0=x_0)
