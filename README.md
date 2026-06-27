@@ -32,17 +32,18 @@ python main.py configs/{any available configuration}
 
 ## Validation & Convergence
 
-Tempest includes an automated continuous testing pipeline to verify physical fidelity and asymptotic convergence.
+Tempest includes an automated continuous testing pipeline designed to rigorously verify physical fidelity and asymptotic grid convergence across hyperbolic, parabolic, and conservative PDE systems.
 
-**Key Findings from the Advection, Diffusion, and Wave Studies:**
+**Key Findings from the validation study**
 
-* The slope of log(error) vs log(dx) perfectly approaches theoretical truncation limits, confirming implementation integrity.
-* Energy conservation alone is not a sufficient measure of numerical accuracy; boundary consistency between analytical and numerical solutions is equally critical.
-* Spatial operator choice dictates physical artifacts: Upwind schemes introduce numerical diffusion (smearing), while Central schemes introduce numerical dispersion (oscillations).
+* **The Diffusion-Dispersion Tradeoff (Advection):** Contrasts the severe artificial dissipation of upwind schemes against the dispersive nature of central differencing.
+* **Spatial Error Dominance (Diffusion):** Under parabolic stability constraints, spatial truncation error overwhelmingly dominates. Computationally expensive higher-order time integrators (like RK4) offer no practical advantage over Forward Euler for explicitly integrated diffusion.
+* **Hamiltonian Conservation (Wave Equation):** While standard RK4 introduces truncation-induced energy fluctuations, Tempest's symplectic Leapfrog implementation perfectly preserves the shadow Hamiltonian, maintaining total system energy.
+* **Shock-Capturing Limitations (Shallow Water Equations):** Captures the fundamental breakdown of standard linear schemes in discontinuous regimes (e.g., dam breaks).Artificial viscosity in Lax-Friedrichs yields sub-first-order convergence, while Lax-Wendroff suffers from severe numerical dispersion and Gibbs oscillations in the presence of infinite gradients.
 
-The full formal methodology paper is available in [docs/validation_study.md](./docs/validation_study.md)
+The full formal methodology paper is available in [docs/validation_study_final.md](./docs/validation_study_final.md).
 
-(Detailed numerical outputs, comparisons, and convergence CSVs are available in the /pipeline_results).
+(Detailed numerical outputs, comparisons, and convergence CSVs are available in the /pipeline_results directory).
 
 ---
 
@@ -63,9 +64,8 @@ Starting from a simple one-step predictor, the model was gradually optimized int
 
 The full optimization process, experiments, and failure analysis are documented in:
 
-* [docs/surrogate_setup.md](https://github.com/h-livv/tempest/blob/main/docs/surrogate_setup.md)
-* [docs/surrogate_evolution.md](https://github.com/h-livv/tempest/blob/main/docs/advec_surrogate.md)
-
+* [docs/surrogate_setup.md](./docs/surrogate_setup.md)
+* [docs/surrogate_evolution.md](./docs/advec_surrogate.md)
 
 ---
 
@@ -77,7 +77,7 @@ Grid Infrastructure
 - Configurable boundary conditions
 
 Numerical Methods
-- **Integration**: Explicit Euler, Runge-Kutta 4 (RK4), Leapfrog, Lax-Friedrichs
+- **Integration**: Explicit Euler, Runge-Kutta 4 (RK4), Leapfrog, Lax-Friedrichs, Lax-Wendroff
 - **Spatial Operators**: Upwind gradients, Central gradients, Laplacian
 
 Physical Systems
@@ -91,6 +91,10 @@ Diagnostics
 - Stability monitoring
 - Automated data extraction pipeline
 
+Machine Learning
+- Lightweight model for quick training and outputs
+- Ongoing optimization for a general PDE surrogate
+
 ---
 
 ## Module overview:
@@ -101,6 +105,7 @@ Tempest/
 ├── configs/                  # Stored configurations for stable PDE runs
 ├── diagnostics/              # Analysis & Verification Tools (energy, stability)
 ├── docs/                     # Formal mathematical documentation and studies
+├── ml/                       # Code and outputs related to machine learning
 ├── pipeline_results/         # Automated CI/CT CSV outputs and validation data
 ├── src/                      # Core PDE Evolution Engine (equations, integrators)
 ├── visualizations/           # Decoupled matplotlib plotting architecture
@@ -113,10 +118,9 @@ Tempest/
 
 ## Roadmap
 ### Near-term
-1. Higher-order and conservative numerical schemes
-2. Addition of PDEs such as Burgers' equation
-3. Detailed validation and convergence
-4. Proceeding towards 2D expansion or ML research
+1. Addition of PDEs such as Burgers' equation and advection-diffusion
+2. Detailed validation and convergence
+3. Proceeding towards 2D expansion and ML research
 
 ### Long-term ML research directions
 - Neural PDE surrogates
