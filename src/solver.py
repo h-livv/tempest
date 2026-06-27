@@ -50,7 +50,7 @@ def solver(
     step = 0
 
     visualizer = TempestVisualizer(
-        state,
+        state.data,
         dx,
         dt,
         equation.__name__,

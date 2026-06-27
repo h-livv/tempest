@@ -22,6 +22,10 @@ class Field:
         """Returns the spatial dimensionality of the field (from the grid)."""
         return self.grid.ndim
         
+    @property
+    def shape(self):
+        return self.data.shape
+
     def copy(self):
         return self.__class__(self.grid, self.data.copy())
 
