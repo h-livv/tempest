@@ -127,6 +127,9 @@ def run_single_simulation(params):
         N=N,
         dx=dx,
         dt=dt,
+        x=sim_output["x"],
+        u_numerical=sim_output["final_numerical"],
+        u_analytical=sim_output["final_analytic"],
     )
 
     row_data = {
@@ -252,13 +255,13 @@ if __name__ == '__main__':
     # 3. Implement the Parallel Execution Pool
     if is_sweep:
         max_workers = max(1, os.cpu_count() - 2)
-        print(f"\n🚀 Initiating parallel sweep across {max_workers} CPU cores...\n")
+        print(f"\nInitiating parallel sweep across {max_workers} CPU cores...\n")
         with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
             # Map returns results in the order the iterables were given
             for res in executor.map(run_single_simulation, execution_params):
                 results.append(res)
     else:
-        print(f"\n🚀 Initiating single run sequentially...\n")
+        print(f"\nInitiating single run sequentially...\n")
         results.append(run_single_simulation(execution_params[0]))
 
     # Aggregate results synchronously to avoid race conditions on the master CSV and convergence tracker

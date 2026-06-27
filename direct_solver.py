@@ -3,16 +3,16 @@ from src import solver, boundaries, operators, equations, integrators, direct_so
 
 #Run the engine
 solver.solver(
-    N=1000,
-    init_state=init_conditions.advec_gauss,
-    boundary=boundaries.periodic,    
+    N=5000,
+    init_state=init_conditions.burgers_traveling_shock,
+    boundary=boundaries.Dirichlet(2, 1),    
     operator=operators.upwind,      
-    equation=equations.advection,  
-    integrator=direct_solvers.lax_w,
+    equation=equations.burgers,  
+    integrator=integrators.rk4,
     coefficient=1.0,
     dt=0.01,
     dx=0.5,
     FINAL_TIME=1000,
-    STEPS_PER_FRAME=100,
+    STEPS_PER_FRAME=250,
     RECORD_INTERVAL=5,
 )

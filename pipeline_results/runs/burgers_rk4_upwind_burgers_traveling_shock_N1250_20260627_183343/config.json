@@ -1,0 +1,14 @@
+{
+    "equation": "burgers",
+    "integrator": "rk4",
+    "operator": "upwind",
+    "initial_condition": "burgers_traveling_shock",
+    "boundary_function": "dirichlet",
+    "N": 1250,
+    "dt": 0.004,
+    "dx": 0.2,
+    "coefficient": 0.02,
+    "final_time": 250,
+    "steps_per_frame": 100,
+    "record_interval": 20
+}

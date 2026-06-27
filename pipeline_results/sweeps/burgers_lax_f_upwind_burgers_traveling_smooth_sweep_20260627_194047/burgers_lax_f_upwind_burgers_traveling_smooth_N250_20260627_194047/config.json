@@ -1,0 +1,14 @@
+{
+    "equation": "burgers",
+    "integrator": "lax_f",
+    "operator": "upwind",
+    "initial_condition": "burgers_traveling_smooth",
+    "boundary_function": "dirichlet",
+    "N": 250,
+    "dt": 0.02,
+    "dx": 1.0,
+    "coefficient": 2.0,
+    "final_time": 10.0,
+    "steps_per_frame": 25,
+    "record_interval": 50
+}

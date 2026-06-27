@@ -1,4 +1,5 @@
 import numpy as np
+from src import operators
 
 def advection(t, state, dx, boundary, operator, coefficient):
     
@@ -18,7 +19,7 @@ def advection(t, state, dx, boundary, operator, coefficient):
     
     return dudt #Returns velocity
 
-#Linear Advection: F(u) = c * u
+#Linear Advection
 def _advection_flux(padded_state, coefficient, dx):
     return coefficient * padded_state
 
@@ -45,10 +46,9 @@ def wave(t, state, dx, boundary, operator, coefficient):
     
     return np.vstack([state[1], d2udt2]) #Input = [u, v] Output = [v, a]
 
-#Wave Equation: F(U) = [0, -c² * du/dx]ᵀ  |  S(U) = [v, 0]ᵀ
+#Wave Equation
 def _wave_flux(padded_state, coefficient, dx):
     u, v = padded_state
-    from src import operators
     
     dudx = operators.gradient(u, dx)
     padded_dudx = np.pad(dudx, pad_width=(1, 1), mode='edge')
@@ -79,9 +79,8 @@ def diffusion(t, state, dx, boundary, operator, coefficient):
     
     return du_dt
 
-# Diffusion: F(u) = -D * du/dx
+# Diffusion
 def _diffusion_flux(padded_state, coefficient, dx):
-    from src import operators
     # Gradient drops shape from N+2 to N
     dudx = operators.gradient(padded_state, dx)
     # Pad the flux back to N+2 so central_flux_divergence can slice it down to N later
@@ -126,8 +125,36 @@ def _sw_flux(padded_cons, coefficient, dx):
     f2 = q_sq_over_h + 0.5 * g * (h**2)
     return np.vstack([f1, f2])
 
-'''def _LW_flux(padded_cons):
-    h,q = '''
+def burgers(t, state, dx, boundary, operator, coefficient):
+
+    if operator.__name__ == 'laplacian':
+        raise ValueError(
+            "CRITICAL PHYSICS ERROR: You are controlling the operator of the advection term in Burgers' equation "
+            "You cannot pass 'laplacian' (2nd-order) as its operator."
+        )
+
+    v = coefficient
+
+    parity = [1]
+
+    padded_state = boundary(state, parity)
+
+    wave_term = v * operators.laplacian(padded_state, dx)
+
+    adv_term = -operator(0.5*(padded_state)**2, dx, velocity=padded_state)
+
+    du_dt = wave_term + adv_term
+
+    return du_dt
+
+def _burgers_flux(padded_state, coefficient, dx):
+    
+    adv_flux = 0.5*(padded_state)**2
+
+    wave_flux = -coefficient*(operators.gradient(padded_state, dx))
+    padded_flux = np.pad(wave_flux, pad_width=[(0, 0)] * (wave_flux.ndim - 1) + [(1, 1)], mode='edge')
+
+    return adv_flux + padded_flux
 
 #Primitive [h,v] to Conservative [h,q]
 def _sw_to_conservative(primitive_state):
@@ -158,10 +185,14 @@ def _sw_wave_speed(padded_state, coefficient):
     v = np.where(h > eps, q / h, 0.0)
     return np.abs(v) + np.sqrt(g * h)
 
+def _burgers_wave_speed(padded_state, coefficient):
+    return padded_state
+
 advection.parity = [1]          # 1-field: scalar is symmetric
 diffusion.parity = [1]          # 1-field: temperature is symmetric
 wave.parity = [1, -1]           # 2-fields: position (u) is symmetric, velocity (v) is anti-symmetric
 shallow_water.parity = [1, -1]  # 2-fields: height (h) is symmetric, velocity (v) is anti-symmetric
+burgers.parity = [1]
 
 advection.flux = _advection_flux
 advection.wave_speed = _advection_wave_speed
@@ -172,6 +203,9 @@ diffusion.wave_speed = _diffusion_wave_speed
 wave.flux = _wave_flux
 wave.source = _wave_source
 wave.wave_speed = _wave_wave_speed
+
+burgers.flux = _burgers_flux
+burgers.wave_speed = _burgers_wave_speed
 
 #Connecting back to integrators.py / direct_solvers.py
 shallow_water.flux = _sw_flux

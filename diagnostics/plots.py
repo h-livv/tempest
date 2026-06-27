@@ -98,6 +98,9 @@ class TempestPlotter:
         dt=None,
         min_time=0.0,
         show_max_error=False,
+        x=None,
+        u_numerical=None,
+        u_analytical=None,
     ):
         """
         Transient validation chart: global errors vs physical time.
@@ -161,6 +164,43 @@ class TempestPlotter:
             plt.close(fig)
 
         print(f"Validation plot archived: {save_path}")
+
+        # Plot Analytical vs Numerical solution state
+        if x is not None and u_numerical is not None and u_analytical is not None:
+            try:
+                with style.context(self.STYLE):
+                    fig, ax = plt.subplots(figsize=(8, 5), dpi=100)
+                    num_y = u_numerical[0] if u_numerical.ndim > 1 else u_numerical
+                    anal_y = u_analytical[0] if u_analytical.ndim > 1 else u_analytical
+
+                    ax.plot(x, anal_y, color="#cc3311", lw=2.5, label="Analytical Solution")
+                    ax.plot(
+                        x,
+                        num_y,
+                        color="#0077bb",
+                        lw=1.5,
+                        linestyle="--",
+                        label="Numerical Solution",
+                    )
+                    ax.set_title(
+                        f"State Comparison: {eq_name} ({solver_name})",
+                        fontsize=12,
+                        fontweight="bold",
+                    )
+                    ax.set_xlabel("Space (x)", fontsize=10)
+                    ax.set_ylabel("State (u)", fontsize=10)
+                    ax.grid(True, linestyle="--", alpha=0.5)
+                    ax.legend(loc="upper right", frameon=True)
+
+                    state_save_path = os.path.join(
+                        self.output_dir, f"state_comparison_{run_id}.png"
+                    )
+                    fig.savefig(state_save_path, bbox_inches="tight")
+                    plt.close(fig)
+                    print(f"State comparison plot archived: {state_save_path}")
+            except Exception as e:
+                print(f"Could not generate state comparison plot: {e}")
+
         return save_path
 
     def plot_convergence(
@@ -351,6 +391,41 @@ class TempestPlotter:
             )
             if slope is not None:
                 slopes[metric_name] = slope
+
+        # L1 and L2 error vs grid size (dx) plot when multiple dx are given
+        dx_arr = np.asarray(dx_values, dtype=float)
+        if len(np.unique(dx_arr)) >= 2:
+            l2_key = next((k for k in ["avg_l2", "final_l2", "l2_error"] if k in metrics_map), None)
+            l1_key = next((k for k in ["avg_l1", "final_l1", "l1_error"] if k in metrics_map), None)
+            if l2_key and l1_key:
+                try:
+                    dx_u_l2, err_l2 = self._deduplicate_by_dx(dx_arr, metrics_map[l2_key])
+                    dx_u_l1, err_l1 = self._deduplicate_by_dx(dx_arr, metrics_map[l1_key])
+                    
+                    order_l2 = np.argsort(dx_u_l2)[::-1]
+                    dx_l2, err_l2 = dx_u_l2[order_l2], err_l2[order_l2]
+                    
+                    order_l1 = np.argsort(dx_u_l1)[::-1]
+                    dx_l1, err_l1 = dx_u_l1[order_l1], err_l1[order_l1]
+
+                    with style.context(self.STYLE):
+                        fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
+                        ax.loglog(dx_l2, err_l2, "-o", color="#0077bb", lw=2, label=r"$L_2$ Error")
+                        ax.loglog(dx_l1, err_l1, "-s", color="#cc3311", lw=2, label=r"$L_1$ Error")
+                        display_eq = title_display_name if title_display_name else eq_name
+                        ax.set_title(f"Errors vs Grid Size ($\\Delta x$): {display_eq}", fontsize=12, fontweight="bold")
+                        ax.set_xlabel(r"Grid Spacing $\Delta x$", fontsize=10)
+                        ax.set_ylabel("Error Norm", fontsize=10)
+                        ax.grid(True, which="both", linestyle="--", alpha=0.5)
+                        ax.legend(loc="upper left", frameon=True)
+                        
+                        save_path = os.path.join(self.output_dir, f"errors_vs_grid_size_{eq_name}.png")
+                        fig.savefig(save_path, bbox_inches="tight")
+                        plt.close(fig)
+                        print(f"L1/L2 vs grid size plot archived: {save_path}")
+                except Exception as e:
+                    print(f"Could not generate L1 and L2 vs grid size plot: {e}")
+
         return slopes
 
     def _save_convergence_sidecar(
