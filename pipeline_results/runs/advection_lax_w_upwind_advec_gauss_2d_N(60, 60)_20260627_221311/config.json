@@ -1,0 +1,16 @@
+{
+    "equation": "advection",
+    "integrator": "lax_w",
+    "operator": "upwind",
+    "initial_condition": "advec_gauss_2d",
+    "boundary_function": "periodic",
+    "N": [
+        60,
+        60
+    ],
+    "dt": 0.02,
+    "dx": [
+        0.3,
+        0.3
+    ],
+    "coefficient": 

@@ -44,10 +44,7 @@ def upwind_axis(padded_array, spacing, velocity, active_axis, spatial_axes):
     backward_diff = (center - left) / spacing
     forward_diff = (right - center) / spacing
 
-    if isinstance(velocity, (float, int)):
-        v_center = velocity
-    else:
-        v_center = velocity[_slice_along_axis(velocity, 0, active_axis, spatial_axes)]
+    v_center = velocity
     
     return np.where(v_center >= 0.0, backward_diff, forward_diff)
 
@@ -136,13 +133,13 @@ def upwind(padded_state, grid_or_dx, velocity=None):
         backward_diff = (center - left) / spacing
         forward_diff = (right - center) / spacing
 
-        v_center = velocity if isinstance(velocity, (float, int)) else velocity[..., 1:-1]
+        v_center = velocity
         return np.where(v_center >= 0.0, backward_diff, forward_diff)
 
     grid = grid_or_dx
     spatial_axes = _get_spatial_axes(grid.ndim)
     
-    total_derivative = 0
+    grads = []
     for i, ax in enumerate(spatial_axes):
         spacing = grid.get_spacing(i)
         # If velocity is a vector field array (shape: [ndim, ...]), extract the i-th component.
@@ -155,9 +152,12 @@ def upwind(padded_state, grid_or_dx, velocity=None):
         else:
             v_comp = velocity
             
-        total_derivative += upwind_axis(padded_state, spacing, v_comp, ax, spatial_axes)
+        grad = upwind_axis(padded_state, spacing, v_comp, ax, spatial_axes)
+        grads.append(grad)
         
-    return total_derivative
+    if len(grads) == 1:
+        return grads[0]
+    return np.stack(grads, axis=0)
 
 def spatial_average(padded_state, grid_or_dx=None):
     """
@@ -204,6 +204,11 @@ def central_flux_divergence(padded_flux, grid_or_dx):
         return (right - left) / (2 * spacing)
 
     grid = grid_or_dx
+    
+    # System PDE recursion: If padded_flux has an extra dimension for component states
+    if padded_flux.ndim == grid.ndim + 2:
+        return np.stack([central_flux_divergence(padded_flux[c], grid) for c in range(padded_flux.shape[0])], axis=0)
+
     spatial_axes = _get_spatial_axes(grid.ndim)
     
     divergence = 0

@@ -1,6 +1,21 @@
 import numpy as np
 from src import operators
 
+def _get_inner_slice(array, grid_or_dx):
+    ndim = grid_or_dx.ndim if hasattr(grid_or_dx, "ndim") else 1
+    slices = [slice(None)] * array.ndim
+    for ax in range(-ndim, 0):
+        slices[ax] = slice(1, -1)
+    return tuple(slices)
+
+def _get_flux_comp(flux_array, d, ndim):
+    if ndim == 1:
+        return flux_array
+    if flux_array.ndim == ndim + 2:  # system: (components, ndim, spatial...)
+        return flux_array[:, d]
+    else:  # scalar: (ndim, spatial...)
+        return flux_array[d]
+
 def lax_f(state, t, dt, dx, boundary, operator, equation, coefficient):
     """
     Lax-Friedrichs Direct Spatiotemporal Solver.
@@ -14,12 +29,13 @@ def lax_f(state, t, dt, dx, boundary, operator, equation, coefficient):
     else: 
         raise AttributeError(f"CRITICAL: Equation '{equation.__name__}' must register a .flux method to run under Lax-Friedrichs.")
     
+    inner_slice = _get_inner_slice(padded_cons, dx)
     if hasattr(equation, "source"):
-        source_term = equation.source(padded_cons, coefficient, dx)[..., 1:-1]
+        source_term = equation.source(padded_cons, coefficient, dx)[inner_slice]
     else:
         source_term = 0.0
 
-    avg_term = operators.spatial_average(padded_cons)
+    avg_term = operators.spatial_average(padded_cons, dx)
     div_term = operators.central_flux_divergence(flux, dx)
     
     cons_next = avg_term - dt * div_term + dt * source_term
@@ -39,38 +55,66 @@ def lax_w(state, t, dt, dx, boundary, operator, equation, coefficient):
         raise AttributeError(f"CRITICAL: Equation '{equation.__name__}' must register a .flux method to run under Lax-Wendroff.")
 
     F_n = equation.flux(padded_cons, coefficient, dx)
+    inner_slice = _get_inner_slice(padded_cons, dx)
     if hasattr(equation, "source"):
-        S_n = equation.source(padded_cons, coefficient, dx)[..., 1:-1]
+        S_n = equation.source(padded_cons, coefficient, dx)[inner_slice]
     else:
         S_n = 0.0
         
-    cons_inner = padded_cons[..., 1:-1]
+    cons_inner = padded_cons[inner_slice]
 
     # Use time step to alternate predictor/corrector direction to avoid bias and oscillations
     step = int(round(t / dt))
+    ndim = dx.ndim if hasattr(dx, "ndim") else 1
+    spatial_axes = tuple(range(-ndim, 0))
     
-    if step % 2 == 0:
-        # --- EVEN STEPS: Predictor (Forward), Corrector (Backward) ---
-        F_diff_pred = F_n[..., 2:] - F_n[..., 1:-1]
-        U_star = cons_inner - (dt / dx) * F_diff_pred + dt * S_n
+    # Predictor
+    pred_flux_terms = 0.0
+    for d in range(ndim):
+        spacing = dx.get_spacing(d) if hasattr(dx, "get_spacing") else dx
+        active_axis = spatial_axes[d]
+        flux_comp = _get_flux_comp(F_n, d, ndim)
         
-        padded_U_star = boundary(U_star, parity)
-        F_star = equation.flux(padded_U_star, coefficient, dx)
-        S_star = equation.source(padded_U_star, coefficient, dx)[..., 1:-1] if hasattr(equation, "source") else 0.0
+        shift = 1 if (step + d) % 2 == 0 else -1
         
-        F_diff_corr = F_star[..., 1:-1] - F_star[..., :-2]
-    else:
-        # --- ODD STEPS: Predictor (Backward), Corrector (Forward) ---
-        F_diff_pred = F_n[..., 1:-1] - F_n[..., :-2]
-        U_star = cons_inner - (dt / dx) * F_diff_pred + dt * S_n
+        if shift == 1:
+            right = flux_comp[operators._slice_along_axis(flux_comp, 1, active_axis, spatial_axes)]
+            center = flux_comp[operators._slice_along_axis(flux_comp, 0, active_axis, spatial_axes)]
+            F_diff = (right - center)
+        else:
+            center = flux_comp[operators._slice_along_axis(flux_comp, 0, active_axis, spatial_axes)]
+            left = flux_comp[operators._slice_along_axis(flux_comp, -1, active_axis, spatial_axes)]
+            F_diff = (center - left)
+            
+        pred_flux_terms += (dt / spacing) * F_diff
         
-        padded_U_star = boundary(U_star, parity)
-        F_star = equation.flux(padded_U_star, coefficient, dx)
-        S_star = equation.source(padded_U_star, coefficient, dx)[..., 1:-1] if hasattr(equation, "source") else 0.0
+    U_star = cons_inner - pred_flux_terms + dt * S_n
+    
+    # Corrector
+    padded_U_star = boundary(U_star, parity)
+    F_star = equation.flux(padded_U_star, coefficient, dx)
+    S_star = equation.source(padded_U_star, coefficient, dx)[inner_slice] if hasattr(equation, "source") else 0.0
+    
+    corr_flux_terms = 0.0
+    for d in range(ndim):
+        spacing = dx.get_spacing(d) if hasattr(dx, "get_spacing") else dx
+        active_axis = spatial_axes[d]
+        flux_comp = _get_flux_comp(F_star, d, ndim)
         
-        F_diff_corr = F_star[..., 2:] - F_star[..., 1:-1]
+        shift = -1 if (step + d) % 2 == 0 else 1
         
-    cons_next = 0.5 * (cons_inner + U_star) - 0.5 * (dt / dx) * F_diff_corr + 0.5 * dt * S_star
+        if shift == 1:
+            right = flux_comp[operators._slice_along_axis(flux_comp, 1, active_axis, spatial_axes)]
+            center = flux_comp[operators._slice_along_axis(flux_comp, 0, active_axis, spatial_axes)]
+            F_diff = (right - center)
+        else:
+            center = flux_comp[operators._slice_along_axis(flux_comp, 0, active_axis, spatial_axes)]
+            left = flux_comp[operators._slice_along_axis(flux_comp, -1, active_axis, spatial_axes)]
+            F_diff = (center - left)
+            
+        corr_flux_terms += (dt / spacing) * F_diff
+        
+    cons_next = 0.5 * (cons_inner + U_star) - 0.5 * corr_flux_terms + 0.5 * dt * S_star
     
     return equation.to_primitive(cons_next) if hasattr(equation, "to_primitive") else cons_next
 

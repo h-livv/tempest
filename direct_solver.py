@@ -4,10 +4,10 @@ from src import solver, boundaries, operators, equations, integrators, direct_so
 #Run the engine
 solver.solver(
     N=5000,
-    init_state=init_conditions.burgers_traveling_shock,
-    boundary=boundaries.Dirichlet(2, 1),    
+    init_state=init_conditions.diffusion_2d,
+    boundary=boundaries.edge,    
     operator=operators.upwind,      
-    equation=equations.burgers,  
+    equation=equations.diffusion,  
     integrator=integrators.rk4,
     coefficient=1.0,
     dt=0.01,

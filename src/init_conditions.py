@@ -9,7 +9,7 @@ import numpy as np
     init_pos = np.exp(-((x - center)**2) / (2 * sigma**2))
     init_vel = np.zeros(N)
     
-    init_state = np.vstack([init_pos, init_vel])
+    init_state = np.stack([init_pos, init_vel], axis=0)
     return init_state'''
 
 def wave_gauss(N, x):
@@ -24,7 +24,7 @@ def wave_gauss(N, x):
     init_pos = np.exp(-((x - center)**2) / (2 * sigma**2))
     init_vel = np.zeros(N)
     
-    init_state = np.vstack([init_pos, init_vel])
+    init_state = np.stack([init_pos, init_vel], axis=0)
     return init_state
 
 def shallow_gauss(N, x):
@@ -33,7 +33,7 @@ def shallow_gauss(N, x):
     init_height = 1.0 + np.exp(-0.0001 * (x - center)**2)
     init_vel = np.zeros(N)
     
-    init_state = np.vstack([init_height, init_vel])
+    init_state = np.stack([init_height, init_vel], axis=0)
     return init_state
 
 def shallow_linear_gauss(N, x):
@@ -51,7 +51,7 @@ def shallow_linear_gauss(N, x):
     init_height = 1.0 + 1e-6 * np.exp(-((x - center)**2) / (2 * sigma**2))
     init_vel = np.zeros(N)
     
-    init_state = np.vstack([init_height, init_vel])
+    init_state = np.stack([init_height, init_vel], axis=0)
     return init_state
 
 def advec_gauss(N, x):
@@ -60,7 +60,7 @@ def advec_gauss(N, x):
 
     init_pos = np.exp(-((x - center)**2) / (2 * sigma**2))
     
-    init_state = np.vstack([init_pos])
+    init_state = np.stack([init_pos], axis=0)
     return init_state
 
 def advec_shifted_gauss(N, x):
@@ -69,14 +69,14 @@ def advec_shifted_gauss(N, x):
 
     init_pos = np.exp(-((x - center)**2) / (2 * sigma**2))
     
-    return np.vstack([init_pos])
+    return np.stack([init_pos], axis=0)
 
 '''def diff_gauss(N, x):
     center = 0.5 * x.max()
     
     init_temp = np.exp(-0.01 * (x - center)**2)
     
-    init_state = np.vstack([init_temp])
+    init_state = np.stack([init_temp], axis=0)
     return init_state'''
 
 def diff_gauss(N, x):
@@ -93,7 +93,7 @@ def diff_gauss(N, x):
     sigma = 2.0
     init_temp = np.exp(-((x - center)**2) / (2 * sigma**2))
     
-    init_state = np.vstack([init_temp])
+    init_state = np.stack([init_temp], axis=0)
     return init_state
 
 #Sharp peaks (Diraq delta function + square shapes)
@@ -107,7 +107,7 @@ def shallow_peak(N, x):
     init_h[center_idx] = 100.0
     
     init_v = np.zeros(N)
-    init_state = np.vstack([init_h, init_v])
+    init_state = np.stack([init_h, init_v], axis=0)
     return init_state
 
 def wave_peak(N, x):
@@ -116,38 +116,38 @@ def wave_peak(N, x):
     init_pos[center_idx] = 2.0
     
     init_vel = np.zeros(N)
-    return np.vstack([init_pos, init_vel])
+    return np.stack([init_pos, init_vel], axis=0)
 
 def wave_square(N, x):
     init_pos = np.where((x > 0.4 * x.max()) & (x < 0.6 * x.max()), 1.0, 0.0)
     init_vel = np.zeros(N)
     
-    return np.vstack([init_pos, init_vel])
+    return np.stack([init_pos, init_vel], axis=0)
 
 def advec_peak(N, x):
     init_pos = np.zeros(N)
     center_idx = N // 2
     init_pos[center_idx] = 1.0
     
-    return np.vstack([init_pos])
+    return np.stack([init_pos], axis=0)
 
 def advec_square(N, x):
     init_pos = np.where((x > 0.4 * x.max()) & (x < 0.6 * x.max()), 1.0, 0.0)
     
-    return np.vstack([init_pos])
+    return np.stack([init_pos], axis=0)
 
 def diff_peak(N, x):
     init_temp = np.zeros(N)
     center_idx = N // 2
     init_temp[center_idx] = 10.0
     
-    return np.vstack([init_temp])
+    return np.stack([init_temp], axis=0)
 
 #A rod heated on one end
 def diff_rod(N, x):
     init_temp = np.where(x < 0.2 * x.max(), 0.5, 0.0)
     
-    init_state = np.vstack([init_temp])
+    init_state = np.stack([init_temp], axis=0)
     return init_state
 
 #Dam breaking
@@ -155,7 +155,7 @@ def shallow_dam(N, x):
     init_h = np.where(x < 0.5 * x.max(), 3.5, 1.0)
     init_v = np.zeros(N)
     
-    init_state = np.vstack([init_h, init_v])
+    init_state = np.stack([init_h, init_v], axis=0)
     return init_state
 
 #Two waves colliding at the center
@@ -163,7 +163,7 @@ def shallow_collision(N, x):
     init_h = np.ones(N) * 1.5
     init_v = np.where(x < 0.5 * x.max(), 2.0, -2.0)
     
-    init_state = np.vstack([init_h, init_v])
+    init_state = np.stack([init_h, init_v], axis=0)
     return init_state
 
 #Constant for diagnostic purposes
@@ -183,7 +183,7 @@ def burgers_stationary_shock(N, x, nu=0.1, U=1.0):
     do not wrap around and interact with the main shock.
     """
     u = -U * np.tanh(U * x / (2.0 * nu))
-    return np.vstack([u])
+    return np.stack([u], axis=0)
 
 def burgers_traveling_shock(N, x, nu=0.1, u_L=2.0, u_R=1.0, x_0=None):
     """
@@ -202,7 +202,7 @@ def burgers_traveling_shock(N, x, nu=0.1, u_L=2.0, u_R=1.0, x_0=None):
         x_0 = 0.5 * L
     c = 0.5 * (u_L + u_R)
     u = c - 0.5 * (u_L - u_R) * np.tanh(((u_L - u_R) / (4.0 * nu)) * (x - x_0))
-    return np.vstack([u])
+    return np.stack([u], axis=0)
 
 def burgers_traveling_smooth(N, x, nu=2.0, u_L=2.0, u_R=1.0, x_0=None):
     """
@@ -210,3 +210,53 @@ def burgers_traveling_smooth(N, x, nu=2.0, u_L=2.0, u_R=1.0, x_0=None):
     Achieved by defaulting to a large viscosity (nu).
     """
     return burgers_traveling_shock(N, x, nu=nu, u_L=u_L, u_R=u_R, x_0=x_0)
+
+def diff_gauss_2d(Ny, Nx, Y, X):
+    """
+    2D Gaussian pulse for diffusion.
+    """
+    dy = Y[1, 0] - Y[0, 0] if Y.shape[0] > 1 else 1.0
+    dx = X[0, 1] - X[0, 0] if X.shape[1] > 1 else 1.0
+    
+    Ly = np.max(Y) + dy
+    Lx = np.max(X) + dx
+    
+    center_y = 0.5 * Ly
+    center_x = 0.5 * Lx
+    
+    sigma = 2.0
+    
+    init_temp = np.exp(-((Y - center_y)**2 + (X - center_x)**2) / (2 * sigma**2))
+    
+    return np.stack([init_temp], axis=0)
+
+def wave_gauss_2d(Ny, Nx, Y, X):
+    """
+    2D Gaussian pulse for Wave Equation.
+    """
+    dy = Y[1, 0] - Y[0, 0] if Y.shape[0] > 1 else 1.0
+    dx = X[0, 1] - X[0, 0] if X.shape[1] > 1 else 1.0
+    
+    center_y = 0.5 * (np.max(Y) + dy)
+    center_x = 0.5 * (np.max(X) + dx)
+    
+    sigma = 2.0
+    init_pos = np.exp(-((Y - center_y)**2 + (X - center_x)**2) / (2 * sigma**2))
+    init_vel = np.zeros_like(init_pos)
+    
+    return np.stack([init_pos, init_vel], axis=0)
+
+def advec_gauss_2d(Ny, Nx, Y, X):
+    """
+    2D Gaussian pulse for Advection.
+    """
+    dy = Y[1, 0] - Y[0, 0] if Y.shape[0] > 1 else 1.0
+    dx = X[0, 1] - X[0, 0] if X.shape[1] > 1 else 1.0
+    
+    center_y = 0.5 * (np.max(Y) + dy)
+    center_x = 0.5 * (np.max(X) + dx)
+    
+    sigma = 2.0
+    init_pos = np.exp(-((Y - center_y)**2 + (X - center_x)**2) / (2 * sigma**2))
+    
+    return np.stack([init_pos], axis=0)

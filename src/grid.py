@@ -35,3 +35,15 @@ class Grid:
 
     def get_spacing(self, axis):
         return self.spacing[axis]
+
+    def characteristic_spacing(self):
+        """Used for CFL calculations, stability analysis, and timestep estimation."""
+        return min(self.spacing)
+
+    def mesh_size(self):
+        """Used for convergence studies, refinement metrics, and log-log plots. Alias for h()."""
+        return min(self.spacing)
+
+    def h(self):
+        """Alias for mesh_size()."""
+        return self.mesh_size()

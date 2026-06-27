@@ -1,6 +1,3 @@
-import matplotlib
-matplotlib.use("Agg")
-
 import csv
 import os
 
@@ -64,7 +61,13 @@ class TempestPlotter:
         """
         unique = {}
         for dx, err in zip(dx_values, error_values):
-            unique[float(dx)] = float(err)
+            if isinstance(dx, tuple):
+                dx_val = min(dx)
+            elif isinstance(dx, str) and dx.startswith('('):
+                dx_val = float(dx.strip('()').split(',')[0])
+            else:
+                dx_val = float(dx)
+            unique[float(dx_val)] = float(err)
 
         sorted_pairs = sorted(unique.items(), key=lambda pair: pair[0], reverse=True)
         dx_out = np.array([pair[0] for pair in sorted_pairs], dtype=float)
@@ -496,7 +499,15 @@ class TempestPlotter:
             print(f"No metrics rows matched filter for {eq_name}.")
             return {}
 
-        dx_values = [float(row["DX"]) for row in rows]
+        dx_values = []
+        for row in rows:
+            dx_str = row["DX"]
+            if dx_str.startswith('('):
+                dx_val = float(dx_str.strip('()').split(',')[0])
+            else:
+                dx_val = float(dx_str)
+            dx_values.append(dx_val)
+            
         metrics_map = {}
         for metric_name in metrics:
             csv_col = cls.CONVERGENCE_METRICS[metric_name]["csv_column"]
