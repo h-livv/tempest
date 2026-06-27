@@ -1,6 +1,6 @@
 # Validation and Convergence study for Tempest
 
-This document provides a rigorous numerical validation and convergence analysis of the Tempest framework. It establishes the physical and theoretical validity of four distinct Partial Differential Equation (PDE) classes solved via both the Method of Lines (MOL) and Direct Space-Time integration schemes.
+This document provides a rigorous numerical validation and convergence analysis of the Tempest framework. It establishes the physical and theoretical validity of four distinct Partial Differential Equation (PDE) solved via both the Method of Lines (MOL) and Direct Space-Time integration schemes.
 
 This study strictly isolates Transient Validation (physical fidelity) and Asymptotic Grid Convergence (mathematical accuracy), ensuring that Tempest's discretizations perfectly reproduce theoretical bounds.
 
@@ -35,8 +35,8 @@ The 1D heat equation was evolved using the Forward Euler and fourth-order RK4 in
 
 <img src="assets/validation_study/diff_euler_err.png" alt="euler_err" width="500"><img src="assets/validation_study/diff_rk4_err.png" alt="rk4_err" width="500"> <br>
 
-- It is observed that the $L_2$ error for the Euler and RK4 schemes are virtually indistinguishable, both converging to a final value of ~$10^{-7}$.
-- This demonstrates that for explicit time integration of the diffusion equation, the numerical error is heavily dominated by the spatial discretization ($\mathcal{O}(\Delta x^2)$).
+- It is observed that the $L_2$ error for the Euler and RK4 schemes are virtually indistinguishable, both converging to a final value of ~($10^{-7}$).
+- This demonstrates that for explicit time integration of the diffusion equation, the numerical error is heavily dominated by the spatial discretization $\mathcal{O}(\Delta x^2)$.
 - Because explicit schemes for parabolic PDEs are subject to a strict stability constraint ($\Delta t \propto \Delta x^2$), the required time step is so small that the temporal truncation error is negligible. Consequently, there is no noticeable advantage to using a computationally expensive, higher-order scheme like RK4 over the simpler Forward Euler method.
 
 ### 2.2 Convergence
@@ -77,7 +77,7 @@ A Gaussian wave of infinitesimal amplitude ($10^{-6}$) was evolved to ensure the
 
 <img src="assets/validation_study/shallow_lin_err.png" alt="lin_err" width="500"><br>
 
-- The error remained bounded at ~$10^{-11}$, proving that the symmetric scheme successfully eliminates trailing dispersive bias typical of asymmetrical methods.
+- The error remained bounded at ~($10^{-11}$), proving that the symmetric scheme successfully eliminates trailing dispersive bias typical of asymmetrical methods.
 
 #### 4.1.1 Linear Convergence
 The grid was successively refined while keeping the Courant number constant. The log($L_2$) error was then plotted against log($\Delta x$) and the resulting slope was compared to the theoretical order of accuracy. <br>
@@ -93,7 +93,7 @@ A classic dam break problem was simulated using the Lax-Friedrichs and Lax-Wendr
 
 <img src="assets/validation_study/shallow_dam_laxf.png" alt="shallow_dam_laxf" width="500"><img src="assets/validation_study/shallow_dam_laxw.png" alt="shallow_dam_laxw" width="500"> <br>
 
-- While the errors stay bounded at ~$10^{-1}$, they are relatively higher than those observed in the continuous regime. 
+- While the errors stay bounded at ~($10^{-1}$), they are relatively higher than those observed in the continuous regime. 
 - Modified equation analysis reveals that the truncation error of the Lax-Friedrichs is proportional to a second-order spatial derivative, which mimics physical diffusion. This causes it to suffer from massive numerical diffusion.
 - Conversely, Lax-Wendroff's truncation error is proportional to a third-order spatial derivative, which induces severe numerical dispersion for discontinuous functions, manifesting as high-frequency oscillations.
 
@@ -123,7 +123,7 @@ The grid was successively refined while keeping the Courant number constant. The
 The objective of this study was to rigorously validate the Tempest solver across a diverse set of partial differential equations: Advection, Diffusion, Wave propagation, and the Shallow Water equations. Through systematic grid convergence testing, stability analysis, and exact analytical comparisons, the solver successfully demonstrated both its computational accuracy and its adherence to theoretical numerical bounds.<br><br>
 Several key behavioral characteristics of numerical PDE integration were verified:
 - **Diffusion-Dispersion tradeoff:** The linear advection tests clearly illustrate this tradeoff, isolating the highly dissipative nature of upwind schemes against the dispersive nature of central differencing.
-- **Temporal vs. Spatial Error Dominance:** Validation of the heat equation confirmed that under strict parabolic stability constraints, spatial truncation error ($\mathcal{O}(\Delta x^2)$) overwhelmingly dominates. This successfully proved that computationally expensive higher-order time integrators (like RK4) offer no practical advantage over explicit Euler for strictly parabolic systems.
+- **Temporal vs. Spatial Error Dominance:** Validation of the heat equation confirmed that under strict parabolic stability constraints, spatial truncation error overwhelmingly dominates. This successfully proved that computationally expensive higher-order time integrators (like RK4) offer no practical advantage over explicit Euler for strictly parabolic systems.
 - **Hamiltonian Conservation:** The wave equation analysis highlighted the absolute necessity of symplectic integrators for conservative systems. While standard high-order methods like RK4 introduced truncation-induced energy fluctuations, the symplectic Leapfrog scheme preserved the exact shadow Hamiltonian, maintaining total system energy.
 - **Shock-Capturing Limitations:** The shallow water equations provided a comprehensive stress test. In the continuous linear regime, the Symmetric MacCormack scheme perfectly maintained theoretical second-order convergence while eliminating trailing dispersive bias. However, in the discontinuous dam-break regime, the study successfully captured the fundamental breakdown of standard linear schemes. The severe degradation of empirical convergence rates demonstrated exactly how artificial viscosity (Lax-Friedrichs) and numerical dispersion (Lax-Wendroff) manifest in the presence of infinite gradients.<br><br>
 
