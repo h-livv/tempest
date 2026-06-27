@@ -1,16 +1,16 @@
 # Tempest
-A framework for simulating and validating non-linear dynamical systems using numerical PDE evolution methods.
+A modular framework for simulating, validating, and learning PDE evolution operators.
 
 ---
 
-## Shallow water equations - Dam break
-<img width="2000" height="400" alt="shallow_dam" src="https://github.com/user-attachments/assets/af5b4136-dcfb-4e13-9077-32decffff339" />
+## Wave Equation
+<img width="1280" height="600" alt="wave" src="https://github.com/user-attachments/assets/84a809dc-0ec8-484e-bbde-0da33aac43fb" />
 
-## Diffusion - Heat transfer on a rod
-<img width="2000" height="400" alt="diffusion" src="https://github.com/user-attachments/assets/825feab3-8dcf-4c4b-88e2-2863c8853a0c" />
+## Diffusion
+<img width="1280" height="600" alt="diffusion" src="https://github.com/user-attachments/assets/55179cc2-cd2d-41d5-bd87-f2702a6a3791" />
 
-## Wave propagation - Disturbance on a string
-<img width="2000" height="400" alt="wave_prop" src="https://github.com/user-attachments/assets/f0800786-4009-43ce-a661-33874ac1b61d" />
+## Linear advection
+<img width="1280" height="600" alt="advection" src="https://github.com/user-attachments/assets/1c102fd2-15c2-4175-a05b-8aedca4f13a6" />
 
 ---
 ## Quick start
@@ -20,19 +20,14 @@ git clone https://github.com/h-livv/tempest.git
 cd tempest
 pip install -r requirements.txt
 ```
-Run the direct visualization (no diagnostics):
 ```
-python direct_solver.py
-```
-Run the full automated data pipeline:
-```
-python main.py configs/{any available configuration}
+python main.py configs/{dimension}/{any available configuration}
 ```
 ---
 
 ## Validation & Convergence
 
-Tempest includes an automated continuous testing pipeline designed to rigorously verify physical fidelity and asymptotic grid convergence across hyperbolic, parabolic, and conservative PDE systems.
+Tempest includes an automated validation and convergence testing pipeline designed to rigorously verify physical fidelity and asymptotic grid convergence across hyperbolic, parabolic, and conservative PDE systems.
 
 **Key Findings from the validation study**
 
@@ -40,8 +35,11 @@ Tempest includes an automated continuous testing pipeline designed to rigorously
 * **Spatial Error Dominance (Diffusion):** Under parabolic stability constraints, spatial truncation error overwhelmingly dominates. Computationally expensive higher-order time integrators (like RK4) offer no practical advantage over Forward Euler for explicitly integrated diffusion.
 * **Hamiltonian Conservation (Wave Equation):** While standard RK4 introduces truncation-induced energy fluctuations, Tempest's symplectic Leapfrog implementation perfectly preserves the shadow Hamiltonian, maintaining total system energy.
 * **Shock-Capturing Limitations (Shallow Water Equations):** Captures the fundamental breakdown of standard linear schemes in discontinuous regimes (e.g., dam breaks).Artificial viscosity in Lax-Friedrichs yields sub-first-order convergence, while Lax-Wendroff suffers from severe numerical dispersion and Gibbs oscillations in the presence of infinite gradients.
+* **Limitations of boundary conditions in shock-based systems (Burgers' Equation):** Periodic boundary conditions encounter critical physics discrepancies with shock-based PDEs such as the Burgers' equation. The periodic expansion jump forms a rarefaction fan which alters the shock so it no longer represents the same physical problem. A Dirichlet boundary condition strictly holds the boundaries at the values the analytical domain requires.
 
-The full formal methodology paper is available in [docs/validation_study_final.md](./docs/validation_study_final.md).
+The full formal methodology paper is available in [docs/validation_study_final.md](./docs/validation_study_final.md). 
+
+Burgers' equation validation and convergence: [docs/burgers_validation.md](./docs/burgers_validation.md)
 
 (Detailed numerical outputs, comparisons, and convergence CSVs are available in the /pipeline_results directory).
 
@@ -49,7 +47,9 @@ The full formal methodology paper is available in [docs/validation_study_final.m
 
 ## Neural Surrogate Model
 
-Tempest features an experimental ML surrogate model that learns to emulate the linear advection equation much faster than solving it numerically step-by-step.
+Tempest includes an experimental machine learning pipeline for learning numerical evolution operators directly from simulated PDE trajectories.
+
+Currently features an experimental ML surrogate model that learns to emulate the linear advection equation much faster than solving it numerically step-by-step.
 
 Starting from a simple one-step predictor, the model was gradually optimized into a stable long-horizon transport surrogate through iterative testing and physics-informed constraints.
 
@@ -72,7 +72,7 @@ The full optimization process, experiments, and failure analysis are documented 
 ## Current capabilities:
 
 Grid Infrastructure
-- 1D structured grids
+- 1D and 2D supported structured grids
 - Custom initial conditions
 - Configurable boundary conditions
 
@@ -85,15 +85,17 @@ Physical Systems
 - Diffusion
 - Wave propagation
 - Shallow water equations
+- Burgers' equation
 
-Diagnostics
+Validation Diagnostics
 - Energy tracking
 - Stability monitoring
-- Automated data extraction pipeline
+- Error analysis
+- Convergence study
 
 Machine Learning
 - Lightweight model for quick training and outputs
-- Ongoing optimization for a general PDE surrogate
+- Ongoing development of generalized PDE evolution surrogates
 
 ---
 
@@ -118,14 +120,15 @@ Tempest/
 
 ## Roadmap
 ### Near-term
-1. Addition of PDEs such as Burgers' equation and advection-diffusion
-2. Detailed validation and convergence
-3. Proceeding towards 2D expansion and ML research
-
+1. Extend shock-capturing methods to 2D systems
+2. Expand neural surrogate models to multi-dimensional PDEs
+3. Investigate neural operators for generalized evolution learning
+4. 
 ### Long-term ML research directions
-- Neural PDE surrogates
-- Physics-informed neural networks
-- Neural operators
-- Hybrid numerical-learned solvers
+- Generalized PDE evolution framework
+- Learned numerical operators
+- Physics-informed machine learning
+- Reduced-order modeling
+- Hybrid numerical–learned solvers
 
 ---
