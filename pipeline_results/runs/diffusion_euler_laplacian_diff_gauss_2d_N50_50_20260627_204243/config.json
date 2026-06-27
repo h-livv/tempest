@@ -1,0 +1,20 @@
+{
+    "equation": "diffusion",
+    "integrator": "euler",
+    "operator": "laplacian",
+    "initial_condition": "diff_gauss_2d",
+    "boundary_function": "edge",
+    "N": [
+        50,
+        50
+    ],
+    "dt": 0.001,
+    "dx": [
+        0.2,
+        0.2
+    ],
+    "coefficient": 1.0,
+    "final_time": 2.0,
+    "steps_per_frame": 20,
+    "record_interval": 10
+}

@@ -70,10 +70,37 @@ class Field:
 
 class ScalarField(Field):
     """A scalar field (e.g., temperature, density) across the grid."""
+    
+    @property
+    def rank(self):
+        return "scalar"
+        
+    @property
+    def components(self):
+        return 1
+
     def _get_expected_shape(self):
         return self.grid.shape
 
 class VectorField(Field):
     """A vector field (e.g., velocity) across the grid. The vector components are along axis 0."""
+    
+    def __init__(self, grid, data=None):
+        self.grid = grid
+        if data is None:
+            self.data = np.zeros((self.grid.ndim,) + self.grid.shape)
+        else:
+            self.data = np.asarray(data)
+            if self.data.shape[1:] != self.grid.shape:
+                raise ValueError(f"Expected spatial shape {self.grid.shape}, got {self.data.shape}")
+
+    @property
+    def rank(self):
+        return "vector"
+        
+    @property
+    def components(self):
+        return self.data.shape[0] if self.data is not None else self.grid.ndim
+
     def _get_expected_shape(self):
         return (self.grid.ndim,) + self.grid.shape

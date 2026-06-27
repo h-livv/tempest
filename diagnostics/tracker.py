@@ -11,10 +11,13 @@ class DataTracker:
         if total_steps % self.record_interval != 0:
             num_snapshots += 1
             
+        # Ensure grid_size is a tuple
+        grid_shape = grid_size if isinstance(grid_size, tuple) else (grid_size,)
+        
         # Pre-allocate contiguous arrays
         self.time = np.zeros(num_snapshots)
-        self.numerical = np.zeros((num_snapshots, grid_size))
-        self.analytical = np.zeros((num_snapshots, grid_size))
+        self.numerical = np.zeros((num_snapshots,) + grid_shape)
+        self.analytical = np.zeros((num_snapshots,) + grid_shape)
         self.l1 = np.zeros(num_snapshots)
         self.l2 = np.zeros(num_snapshots)
         self.max_err = np.zeros(num_snapshots)
@@ -24,8 +27,8 @@ class DataTracker:
 
     def record(self, t, num_state, anal_state, energy=0.0):
         self.time[self.idx] = t
-        self.numerical[self.idx, :] = num_state
-        self.analytical[self.idx, :] = anal_state
+        self.numerical[self.idx] = num_state
+        self.analytical[self.idx] = anal_state
         
         # Compute errors locally
         diff = num_state - anal_state

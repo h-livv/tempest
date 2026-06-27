@@ -1,5 +1,3 @@
-import matplotlib
-matplotlib.use("Qt5Agg")
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -25,13 +23,23 @@ def solver(
     RECORD_INTERVAL=1,
 ):
     # Construct unified Grid
-    grid = Grid(shape=(N,), spacing=(dx,))
+    # Phase 2 Backward compatibility
+    # Ensure N and dx are sequences if they are passed as scalars.
+    actual_shape = N if isinstance(N, tuple) else (N,)
+    actual_spacing = dx if isinstance(dx, tuple) else (dx,)
+    grid = Grid(shape=actual_shape, spacing=actual_spacing)
 
     # Initial state initialization agnostic of dimensions
-    if equation.__name__ == 'burgers':
-        state_data = init_state(*grid.shape, *grid.coordinates, nu=coefficient)
+    if isinstance(actual_shape, tuple) and len(actual_shape) > 1:
+        if equation.__name__ == 'burgers':
+            state_data = init_state(*actual_shape, *grid.coordinates, nu=coefficient)
+        else:
+            state_data = init_state(*actual_shape, *grid.coordinates)
     else:
-        state_data = init_state(*grid.shape, *grid.coordinates)
+        if equation.__name__ == 'burgers':
+            state_data = init_state(actual_shape[0], grid.coordinates[0], nu=coefficient)
+        else:
+            state_data = init_state(actual_shape[0], grid.coordinates[0])
 
     # Wrap raw data in appropriate Field abstraction
     if state_data.shape == grid.shape or (state_data.ndim == grid.ndim + 1 and state_data.shape[0] == 1):
@@ -50,7 +58,7 @@ def solver(
     step = 0
 
     visualizer = TempestVisualizer(
-        state.data,
+        state,
         dx,
         dt,
         equation.__name__,
@@ -82,7 +90,7 @@ def solver(
             equation, state.data, init_state, N, x_compat, current_time, coefficient, boundary.__name__, dx
         )
         
-        _, _, total_e = stability.tracking(state.data, dx, boundary, equation.__name__, coefficient)
+        _, _, total_e = stability.tracking(state, grid, boundary, equation.__name__, coefficient)
         
         # Delegate storage and error computation
         tracker.record(current_time, actual_u, true_u, total_e)
@@ -91,9 +99,13 @@ def solver(
         nonlocal state, current_time, step
         target_step = min(target_step, total_steps)
         while step < target_step:
-            state = integrator(
-                state, current_time, dt, dx, boundary, operator, equation, coefficient
+            next_state = integrator(
+                state, current_time, dt, grid, boundary, operator, equation, coefficient
             )
+            if hasattr(state, 'grid') and not hasattr(next_state, 'grid'):
+                state = state.__class__(state.grid, next_state)
+            else:
+                state = next_state
             step += 1
             current_time = step * dt
             if step % record_interval == 0 or step == total_steps:
@@ -101,31 +113,36 @@ def solver(
 
     # Record and render the initial condition once (guards duplicate frame-0 callbacks).
     _append_snapshot()
-    visualizer.render_frame(0, state.data, current_time, integrator.__name__, stability.tracking(
-        state.data, dx, boundary, equation.__name__, coefficient
+    visualizer.render_frame(0, state, current_time, integrator.__name__, stability.tracking(
+        state.data, grid, boundary, equation.__name__, coefficient
     ))
 
     def update_frame(frame):
         if frame > 0:
             _advance_to(frame * steps_per_frame)
 
-        energies = stability.tracking(state.data, dx, boundary, equation.__name__, coefficient)
-        updated = visualizer.render_frame(frame, state.data, current_time, integrator.__name__, energies)
+        energies = stability.tracking(state.data, grid, boundary, equation.__name__, coefficient)
+        updated = visualizer.render_frame(frame, state, current_time, integrator.__name__, energies)
 
         if frame == visualizer.max_frames - 1:
             if step < total_steps:
                 _advance_to(total_steps)
-            print(
-                f"Simulation complete. Recorded {len(tracker.time[:tracker.idx])} snapshots "
-                f"(every {record_interval} step(s)). Closing plot window..."
-            )
             
-            # THE FIX: Attach the timer to the visualizer so the Garbage Collector doesn't kill it!
-            visualizer.close_timer = visualizer.fig.canvas.new_timer(interval=50) 
-            visualizer.close_timer.single_shot = True
-            visualizer.close_timer.add_callback(visualizer.close)
-            visualizer.close_timer.start()
-
+            is_headless = matplotlib.get_backend().lower() == 'agg'
+            if is_headless:
+                print(
+                    f"Simulation complete. Recorded {len(tracker.time[:tracker.idx])} snapshots "
+                    f"(every {record_interval} step(s)). Closing plot window..."
+                )
+                visualizer.close_timer = visualizer.fig.canvas.new_timer(interval=50) 
+                visualizer.close_timer.single_shot = True
+                visualizer.close_timer.add_callback(visualizer.close)
+                visualizer.close_timer.start()
+            else:
+                print(
+                    f"Simulation complete. Recorded {len(tracker.time[:tracker.idx])} snapshots "
+                    f"(every {record_interval} step(s)). Keep plot window open."
+                )
         return updated
 
     import matplotlib
@@ -147,6 +164,7 @@ def solver(
     
 
     return {
+        "grid": grid,
         "x": grid.coordinates[0] if grid.ndim == 1 else grid.coordinates,
         "final_numerical": tracker.numerical[-1] if tracker.idx > 0 else None,
         "final_analytic": tracker.analytical[-1] if tracker.idx > 0 else None,

@@ -7,6 +7,23 @@ os.environ["MKL_NUM_THREADS"] = "1"
 import argparse
 import importlib.util
 import sys
+
+# Dynamically set Matplotlib backend to Agg if VISUAL_MODE is not enabled in the config
+visual_mode = False
+if len(sys.argv) > 1:
+    try:
+        config_path = os.path.abspath(sys.argv[1])
+        if os.path.exists(config_path) and config_path.endswith('.py'):
+            spec = importlib.util.spec_from_file_location("temp_config", config_path)
+            temp_cfg = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(temp_cfg)
+            visual_mode = getattr(temp_cfg, "VISUAL_MODE", False)
+    except Exception:
+        pass
+
+import matplotlib
+if not visual_mode:
+    matplotlib.use("Agg")
 import itertools
 import numpy as np
 import csv
@@ -96,11 +113,15 @@ def run_single_simulation(params):
         "final_l1": l1,
     }
 
+    grid = sim_output["grid"]
+    char_spacing = grid.characteristic_spacing()
+    mesh_size = grid.mesh_size()
+
     is_diffusion = "diff" in eq_name.lower()
     if is_diffusion:
-        stability_ratio = dt / (dx ** 2)
+        stability_ratio = dt / (char_spacing ** 2)
     else:
-        stability_ratio = dt / dx
+        stability_ratio = dt / char_spacing
     group_key = (eq_name, int_name, op_name, ic_name, bc_name, round(stability_ratio, 6))
 
     clean_eq_name = str(eq_name).replace(" ", "_").lower()
@@ -136,7 +157,7 @@ def run_single_simulation(params):
         'Equation': eq_name, 'N': N, 'Initial Condition': ic_name, 'Boundary Function': bc_name,
         'DX': dx, 'DT': dt, 'L2 Error': l2, 'Avg L2 Error': avg_l2, 'Median L2 Error': median_l2,
         'L1 Error': l1, 'Avg L1 Error': avg_l1, 'Median L1 Error': median_l1, 'Peak Max Error': peak_max_error,
-        'log(dx)': safe_log(dx), 'log(L2)': safe_log(l2), 'log(mean L2)': safe_log(avg_l2), 'log(median L2)': safe_log(median_l2),
+        'log(dx)': safe_log(mesh_size), 'log(L2)': safe_log(l2), 'log(mean L2)': safe_log(avg_l2), 'log(median L2)': safe_log(median_l2),
         'log(L1)': safe_log(l1), 'log(mean L1)': safe_log(avg_l1), 'log(median L1)': safe_log(median_l1)
     }
 
@@ -178,7 +199,7 @@ def run_single_simulation(params):
     return {
         "row_data": row_data,
         "group_key": group_key,
-        "dx": dx,
+        "mesh_size": mesh_size,
         "metric_values": metric_values
     }
 
@@ -274,7 +295,7 @@ if __name__ == '__main__':
             if group_key not in convergence_tracker:
                 convergence_tracker[group_key] = _init_convergence_entry()
             
-            convergence_tracker[group_key]["dx_values"].append(res["dx"])
+            convergence_tracker[group_key]["dx_values"].append(res["mesh_size"])
             for metric_name, metric_value in res["metric_values"].items():
                 convergence_tracker[group_key]["metrics"][metric_name].append(metric_value)
 

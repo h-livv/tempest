@@ -15,7 +15,10 @@ def advection(t, state, dx, boundary, operator, coefficient):
     
     dudx = operator(padded_state, dx, velocity=coefficient) #First derivative of state
     
-    dudt = -coefficient*dudx #PDE equation for advection
+    if isinstance(dx, tuple) or (hasattr(dx, 'ndim') and dx.ndim > 1):
+        dudt = -np.sum(coefficient * dudx, axis=0)
+    else:
+        dudt = -coefficient*dudx #PDE equation for advection
     
     return dudt #Returns velocity
 
@@ -44,22 +47,24 @@ def wave(t, state, dx, boundary, operator, coefficient):
     
     d2udt2 = (coefficient**2)*d2udx2 #PDE equation for wave propagation
     
-    return np.vstack([state[1], d2udt2]) #Input = [u, v] Output = [v, a]
+    return np.stack([state[1], d2udt2], axis=0) #Input = [u, v] Output = [v, a]
 
 #Wave Equation
 def _wave_flux(padded_state, coefficient, dx):
     u, v = padded_state
     
     dudx = operators.gradient(u, dx)
-    padded_dudx = np.pad(dudx, pad_width=(1, 1), mode='edge')
+    ndim = dx.ndim if hasattr(dx, 'ndim') else 1
+    pad_width = [(0, 0)] * (dudx.ndim - ndim) + [(1, 1)] * ndim
+    padded_dudx = np.pad(dudx, pad_width=pad_width, mode='edge')
     
     f1 = np.zeros_like(padded_dudx)
     f2 = -(coefficient**2) * padded_dudx
-    return np.vstack([f1, f2])
+    return np.stack([f1, f2], axis=0)
 
 def _wave_source(padded_state, coefficient, dx):
     u, v = padded_state
-    return np.vstack([v, np.zeros_like(v)])
+    return np.stack([v, np.zeros_like(v)], axis=0)
 
 
 def diffusion(t, state, dx, boundary, operator, coefficient):
@@ -84,7 +89,9 @@ def _diffusion_flux(padded_state, coefficient, dx):
     # Gradient drops shape from N+2 to N
     dudx = operators.gradient(padded_state, dx)
     # Pad the flux back to N+2 so central_flux_divergence can slice it down to N later
-    padded_flux = np.pad(dudx, pad_width=[(0, 0)] * (dudx.ndim - 1) + [(1, 1)], mode='edge')
+    ndim = dx.ndim if hasattr(dx, 'ndim') else 1
+    pad_width = [(0, 0)] * (dudx.ndim - ndim) + [(1, 1)] * ndim
+    padded_flux = np.pad(dudx, pad_width=pad_width, mode='edge')
     return -coefficient * padded_flux
     
 def shallow_water(t, state, dx, boundary, operator, coefficient):
@@ -111,7 +118,7 @@ def shallow_water(t, state, dx, boundary, operator, coefficient):
     dq_dt = -operator((q_sq_by_h + 0.5*g*(h**2)), dx)
     dv_dt = -v_unpadded * operator(v, dx) - g * operator(h, dx)
         
-    return np.vstack([dh_dt, dv_dt])
+    return np.stack([dh_dt, dv_dt], axis=0)
 
 #Shallow water lux calculation for lax-friedrichs
 def _sw_flux(padded_cons, coefficient, dx):
@@ -123,7 +130,7 @@ def _sw_flux(padded_cons, coefficient, dx):
     q_sq_over_h = np.where(h > eps, (q**2) / h, 0.0)
     
     f2 = q_sq_over_h + 0.5 * g * (h**2)
-    return np.vstack([f1, f2])
+    return np.stack([f1, f2], axis=0)
 
 def burgers(t, state, dx, boundary, operator, coefficient):
 
@@ -142,6 +149,8 @@ def burgers(t, state, dx, boundary, operator, coefficient):
     wave_term = v * operators.laplacian(padded_state, dx)
 
     adv_term = -operator(0.5*(padded_state)**2, dx, velocity=padded_state)
+    if isinstance(dx, tuple) or (hasattr(dx, 'ndim') and dx.ndim > 1):
+        adv_term = np.sum(adv_term, axis=0)
 
     du_dt = wave_term + adv_term
 
@@ -152,21 +161,23 @@ def _burgers_flux(padded_state, coefficient, dx):
     adv_flux = 0.5*(padded_state)**2
 
     wave_flux = -coefficient*(operators.gradient(padded_state, dx))
-    padded_flux = np.pad(wave_flux, pad_width=[(0, 0)] * (wave_flux.ndim - 1) + [(1, 1)], mode='edge')
+    ndim = dx.ndim if hasattr(dx, 'ndim') else 1
+    pad_width = [(0, 0)] * (wave_flux.ndim - ndim) + [(1, 1)] * ndim
+    padded_flux = np.pad(wave_flux, pad_width=pad_width, mode='edge')
 
     return adv_flux + padded_flux
 
 #Primitive [h,v] to Conservative [h,q]
 def _sw_to_conservative(primitive_state):
     h, v = primitive_state
-    return np.vstack([h, h * v])
+    return np.stack([h, h * v], axis=0)
 
 #Conservative [h,q] to Primitive [h,v]
 def _sw_to_primitive(conservative_state):
     h, q = conservative_state
     eps = 1e-5
     v = np.where(h > eps, q / h, 0.0)
-    return np.vstack([h, v])   
+    return np.stack([h, v], axis=0)
 
 # Wave Speed methods for Direct Upwind
 def _advection_wave_speed(padded_state, coefficient):

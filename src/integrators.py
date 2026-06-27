@@ -32,10 +32,18 @@ def leapfrog(state, t, dt, dx, boundary, operator, equation, coefficient):
     
     dstatedt_mid = v1 + a1*(dt/2)
     state_futr = x1 + dstatedt_mid*dt
-    state_2 = np.vstack([state_futr, dstatedt_mid])
+    state_2_data = np.stack([state_futr, dstatedt_mid], axis=0)
+    if hasattr(state, 'grid'):
+        state_2 = state.__class__(state.grid, state_2_data)
+    else:
+        state_2 = state_2_data
+        
     dstate_2dt = equation(t + dt, state_2, dx, boundary, operator, coefficient)
     a2 = dstate_2dt[1]
     dstatedt = dstatedt_mid + a2*(dt/2)
     
-    return np.vstack([state_futr, dstatedt])
-    
+    res = np.stack([state_futr, dstatedt], axis=0)
+    if hasattr(state, 'grid'):
+        return state.__class__(state.grid, res)
+    return res
+    

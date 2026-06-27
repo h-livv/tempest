@@ -101,18 +101,24 @@ class Boundary:
 # BACKWARD COMPATIBILITY SHIMS
 # =============================================================================
 
+def _apply_all_axes(condition_class, state, parity=None):
+    ndim = state.grid.ndim if hasattr(state, 'grid') else state.ndim
+    axis_names = ['x', 'y', 'z', 'w']
+    kwargs = { axis_names[i]: condition_class() for i in range(ndim) }
+    return Boundary(**kwargs)(state, parity)
+
 def edge(state, parity=None):
-    return Boundary(x=Edge())(state, parity)
+    return _apply_all_axes(Edge, state, parity)
 edge.__name__ = 'edge'
 
 def constant(state, parity=None):
-    return Boundary(x=Constant())(state, parity)
+    return _apply_all_axes(Constant, state, parity)
 constant.__name__ = 'constant'
 
 def periodic(state, parity=None):
-    return Boundary(x=Periodic())(state, parity)
+    return _apply_all_axes(Periodic, state, parity)
 periodic.__name__ = 'periodic'
 
 def reflect(state, parity=None):
-    return Boundary(x=Reflect())(state, parity)
+    return _apply_all_axes(Reflect, state, parity)
 reflect.__name__ = 'reflect'

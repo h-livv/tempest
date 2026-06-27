@@ -2,10 +2,14 @@ import numpy as np
 
 def validation(equation, state, init_condition, N, x, t, c, boundary, dx):
     
-    #Calculates length of the domain
-    L = N * dx
+    # Calculates length of the domain
+    L = N * dx if not isinstance(N, tuple) else None
     analytic_state = None
     actual_u = state[0] if (state.ndim > 1 and state.shape[0] >= 1) else state
+    
+    if isinstance(x, (tuple, list)):
+        return np.zeros_like(actual_u)
+
     
     if equation.__name__ == "advection":
         if boundary == "dirichlet":
