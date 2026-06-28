@@ -37,7 +37,7 @@ class Simulation:
     """Run a single Tempest simulation described by *config*."""
 
     def __init__(self, config: SimulationConfig) -> None:
-        self.cfg = config
+        self.config = config
 
         # ------------------------------------------------------------------
         # Build the grid
@@ -75,11 +75,13 @@ class Simulation:
     # Internal helpers  (mirrored from solver.py without modification)
     # ------------------------------------------------------------------
 
+    # Extracts the primary 1-D/N-D array from the current Field for diagnostic use.
     def _extract_field(self) -> np.ndarray:
         """Return the raw array from the current state, unwrapping 1-component stacks."""
         data = self.state.data if hasattr(self.state, "data") else self.state
         return data[0] if data.ndim > self.grid.ndim else data
 
+    # Records the current numerical and analytical state into the DataTracker.
     def _append_snapshot(self) -> None:
         """Record one diagnostic snapshot into the tracker."""
         actual_u = self._extract_field()
@@ -119,7 +121,7 @@ class Simulation:
                 spacing = (dx_compat,)
                 coordinates = [x_arg]  # IC reads grid.coordinates[0]
 
-            result = self.cfg.initial_condition(_GridProxy())
+            result = self.config.initial_condition(_GridProxy())
             data = result.data if hasattr(result, "data") else np.asarray(result)
             # Ensure (1, N) shape – validation.py indexes with [0].
             # Use squeeze rather than data[0] to avoid NumPy 2.x view restrictions
@@ -127,41 +129,40 @@ class Simulation:
             flat = np.squeeze(data, axis=0) if data.ndim > 1 else data
             return flat[np.newaxis]
 
-
-
         true_u = validation.validation(
-            self.cfg.equation,
+            self.config.equation,
             self.state.data,
             _ic_adapter,
             N_compat,
             x_compat,
             self.time,
-            self.cfg.coefficient,
-            self.cfg.boundary.__name__,
+            self.config.coefficient,
+            self.config.boundary.__name__,
             dx_compat,
         )
 
         _, _, total_e = stability.tracking(
             self.state,
             self.grid,
-            self.cfg.boundary,
-            self.cfg.equation.__name__,
-            self.cfg.coefficient,
+            self.config.boundary,
+            self.config.equation.__name__,
+            self.config.coefficient,
         )
 
         self.tracker.record(self.time, actual_u, true_u, total_e)
 
+    # Calls the integrator once and advances the clock by one time step.
     def _advance_one_step(self) -> None:
         """Advance the simulation by a single time step."""
-        next_state = self.cfg.integrator(
+        next_state = self.config.integrator(
             self.state,
             self.time,
-            self.cfg.dt,
+            self.config.dt,
             self.grid,
-            self.cfg.boundary,
-            self.cfg.operator,
-            self.cfg.equation,
-            self.cfg.coefficient,
+            self.config.boundary,
+            self.config.operator,
+            self.config.equation,
+            self.config.coefficient,
         )
         # Preserve Field type when the integrator returns a raw array
         if hasattr(self.state, "grid") and not hasattr(next_state, "grid"):
@@ -169,13 +170,14 @@ class Simulation:
         else:
             self.state = next_state
         self.step += 1
-        self.time = self.step * self.cfg.dt
+        self.time = self.step * self.config.dt
 
+    # Drives the time-loop until the simulation reaches a specified step count.
     def _advance_to(self, target_step: int) -> None:
         """Run the time-loop up to (but not beyond) *target_step*."""
-        total_steps = int(self.cfg.final_time / self.cfg.dt)
+        total_steps = int(self.config.final_time / self.config.dt)
         target_step = min(target_step, total_steps)
-        record_interval = max(1, int(self.cfg.record_interval))
+        record_interval = max(1, int(self.config.record_interval))
         while self.step < target_step:
             self._advance_one_step()
             if self.step % record_interval == 0 or self.step == total_steps:
@@ -198,38 +200,46 @@ class Simulation:
         import matplotlib.animation as animation
         import matplotlib.pyplot as plt
 
-        cfg = self.cfg
+        # ------------------------------------------------------------------
+        # Setup – derive timing constants and build the visualiser
+        # ------------------------------------------------------------------
+        config = self.config
         grid = self.grid
-        total_steps = int(cfg.final_time / cfg.dt)
-        steps_per_frame = max(1, int(cfg.steps_per_frame))
+        total_steps = int(config.final_time / config.dt)
+        steps_per_frame = max(1, int(config.steps_per_frame))
         max_frames = max(1, total_steps // steps_per_frame)
 
         visualizer = TempestVisualizer(
             self.state,
-            cfg.spacing[0] if grid.ndim == 1 else cfg.spacing,
-            cfg.dt,
-            cfg.equation.__name__,
+            config.spacing[0] if grid.ndim == 1 else config.spacing,
+            config.dt,
+            config.equation.__name__,
             max_frames,
             steps_per_frame,
-            final_time=cfg.final_time,
+            final_time=config.final_time,
         )
 
-        # Record and render the initial snapshot
+        # ------------------------------------------------------------------
+        # Initial snapshot – record t=0 before any time stepping begins
+        # ------------------------------------------------------------------
         self._append_snapshot()
         visualizer.render_frame(
             0,
             self.state,
             self.time,
-            cfg.integrator.__name__,
+            config.integrator.__name__,
             stability.tracking(
                 self.state.data,
                 grid,
-                cfg.boundary,
-                cfg.equation.__name__,
-                cfg.coefficient,
+                config.boundary,
+                config.equation.__name__,
+                config.coefficient,
             ),
         )
 
+        # ------------------------------------------------------------------
+        # Simulation loop – advance and render frame-by-frame
+        # ------------------------------------------------------------------
         def update_frame(frame: int):
             if frame > 0:
                 self._advance_to(frame * steps_per_frame)
@@ -237,12 +247,12 @@ class Simulation:
             energies = stability.tracking(
                 self.state.data,
                 grid,
-                cfg.boundary,
-                cfg.equation.__name__,
-                cfg.coefficient,
+                config.boundary,
+                config.equation.__name__,
+                config.coefficient,
             )
             updated = visualizer.render_frame(
-                frame, self.state, self.time, cfg.integrator.__name__, energies
+                frame, self.state, self.time, config.integrator.__name__, energies
             )
 
             if frame == visualizer.max_frames - 1:
@@ -253,7 +263,7 @@ class Simulation:
                 msg = (
                     f"Simulation complete. Recorded "
                     f"{len(self.tracker.time[:self.tracker.idx])} snapshots "
-                    f"(every {max(1, int(cfg.record_interval))} step(s))."
+                    f"(every {max(1, int(config.record_interval))} step(s))."
                 )
                 if is_headless:
                     print(msg + " Closing plot window...")
@@ -282,12 +292,9 @@ class Simulation:
             plt.show()
 
         # ------------------------------------------------------------------
-        # Package results
+        # Package results – collect outputs into SimulationResults
         # ------------------------------------------------------------------
         tracker = self.tracker
-        x_out = (
-            grid.coordinates[0] if grid.ndim == 1 else grid.coordinates
-        )
 
         return SimulationResults(
             grid=grid,
