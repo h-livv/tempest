@@ -12,12 +12,12 @@ initial_conditions = [init_conditions.BurgersTravelingShockIC(nu=2.0)]
 boundary_functions = [boundaries.Dirichlet(2.0, 1.0)]
 
 operators_list = [operators.upwind]
-equations_list = [equations.burgers]
+equations_list = [equations.BurgersEquation(viscosity=2.0)]
 
 # Comparing Lax-Friedrichs, Lax-Wendroff, and RK4
 integrators_list = [direct_solvers.lax_f, direct_solvers.lax_w, integrators.rk4]
 
-coefficients = [2.0] # Large viscosity to ensure a very smooth curve
+ # Large viscosity to ensure a very smooth curve
 
 FINAL_TIME = 10.0
 STEPS_PER_FRAME = 25  

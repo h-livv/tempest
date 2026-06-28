@@ -64,11 +64,7 @@ class Simulation:
         # ------------------------------------------------------------------
         # Instantiate equation if it is a new-style class
         # ------------------------------------------------------------------
-        from src.equations import Equation
-        if isinstance(self.config.equation, type) and issubclass(self.config.equation, Equation):
-            self.equation = self.config.equation(coefficient=self.config.coefficient)
-        else:
-            self.equation = self.config.equation
+        self.equation = self.config.equation
 
         # ------------------------------------------------------------------
         # Tracker  (same arguments the old solver used)
@@ -101,7 +97,6 @@ class Simulation:
             self.config.initial_condition,
             self.grid,
             self.time,
-            self.config.coefficient,
             self.config.boundary.__name__,
         )
 
@@ -109,8 +104,7 @@ class Simulation:
             self.state,
             self.grid,
             self.config.boundary,
-            self.equation.__name__,
-            self.config.coefficient,
+            self.equation,
         )
 
         self.tracker.record(self.time, actual_u, true_u, total_e)
@@ -126,7 +120,6 @@ class Simulation:
             self.config.boundary,
             self.config.operator,
             self.equation,
-            self.config.coefficient,
         )
         # Preserve Field type when the integrator returns a raw array
         if hasattr(self.state, "grid") and not hasattr(next_state, "grid"):
@@ -196,8 +189,7 @@ class Simulation:
                 self.state.data,
                 grid,
                 config.boundary,
-                self.equation.__name__,
-                config.coefficient,
+                self.equation,
             ),
         )
 
@@ -212,8 +204,7 @@ class Simulation:
                 self.state.data,
                 grid,
                 config.boundary,
-                self.equation.__name__,
-                config.coefficient,
+                self.equation,
             )
             updated = visualizer.render_frame(
                 frame, self.state, self.time, config.integrator.__name__, energies

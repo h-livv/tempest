@@ -8,9 +8,8 @@ grid_configs = [
 initial_conditions = [init_conditions.GaussianIC(sigma=2.0, num_fields=2)]
 boundary_functions = [boundaries.reflect]
 operators_list = [operators.laplacian]
-equations_list = [equations.wave]
+equations_list = [equations.WaveEquation(wave_speed=1.0)]
 integrators_list = [integrators.leapfrog]
-coefficients = [1.0]
 
 FINAL_TIME = 10.0        # Wave will propagate, hit reflect boundary, and bounce back
 STEPS_PER_FRAME = 5      # Balanced for smooth fluid evolution and speed

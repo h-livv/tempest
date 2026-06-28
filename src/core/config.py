@@ -46,10 +46,6 @@ integrator : callable
     A time-integration scheme (e.g. ``rk4``, ``euler``).  Receives the
     current state together with the other physics objects.
 
-coefficient : float | np.ndarray
-    Physics coefficient for the equation (e.g. advection speed, diffusion
-    coefficient, wave speed).  Passed through to *equation* unchanged.
-
 initial_condition : callable
     A function with the signature ``initial_condition(grid) -> Field | np.ndarray``.
     It must return either a ``Field`` instance or a raw NumPy array of the
@@ -61,8 +57,9 @@ initial_condition : callable
 """
 
 from dataclasses import dataclass
-from typing import Any, Callable, Union
+from typing import Callable, Union
 from src.init_conditions import InitialCondition
+from src.equations import Equation
 
 
 @dataclass
@@ -84,11 +81,10 @@ class SimulationConfig:
     # ------------------------------------------------------------------
     # Physics and numerics
     # ------------------------------------------------------------------
-    equation: Callable | None = None    # returns d(state)/dt
+    equation: Equation | None = None    # physical equation object
     operator: Callable | None = None    # spatial discretisation stencil
     boundary: Callable | None = None    # boundary padding function
     integrator: Callable | None = None  # time-integration scheme
-    coefficient: Any = None             # physics constant (float or ndarray)
 
     # ------------------------------------------------------------------
     # Initial condition

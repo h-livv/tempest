@@ -1,14 +1,13 @@
 import numpy as np
 from src import operators
 
-def tracking(state, grid, boundary, equation, coefficient):
-    #equation is expected as a string name passed from the solver
+def tracking(state, grid, boundary, equation):
     state = np.asarray(state)
-    c = coefficient
     
     dV = np.prod(grid.spacing)
     
-    if equation == 'wave':
+    if equation.__name__ == 'wave':
+        c = equation.wave_speed_val if hasattr(equation, 'wave_speed_val') else 0.0
         u,v = state
     
         u_padded = boundary(u, parity=[1])
@@ -23,19 +22,19 @@ def tracking(state, grid, boundary, equation, coefficient):
         
         return pe, ke, total_e
     
-    elif equation == 'advection':
+    elif equation.__name__ == 'advection':
         
         total_e = np.sum(state**2)*dV
         
         return 0.0, 0.0, total_e
     
-    elif equation == 'diffusion':
+    elif equation.__name__ == 'diffusion':
         
         total_e = np.sum(state**2)*dV
         
         return 0.0, 0.0, total_e
     
-    elif equation == 'shallow_water':
+    elif equation.__name__ == 'shallow_water':
         h, v = state  # The state is passed in primitive form [depth, velocity]
         g = 9.81
         
@@ -48,7 +47,7 @@ def tracking(state, grid, boundary, equation, coefficient):
         total_e = pe + ke
         return pe, ke, total_e
 
-    elif equation == 'burgers':
+    elif equation.__name__ == 'burgers':
 
         total_e = np.sum(0.5 * state**2) * dV
         return 0.0, 0.0, total_e

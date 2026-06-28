@@ -74,7 +74,7 @@ def run_single_simulation(params):
 
     # Unpack parameters
     (combo, output_dir, parent_sweep_dir, timestamp, is_sweep, final_time, steps_per_frame, record_interval, verbose, visual_mode) = params
-    grid, ic, bc, op, eq, int_func, coeff = combo
+    grid, ic, bc, op, eq, int_func = combo
     N = grid["N"]
     dx = grid["dx"]
     dt = grid["dt"]
@@ -107,7 +107,6 @@ def run_single_simulation(params):
         operator=op,
         boundary=bc,
         integrator=int_func,
-        coefficient=coeff,
         initial_condition=ic,
     )
 
@@ -226,7 +225,6 @@ def run_single_simulation(params):
             "N": N,
             "dt": dt,
             "dx": dx,
-            "coefficient": coeff,
             "final_time": final_time,
             "steps_per_frame": steps_per_frame,
             "record_interval": record_interval
@@ -280,8 +278,7 @@ if __name__ == '__main__':
         cfg.boundary_functions,
         cfg.operators_list,
         cfg.equations_list,
-        cfg.integrators_list,
-        cfg.coefficients
+        cfg.integrators_list
     ))
 
     output_dir = Path('pipeline_results')

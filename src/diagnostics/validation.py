@@ -1,6 +1,17 @@
 import numpy as np
 
-def validation(equation, state, init_condition, grid, t, c, boundary):
+def validation(equation, state, init_condition, grid, t, boundary):
+    # Dynamically extract physical constant if it exists
+    c = 0.0
+    if equation.__name__ == 'advection' and hasattr(equation, 'velocity'):
+        c = equation.velocity
+    elif equation.__name__ == 'wave' and hasattr(equation, 'wave_speed_val'):
+        c = equation.wave_speed_val
+    elif equation.__name__ == 'diffusion' and hasattr(equation, 'diffusivity'):
+        c = equation.diffusivity
+    elif equation.__name__ == 'burgers' and hasattr(equation, 'viscosity'):
+        c = equation.viscosity
+
     
     # Extract properties from grid to minimize disruption to existing analytical math
     if grid.ndim == 1:

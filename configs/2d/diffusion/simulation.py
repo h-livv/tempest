@@ -8,9 +8,8 @@ grid_configs = [
 initial_conditions = [init_conditions.GaussianIC(sigma=2.0)]
 boundary_functions = [boundaries.edge]
 operators_list = [operators.laplacian]
-equations_list = [equations.diffusion]
+equations_list = [equations.DiffusionEquation(diffusivity=1.0)]
 integrators_list = [integrators.rk4]
-coefficients = [1.0]
 
 FINAL_TIME = 10.0         # Fast diffusion to flat state
 STEPS_PER_FRAME = 3      # Balanced for smooth fluid evolution and speed

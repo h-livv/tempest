@@ -15,7 +15,6 @@ boundary_functions = [boundaries.periodic]
 operators_list = [operators.upwind, operators.gradient]
 equations_list = [equations.AdvectionEquation]
 integrators_list = [integrators.rk4]
-coefficients = [1.0]
 
 FINAL_TIME = 10
 STEPS_PER_FRAME = 100   # animation only: steps between plot refreshes

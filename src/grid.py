@@ -6,9 +6,9 @@ class Grid:
     """
     def __init__(self, shape, spacing, domain=None):
         """
-        shape: tuple of ints (e.g., (100,) for 1D, (Ny, Nx) for 2D)
-        spacing: tuple of floats (e.g., (dx,) for 1D, (dy, dx) for 2D)
-        domain: tuple of tuples (e.g., ((0, Lx),) for 1D)
+        shape: tuple of ints (N,) for 1D, (Ny, Nx) for 2D - Number of grid points in each dimension
+        spacing: tuple of floats (dx,) for 1D, (dy, dx) for 2D - Spacing of grid
+        domain: tuple of tuples ((0, N*dx),) for 1D, ((0, N*dx), (0, N*dy)) for 2D - Physical domain of grid
         """
         self.shape = tuple(shape) if isinstance(shape, (list, tuple)) else (shape,)
         self.spacing = tuple(spacing) if isinstance(spacing, (list, tuple)) else (spacing,)
@@ -27,12 +27,13 @@ class Grid:
         # Compute coordinates
         axes_coords = [np.arange(self.shape[i]) * self.spacing[i] + self.domain[i][0] for i in range(self.ndim)]
         
+        # Generate the coordinates
         if self.ndim == 1:
             self.coordinates = axes_coords
         else:
-            # indexing='ij' ensures matrix indexing matches shape (Ny, Nx)
             self.coordinates = np.meshgrid(*axes_coords, indexing='ij')
 
+    # Utility functions
     def get_spacing(self, axis):
         return self.spacing[axis]
 

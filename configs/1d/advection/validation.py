@@ -10,9 +10,8 @@ grid_configs = [
 initial_conditions = [init_conditions.GaussianIC(sigma=10.0, center_ratio=0.5)]
 boundary_functions = [boundaries.periodic]
 operators_list = [operators.upwind, operators.gradient]
-equations_list = [equations.advection]
+equations_list = [equations.AdvectionEquation(velocity=1.0)]
 integrators_list = [integrators.rk4]
-coefficients = [1.0]
 
 FINAL_TIME = 10
 STEPS_PER_FRAME = 100   # animation only: steps between plot refreshes

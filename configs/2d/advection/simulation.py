@@ -9,11 +9,11 @@ grid_configs = [
 initial_conditions = [init_conditions.GaussianIC(sigma=2.0)]
 boundary_functions = [boundaries.periodic]
 operators_list = [operators.upwind]
-equations_list = [equations.advection]
+equations_list = [equations.AdvectionEquation(velocity=np.array([1.0, 1.0)]
 integrators_list = [direct_solvers.lax_w]
 
 # Velocity vector (y-velocity, x-velocity)
-coefficients = [np.array([1.0, 1.0]).reshape(2, 1, 1)]
+).reshape(2, 1, 1)]
 
 FINAL_TIME = 10.0        # Enough time for the wave to wrap around periodic boundaries
 STEPS_PER_FRAME = 2      # Balanced for smooth fluid evolution and speed

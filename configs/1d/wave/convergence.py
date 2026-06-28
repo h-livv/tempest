@@ -14,9 +14,8 @@ grid_configs = [
 initial_conditions = [init_conditions.GaussianIC(sigma=2.0, num_fields=2, use_L_for_center=True)]
 boundary_functions = [boundaries.reflect]
 operators_list = [operators.laplacian]
-equations_list = [equations.wave]
+equations_list = [equations.WaveEquation(wave_speed=1.0)]
 integrators_list = [integrators.leapfrog]
-coefficients = [1.0]
 
 FINAL_TIME = 10
 STEPS_PER_FRAME = 10    # animation only

@@ -10,9 +10,8 @@ grid_configs = [
 initial_conditions = [init_conditions.BurgersTravelingShockIC(nu=0.1), init_conditions.BurgersStationaryShockIC(nu=0.1, U=1.0)]
 boundary_functions = [boundaries.Dirichlet(2.0, 1.0)]
 operators_list = [operators.upwind]
-equations_list = [equations.burgers]
+equations_list = [equations.BurgersEquation(viscosity=0.02)]
 integrators_list = [integrators.rk4]
-coefficients = [0.02]
 
 FINAL_TIME = 10.0
 STEPS_PER_FRAME = 1   # animation only: steps between plot refreshes

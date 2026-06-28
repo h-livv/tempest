@@ -13,12 +13,11 @@ boundary_functions = [boundaries.Dirichlet(2.0, 1.0)]
 
 # We supply an operator even though direct solvers ignore it. RK4 requires it.
 operators_list = [operators.upwind]
-equations_list = [equations.burgers]
+equations_list = [equations.BurgersEquation(viscosity=0.02)]
 
 # Comparing Lax-Friedrichs, Lax-Wendroff, and RK4
 integrators_list = [direct_solvers.lax_f, direct_solvers.lax_w, integrators.rk4]
 
-coefficients = [0.02]
 
 FINAL_TIME = 10.0
 STEPS_PER_FRAME = 25  
