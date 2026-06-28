@@ -1,19 +1,16 @@
 #Module imports
-from src import boundaries, operators, equations, integrators, init_conditions
+from src import boundaries, operators, equations, integrators, init_conditions, direct_solvers
 
+#Define stable grid configurations (protects CFL stability)
 grid_configs = [
-    {"N": 50,  "dx": 0.1,    "dt": 0.01},
-    {"N": 50,  "dx": 0.05,   "dt": 0.005},
-    {"N": 50, "dx": 0.025,  "dt": 0.0025},
-    {"N": 50, "dx": 0.0125, "dt": 0.00125},
-
+    {"N": 50, "dx": 0.05, "dt": 0.005}
 ]
 
 #Define custom conditions for automated pipeline, as many parameters as required
 initial_conditions = [init_conditions.advec_gauss]
 boundary_functions = [boundaries.periodic]
 operators_list = [operators.upwind, operators.gradient]
-equations_list = [equations.AdvectionEquation]
+equations_list = [equations.advection]
 integrators_list = [integrators.rk4]
 coefficients = [1.0]
 

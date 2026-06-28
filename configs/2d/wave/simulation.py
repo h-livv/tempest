@@ -2,7 +2,7 @@ from src import boundaries, operators, equations, integrators, init_conditions
 
 # Define grid configuration for 2D (Optimized grid size & stable dt for fast smooth rendering)
 grid_configs = [
-    {"N": (60, 60), "dx": (0.3, 0.3), "dt": 0.02}  # dx*c/sqrt(2) limit is ~0.21. dt=0.02 is highly stable and fast
+    {"N": (60, 60), "dx": (0.3, 0.3), "dt": 0.02}
 ]
 
 initial_conditions = [init_conditions.wave_gauss_2d]
@@ -12,7 +12,7 @@ equations_list = [equations.wave]
 integrators_list = [integrators.leapfrog]
 coefficients = [1.0]
 
-FINAL_TIME = 30.0        # Wave will propagate, hit reflect boundary, and bounce back
+FINAL_TIME = 10.0        # Wave will propagate, hit reflect boundary, and bounce back
 STEPS_PER_FRAME = 5      # Balanced for smooth fluid evolution and speed
 RECORD_INTERVAL = 10
 

@@ -1,0 +1,21 @@
+#Module imports
+from src import boundaries, operators, equations, integrators, direct_solvers, init_conditions
+
+#Define stable grid configurations (protects CFL stability)
+grid_configs = [
+    {"N": 50, "dx": 0.05, "dt": 0.005}
+]
+
+#Define custom conditions for automated pipeline, as many parameters as required
+initial_conditions = [init_conditions.shallow_dam]
+boundary_functions = [boundaries.edge]
+operators_list = [operators.central_flux_divergence]
+equations_list = [equations.shallow_water]
+integrators_list = [direct_solvers.lax_w]
+coefficients = [1.0]
+
+FINAL_TIME = 10
+STEPS_PER_FRAME = 50    # animation only
+RECORD_INTERVAL = 50    # metrics: snapshot every N timesteps
+# Toggle to True to bypass data export and run the visual dashboard in the main thread
+VISUAL_MODE = True
