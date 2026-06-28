@@ -4,6 +4,12 @@ class BoundaryCondition:
     def apply(self, state, axis, parity=None):
         raise NotImplementedError
 
+    def __call__(self, state, parity=None):
+        ndim = state.grid.ndim if hasattr(state, 'grid') else state.ndim
+        axis_names = ['x', 'y', 'z', 'w']
+        kwargs = { axis_names[i]: self for i in range(ndim) }
+        return Boundary(**kwargs)(state, parity)
+
 class Edge(BoundaryCondition):
     def apply(self, state, axis, parity=None):
         data = state.data if hasattr(state, 'data') else state
@@ -102,8 +108,13 @@ class Boundary:
 # =============================================================================
 
 def _apply_all_axes(condition_class, state, parity=None):
-    ndim = state.grid.ndim if hasattr(state, 'grid') else state.ndim
+    if hasattr(state, 'grid'):
+        ndim = state.grid.ndim
+    else:
+        is_system = (parity is not None and len(parity) > 1)
+        ndim = state.ndim - 1 if is_system else state.ndim
     axis_names = ['x', 'y', 'z', 'w']
+    # Match spatial axes (which are the last ndim axes of state, i.e. range(-ndim, 0))
     kwargs = { axis_names[i]: condition_class() for i in range(ndim) }
     return Boundary(**kwargs)(state, parity)
 

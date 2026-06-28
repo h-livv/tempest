@@ -16,7 +16,7 @@ def _get_flux_comp(flux_array, d, ndim):
     else:  # scalar: (ndim, spatial...)
         return flux_array[d]
 
-def lax_f(state, t, dt, dx, boundary, operator, equation, coefficient):
+def lax_f(state, t, dt, dx, boundary, operator, equation):
     """
     Lax-Friedrichs Direct Spatiotemporal Solver.
     """
@@ -25,13 +25,13 @@ def lax_f(state, t, dt, dx, boundary, operator, equation, coefficient):
     padded_cons = boundary(cons_state, parity)
 
     if hasattr(equation, "flux"):
-        flux = equation.flux(padded_cons, coefficient, dx)
+        flux = equation.flux(padded_cons, dx)
     else: 
         raise AttributeError(f"CRITICAL: Equation '{equation.__name__}' must register a .flux method to run under Lax-Friedrichs.")
     
     inner_slice = _get_inner_slice(padded_cons, dx)
-    if hasattr(equation, "source"):
-        source_term = equation.source(padded_cons, coefficient, dx)[inner_slice]
+    if hasattr(equation, "source") and equation.source(padded_cons, dx) is not None:
+        source_term = equation.source(padded_cons, dx)[inner_slice]
     else:
         source_term = 0.0
 
@@ -42,7 +42,7 @@ def lax_f(state, t, dt, dx, boundary, operator, equation, coefficient):
     
     return equation.to_primitive(cons_next) if hasattr(equation, "to_primitive") else cons_next
 
-def lax_w(state, t, dt, dx, boundary, operator, equation, coefficient):
+def lax_w(state, t, dt, dx, boundary, operator, equation):
     """
     Lax-Wendroff Direct Spatiotemporal Solver (MacCormack Predictor-Corrector).
     Naturally handles non-linear PDEs and systems.
@@ -54,10 +54,10 @@ def lax_w(state, t, dt, dx, boundary, operator, equation, coefficient):
     if not hasattr(equation, "flux"):
         raise AttributeError(f"CRITICAL: Equation '{equation.__name__}' must register a .flux method to run under Lax-Wendroff.")
 
-    F_n = equation.flux(padded_cons, coefficient, dx)
+    F_n = equation.flux(padded_cons, dx)
     inner_slice = _get_inner_slice(padded_cons, dx)
-    if hasattr(equation, "source"):
-        S_n = equation.source(padded_cons, coefficient, dx)[inner_slice]
+    if hasattr(equation, "source") and equation.source(padded_cons, dx) is not None:
+        S_n = equation.source(padded_cons, dx)[inner_slice]
     else:
         S_n = 0.0
         
@@ -92,8 +92,9 @@ def lax_w(state, t, dt, dx, boundary, operator, equation, coefficient):
     
     # Corrector
     padded_U_star = boundary(U_star, parity)
-    F_star = equation.flux(padded_U_star, coefficient, dx)
-    S_star = equation.source(padded_U_star, coefficient, dx)[inner_slice] if hasattr(equation, "source") else 0.0
+    F_star = equation.flux(padded_U_star, dx)
+    source_res = equation.source(padded_U_star, dx) if hasattr(equation, "source") else None
+    S_star = source_res[inner_slice] if source_res is not None else 0.0
     
     corr_flux_terms = 0.0
     for d in range(ndim):
@@ -118,7 +119,7 @@ def lax_w(state, t, dt, dx, boundary, operator, equation, coefficient):
     
     return equation.to_primitive(cons_next) if hasattr(equation, "to_primitive") else cons_next
 
-def upwind(state, t, dt, dx, boundary, operator, equation, coefficient):
+def upwind(state, t, dt, dx, boundary, operator, equation):
     """
     Direct Upwind Spatiotemporal Solver.
     Restricted to scalar PDEs.
@@ -136,11 +137,11 @@ def upwind(state, t, dt, dx, boundary, operator, equation, coefficient):
     if not hasattr(equation, "flux"):
         raise AttributeError(f"CRITICAL: Equation '{equation.__name__}' must register a .flux method to run under Direct Upwind.")
 
-    speed = equation.wave_speed(padded_cons, coefficient)
-    flux = equation.flux(padded_cons, coefficient, dx)
+    speed = equation.wave_speed(padded_cons)
+    flux = equation.flux(padded_cons, dx)
     
-    if hasattr(equation, "source"):
-        S_n = equation.source(padded_cons, coefficient, dx)[..., 1:-1]
+    if hasattr(equation, "source") and equation.source(padded_cons, dx) is not None:
+        S_n = equation.source(padded_cons, dx)[..., 1:-1]
     else:
         S_n = 0.0
     
@@ -159,3 +160,7 @@ def upwind(state, t, dt, dx, boundary, operator, equation, coefficient):
     cons_next = cons_inner - (dt / dx) * F_diff + dt * S_n
     
     return equation.to_primitive(cons_next) if hasattr(equation, "to_primitive") else cons_next
+
+lax_f.is_direct_solver = True
+lax_w.is_direct_solver = True
+upwind.is_direct_solver = True

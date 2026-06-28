@@ -16,11 +16,10 @@ def test_simulation_runs():
         dt=0.01,
         final_time=0.1,
         steps_per_frame=1,
-        equation=AdvectionEquation,
+        equation=AdvectionEquation(velocity=1.0),
         operator=upwind,
         boundary=periodic,
         integrator=euler,
-        coefficient=1.0,
         initial_condition=GaussianIC(sigma=10.0, center_ratio=0.5)
     )
     
