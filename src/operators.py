@@ -20,6 +20,19 @@ def _slice_along_axis(array, shift, active_axis, spatial_axes):
             slices[ax] = slice(1, -1) # Center slice for non-active spatial axes
     return tuple(slices)
 
+def _extract_vector_component(field, index, grid_ndim, state_ndim=None):
+    """
+    Extracts the i-th component if field is a stacked vector field array.
+    """
+    if isinstance(field, np.ndarray) and field.shape[0] == grid_ndim:
+        # If no state_ndim is provided (e.g. flux), just extract the component
+        if state_ndim is None:
+            return field[index]
+        # For velocity, ensure the dimensions match either a scalar field or a multi-field state
+        if field.ndim == grid_ndim + 1 or state_ndim == grid_ndim + 2:
+            return field[index]
+    return field
+
 
 # =============================================================================
 # LOW-LEVEL AXIS-AWARE OPERATORS
@@ -111,15 +124,8 @@ def upwind(padded_state, grid, velocity=None):
     grads = []
     for i, ax in enumerate(spatial_axes):
         spacing = grid.get_spacing(i)
-        # If velocity is a vector field array (shape: [ndim, ...]), extract the i-th component.
-        # Otherwise assume it's a scalar or already aligned.
-        if isinstance(velocity, np.ndarray) and velocity.shape[0] == grid.ndim and velocity.ndim == grid.ndim + 1:
-            v_comp = velocity[i]
-        elif isinstance(velocity, np.ndarray) and velocity.shape[0] == grid.ndim and padded_state.ndim == grid.ndim + 2:
-            # Multi-field state, vector velocity
-            v_comp = velocity[i]
-        else:
-            v_comp = velocity
+        # Extract the i-th component if velocity is a vector field array
+        v_comp = _extract_vector_component(velocity, i, grid.ndim, padded_state.ndim)
             
         grad = upwind_axis(padded_state, spacing, v_comp, ax, spatial_axes)
         grads.append(grad)
@@ -168,11 +174,8 @@ def central_flux_divergence(padded_flux, grid):
     for i, ax in enumerate(spatial_axes):
         spacing = grid.get_spacing(i)
         
-        # If padded_flux is a vector field (stack of fluxes for each direction)
-        if isinstance(padded_flux, np.ndarray) and padded_flux.shape[0] == grid.ndim:
-            flux_comp = padded_flux[i]
-        else:
-            flux_comp = padded_flux
+        # Extract the i-th component if padded_flux is a vector field
+        flux_comp = _extract_vector_component(padded_flux, i, grid.ndim)
             
         divergence += central_flux_divergence_axis(flux_comp, spacing, ax, spatial_axes)
         

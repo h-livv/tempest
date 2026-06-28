@@ -10,7 +10,7 @@ grid_configs = [
 initial_conditions = [init_conditions.advec_gauss]
 boundary_functions = [boundaries.periodic]
 operators_list = [operators.upwind]
-equations_list = [equations.advection]
+equations_list = [equations.AdvectionEquation]
 integrators_list = [integrators.rk4]
 coefficients = [1.0]
 
