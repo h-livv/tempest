@@ -7,7 +7,7 @@ from src.equations import AdvectionEquation
 from src.operators import upwind
 from src.integrators import euler
 from src.boundaries import periodic
-from src.init_conditions import advec_gauss, make_ic
+from src.init_conditions import GaussianIC
 
 def test_simulation_runs():
     config = SimulationConfig(
@@ -21,7 +21,7 @@ def test_simulation_runs():
         boundary=periodic,
         integrator=euler,
         coefficient=1.0,
-        initial_condition=make_ic(advec_gauss)
+        initial_condition=GaussianIC(sigma=10.0, center_ratio=0.5)
     )
     
     sim = Simulation(config)
