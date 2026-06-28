@@ -206,9 +206,9 @@ class Simulation:
             init_energies,
         )
 
-        # ------------------------------------------------------------------
-        # SECTION 5: Visualization & Animation update loop
-        # ------------------------------------------------------------------
+        # =======================================================================
+        # SECTION 4: Visualization & Animation Update Loop
+        # =======================================================================
         def update_frame(frame: int):
             if frame > 0:
                 self._advance_to(frame * steps_per_frame)
@@ -260,9 +260,9 @@ class Simulation:
             )
             plt.show()
 
-        # ------------------------------------------------------------------
-        # SECTION 4: Data Export packaging
-        # ------------------------------------------------------------------
+        # =======================================================================
+        # SECTION 5: Data Export Packaging
+        # =======================================================================
         tracker = self.tracker
 
         return SimulationResults(
