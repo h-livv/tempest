@@ -1,5 +1,95 @@
 import numpy as np
 
+class InitialCondition:
+    """Base class for initial conditions."""
+    def __call__(self, grid):
+        raise NotImplementedError
+
+class GaussianIC(InitialCondition):
+    """A reusable Gaussian initial condition."""
+    __name__ = "gaussian"
+    
+    def __init__(self, center_ratio=0.5, sigma=10.0, amplitude=1.0, num_fields=1, active_field=0, use_L_for_center=False):
+        self.center_ratio = center_ratio
+        self.sigma = sigma
+        self.amplitude = amplitude
+        self.num_fields = num_fields
+        self.active_field = active_field
+        self.use_L_for_center = use_L_for_center
+
+    def __call__(self, grid):
+        if grid.ndim != 1:
+            raise NotImplementedError("GaussianIC currently only supports 1D grids.")
+        x = grid.coordinates[0]
+        
+        if self.use_L_for_center:
+            L = x.max() + grid.spacing[0]
+            center = self.center_ratio * L
+        else:
+            center = self.center_ratio * x.max()
+            
+        pos = self.amplitude * np.exp(-((x - center)**2) / (2 * self.sigma**2))
+        
+        state = np.zeros((self.num_fields, *x.shape))
+        state[self.active_field] = pos
+        return state
+
+
+def make_ic(fn):
+    """Adapts legacy (N, x) initial-condition functions to the new initial_condition(grid) interface.
+
+    Legacy functions have the signature::
+
+        fn(N, x)          ->  np.ndarray   (1-D)
+        fn(Ny, Nx, Y, X)  ->  np.ndarray   (2-D)
+
+    The returned callable has the new signature::
+
+        wrapped(grid)  ->  np.ndarray
+
+    and can be passed directly to :attr:`SimulationConfig.initial_condition`.
+
+    The original function is stored on ``wrapped._legacy_fn`` so that
+    ``Simulation`` can retrieve it for ``validation.validation()``, which
+    still expects the legacy ``(N, x)`` signature.  Attributes copied from
+    *fn* (e.g. ``__name__``, ``convergence_order``) are preserved so that
+    the pipeline logging and convergence metadata continue to work.
+
+    Parameters
+    ----------
+    fn:
+        A legacy initial-condition callable.
+
+    Returns
+    -------
+    callable
+        A new callable ``wrapped(grid) -> np.ndarray``.
+    """
+    if isinstance(fn, InitialCondition):
+        return fn
+
+    def wrapped(grid):
+        if grid.ndim == 1:
+            return fn(grid.shape[0], grid.coordinates[0])
+        elif grid.ndim == 2:
+            return fn(*grid.shape, *grid.coordinates)
+        else:
+            raise NotImplementedError(
+                f"make_ic does not yet support {grid.ndim}-D grids. "
+                "Wrap the function manually."
+            )
+
+    wrapped.__name__ = fn.__name__
+    wrapped.__doc__ = fn.__doc__
+    wrapped._legacy_fn = fn   # used by Simulation._append_snapshot for validation
+
+    # Copy any metadata attributes (e.g. convergence_order) the original carries
+    for attr in ("convergence_order", "spatial_order", "is_direct_solver"):
+        if hasattr(fn, attr):
+            setattr(wrapped, attr, getattr(fn, attr))
+
+    return wrapped
+
 #Gaussian waves
 
 '''def wave_gauss(N, x):
@@ -152,11 +242,13 @@ def diff_rod(N, x):
 
 #Dam breaking
 def shallow_dam(N, x):
-    init_h = np.where(x < 0.5 * x.max(), 3.5, 1.0)
+    init_h = np.where(x < 0.5 * x.max(), 2.0, 0.2)
     init_v = np.zeros(N)
     
     init_state = np.stack([init_h, init_v], axis=0)
     return init_state
+
+shallow_dam.convergence_order = {"avg_l1": 1.0, "avg_l2": 0.5, "final_l1": 1.0, "final_l2": 0.5}
 
 #Two waves colliding at the center
 def shallow_collision(N, x):
@@ -176,13 +268,11 @@ def constant(N, x, num_fields=1, default_val=1.0):
 def burgers_stationary_shock(N, x, nu=0.1, U=1.0):
     """
     Initial condition for the stationary shock of Burgers' equation:
-    u(x, 0) = -U * tanh(U * x / (2 * nu))
-    
-    WARNING: For periodic boundary conditions, ensure the domain size is large
-    enough and validation time t is small enough so boundary discontinuities
-    do not wrap around and interact with the main shock.
+    u(x, 0) = -U * tanh(U * (x - x_0) / (2 * nu))
+    where x_0 is the domain center, so the shock is visible in the field.
     """
-    u = -U * np.tanh(U * x / (2.0 * nu))
+    x_0 = 0.5 * (x[0] + x[-1])
+    u = -U * np.tanh(U * (x - x_0) / (2.0 * nu))
     return np.stack([u], axis=0)
 
 def burgers_traveling_shock(N, x, nu=0.1, u_L=2.0, u_R=1.0, x_0=None):

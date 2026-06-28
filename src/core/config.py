@@ -61,7 +61,8 @@ initial_condition : callable
 """
 
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any, Callable, Union
+from src.init_conditions import InitialCondition
 
 
 @dataclass
@@ -94,4 +95,4 @@ class SimulationConfig:
     # ------------------------------------------------------------------
     # Signature: initial_condition(grid) -> Field | np.ndarray
     # Independent of the equation; reusable across any PDE.
-    initial_condition: Callable | None = None
+    initial_condition: Union[Callable, InitialCondition, None] = None
