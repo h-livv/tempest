@@ -28,8 +28,8 @@ from src.grid import Grid
 from src.fields import Field, ScalarField, VectorField
 from src.core.config import SimulationConfig
 from src.core.results import SimulationResults
-from diagnostics.tracker import DataTracker
-from diagnostics import stability, validation
+from src.diagnostics.tracker import DataTracker
+from src.diagnostics import stability, validation
 from visualizations.visualization import TempestVisualizer
 
 

@@ -34,7 +34,8 @@ from collections import defaultdict
 from src import solver                          # kept intact; not yet removed
 from src.core.config import SimulationConfig
 from src.core.simulation import Simulation
-from diagnostics.plots import TempestPlotter
+from src.init_conditions import make_ic
+from src.diagnostics.plots import TempestPlotter
 from ml.registry import log_run
 
 # Address NumPy Thread Contention. Limits one process to one thread.
@@ -92,14 +93,6 @@ def run_single_simulation(params):
     # ------------------------------------------------------------------
     # Build SimulationConfig and run via Simulation
     # ------------------------------------------------------------------
-    # Wrap the legacy ic(N, x) callable into the new initial_condition(grid)
-    # interface expected by Simulation.
-    def _make_ic(ic_func):
-        def initial_condition(grid_obj):
-            return ic_func(grid_obj.shape[0], grid_obj.coordinates[0])
-        initial_condition.__name__ = ic_func.__name__
-        return initial_condition
-
     # N and dx may be scalars (1-D) or tuples (2-D); normalise to tuples.
     shape   = N  if isinstance(N,  tuple) else (N,)
     spacing = dx if isinstance(dx, tuple) else (dx,)
@@ -116,7 +109,7 @@ def run_single_simulation(params):
         boundary=bc,
         integrator=int_func,
         coefficient=coeff,
-        initial_condition=_make_ic(ic),
+        initial_condition=make_ic(ic),
     )
 
     results = Simulation(sim_config).run()
