@@ -1,9 +1,17 @@
 """
-SimulationResults – a plain dataclass returned by Simulation.run().
+SimulationResults – an immutable snapshot of a completed Tempest simulation.
 
-Provides attribute-style access to simulation outputs instead of a raw
-dictionary.  All fields are optional except *grid* and *final_state* so
-that partial results (e.g. from a failed run) can still be returned.
+This is a pure data container.  It must not contain simulation logic,
+helper methods, or any mutable state.  All fields are populated by
+``Simulation.run()`` and should be treated as read-only by consumers.
+
+Two representations are kept deliberately:
+
+* **High-level objects** (``grid``, ``final_state``) – for user-facing code
+  that works with the Grid/Field API.
+* **Raw numerical arrays** (``final_numerical``, ``raw_tensor_data``) – for
+  plotting, export (CSV/npz), and ML pipelines that operate on plain NumPy
+  arrays directly.
 
 Fields
 ------
@@ -40,23 +48,40 @@ energy_history : dict | None
     None when energy tracking is disabled or unavailable.
 """
 
-from dataclasses import dataclass, field
-from typing import Any
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+import numpy as np
+
+# Use TYPE_CHECKING guard to avoid runtime circular imports.
+# Grid and Field live in src.grid / src.fields today and will move to
+# src.core.grid / src.core.field in a later step; string annotations keep
+# results.py decoupled from that path change.
+if TYPE_CHECKING:
+    import pandas as pd
+    from src.grid import Grid
+    from src.fields import Field
 
 
 @dataclass
 class SimulationResults:
     # ------------------------------------------------------------------
-    # Required outputs
+    # High-level objects  (user-facing API)
     # ------------------------------------------------------------------
-    grid: Any                               # Grid object
-    final_state: Any                        # Field (ScalarField or VectorField)
+    grid: "Grid"                            # dimension-agnostic Grid
+    final_state: "Field"                    # ScalarField or VectorField
 
     # ------------------------------------------------------------------
     # Diagnostic history
     # ------------------------------------------------------------------
-    history: Any = None                     # DataFrame from DataTracker
-    final_numerical: Any = None             # np.ndarray at final time
-    final_analytical: Any = None            # analytical solution at final time
-    raw_tensor_data: Any = None             # shape (n_snapshots, *grid.shape)
-    energy_history: dict | None = None      # keys: time, pe, ke, total, loss
+    history: "pd.DataFrame | None" = None  # time-series from DataTracker
+
+    # ------------------------------------------------------------------
+    # Raw numerical arrays  (plotting / export / ML)
+    # ------------------------------------------------------------------
+    final_numerical: np.ndarray | None = None    # numerical solution at T_final
+    final_analytical: np.ndarray | None = None   # analytical solution at T_final
+    raw_tensor_data: np.ndarray | None = None    # shape: (n_snapshots, *grid.shape)
+    energy_history: dict | None = None           # keys: time, pe, ke, total, loss
