@@ -7,7 +7,7 @@ grid_configs = [
 ]
 
 #Define custom conditions for automated pipeline, as many parameters as required
-initial_conditions = [init_conditions.shallow_dam]
+initial_conditions = [init_conditions.ShallowDamIC()]
 boundary_functions = [boundaries.edge]
 operators_list = [operators.central_flux_divergence]
 equations_list = [equations.shallow_water]

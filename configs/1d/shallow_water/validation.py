@@ -9,7 +9,7 @@ equations_list = [equations.shallow_water]
 boundary_functions = [boundaries.periodic]
 operators_list = [operators.gradient] 
 integrators_list = [direct_solvers.lax_w]
-initial_conditions = [init_conditions.shallow_linear_gauss]
+initial_conditions = [init_conditions.ShallowGaussianIC(sigma=20.0, amplitude=1e-6, ambient_depth=1.0, center_ratio=0.5, use_L_for_center=True)]
 coefficients = [1.0]
 
 # Global Simulation Parameters

@@ -95,54 +95,14 @@ class Simulation:
         """Record one diagnostic snapshot into the tracker."""
         actual_u = self._extract_field()
 
-        x_compat = (
-            self.grid.coordinates[0]
-            if self.grid.ndim == 1
-            else self.grid.coordinates
-        )
-        N_compat = (
-            self.grid.shape[0] if self.grid.ndim == 1 else self.grid.shape
-        )
-        dx_compat = (
-            self.grid.spacing[0] if self.grid.ndim == 1 else self.grid.spacing
-        )
-
-        # validation.validation() expects an (N, x) -> array callable.
-        #
-        # If initial_condition was created with make_ic(), its _legacy_fn
-        # attribute holds the original (N, x) callable – use it directly.
-        #
-        # Otherwise fall back to a minimal duck-typed proxy so hand-written
-        # (grid) -> array callables still work without modification.
-        legacy_fn = getattr(self.config.initial_condition, "_legacy_fn", None)
-
-        if legacy_fn is not None:
-            # Fast path: no wrapper needed.
-            validation_initial_condition = legacy_fn
-        else:
-            # Fallback: build a proxy that feeds x_arg into grid.coordinates.
-            def validation_initial_condition(N_arg, x_arg):
-                class _GridProxy:
-                    ndim = 1
-                    shape = (len(x_arg),)
-                    spacing = (dx_compat,)
-                    coordinates = [x_arg]
-
-                result = self.config.initial_condition(_GridProxy())
-                data = result.data if hasattr(result, "data") else np.asarray(result)
-                flat = np.squeeze(data, axis=0) if data.ndim > 1 else data
-                return flat[np.newaxis]
-
         true_u = validation.validation(
             self.equation,
             self.state.data,
-            validation_initial_condition,
-            N_compat,
-            x_compat,
+            self.config.initial_condition,
+            self.grid,
             self.time,
             self.config.coefficient,
             self.config.boundary.__name__,
-            dx_compat,
         )
 
         _, _, total_e = stability.tracking(

@@ -5,7 +5,7 @@ grid_configs = [
     {"N": (60, 60), "dx": (0.3, 0.3), "dt": 0.01}
 ]
 
-initial_conditions = [init_conditions.diff_gauss_2d]
+initial_conditions = [init_conditions.GaussianIC(sigma=2.0)]
 boundary_functions = [boundaries.edge]
 operators_list = [operators.laplacian]
 equations_list = [equations.diffusion]

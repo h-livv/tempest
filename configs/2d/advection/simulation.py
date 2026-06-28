@@ -6,7 +6,7 @@ grid_configs = [
     {"N": (60, 60), "dx": (0.3, 0.3), "dt": 0.02}
 ]
 
-initial_conditions = [init_conditions.advec_gauss_2d]
+initial_conditions = [init_conditions.GaussianIC(sigma=2.0)]
 boundary_functions = [boundaries.periodic]
 operators_list = [operators.upwind]
 equations_list = [equations.advection]

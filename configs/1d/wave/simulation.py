@@ -7,7 +7,7 @@ grid_configs = [
 ]
 
 #Define custom conditions for automated pipeline, as many parameters as required
-initial_conditions = [init_conditions.wave_gauss]
+initial_conditions = [init_conditions.GaussianIC(sigma=2.0, num_fields=2, use_L_for_center=True)]
 boundary_functions = [boundaries.reflect]
 operators_list = [operators.laplacian]
 equations_list = [equations.wave]

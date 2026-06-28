@@ -10,7 +10,7 @@ grid_configs = [
 ]
 
 #Define custom conditions for automated pipeline, as many parameters as required
-initial_conditions = [init_conditions.diff_gauss]
+initial_conditions = [init_conditions.GaussianIC(sigma=2.0, use_L_for_center=True)]
 boundary_functions = [boundaries.periodic]
 operators_list = [operators.laplacian]
 equations_list = [equations.diffusion]

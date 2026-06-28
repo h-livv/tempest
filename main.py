@@ -31,10 +31,9 @@ from pathlib import Path
 from collections import defaultdict
 
 # Module imports
-from src import solver                          # kept intact; not yet removed
+
 from src.core.config import SimulationConfig
 from src.core.simulation import Simulation
-from src.init_conditions import make_ic
 from src.diagnostics.plots import TempestPlotter
 from ml.registry import log_run
 
@@ -109,7 +108,7 @@ def run_single_simulation(params):
         boundary=bc,
         integrator=int_func,
         coefficient=coeff,
-        initial_condition=make_ic(ic),
+        initial_condition=ic,
     )
 
     results = Simulation(sim_config).run()
