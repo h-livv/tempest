@@ -39,9 +39,6 @@ class AdvectionEquation(Equation):
     def wave_speed(self, padded_state):
         return self.coefficient
 
-AdvectionEquation.__name__ = 'advection'
-advection = AdvectionEquation
-
 
 def wave(t, state, dx, boundary, operator, coefficient):
     
