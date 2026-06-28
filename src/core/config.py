@@ -60,7 +60,7 @@ initial_condition : callable
     callable (e.g. a Gaussian) can be reused across different equations.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable
 
 
@@ -69,8 +69,8 @@ class SimulationConfig:
     # ------------------------------------------------------------------
     # Grid geometry
     # ------------------------------------------------------------------
-    shape: tuple                # e.g. (200,) or (100, 100)
-    spacing: tuple              # e.g. (0.05,) or (0.05, 0.05)
+    shape: tuple[int, ...]      # e.g. (200,) for 1-D or (100, 100) for 2-D
+    spacing: tuple[float, ...]  # grid spacing per axis, same length as shape
 
     # ------------------------------------------------------------------
     # Time stepping
@@ -83,15 +83,15 @@ class SimulationConfig:
     # ------------------------------------------------------------------
     # Physics and numerics
     # ------------------------------------------------------------------
-    equation: Any = None        # callable: returns d(state)/dt
-    operator: Any = None        # callable: spatial discretisation
-    boundary: Any = None        # callable: boundary padding
-    integrator: Any = None      # callable: time-integration scheme
-    coefficient: Any = None     # physics constant (float or array)
+    equation: Callable | None = None    # returns d(state)/dt
+    operator: Callable | None = None    # spatial discretisation stencil
+    boundary: Callable | None = None    # boundary padding function
+    integrator: Callable | None = None  # time-integration scheme
+    coefficient: Any = None             # physics constant (float or ndarray)
 
     # ------------------------------------------------------------------
     # Initial condition
     # ------------------------------------------------------------------
     # Signature: initial_condition(grid) -> Field | np.ndarray
-    # The same callable can be reused with any equation.
-    initial_condition: Any = None
+    # Independent of the equation; reusable across any PDE.
+    initial_condition: Callable | None = None
