@@ -1,32 +1,40 @@
 import numpy as np
 from src import operators
 
-def advection(t, state, grid, boundary, operator, coefficient):
-    
-    if operator.__name__ == 'laplacian':
-        raise ValueError(
-            "CRITICAL PHYSICS ERROR: Linear advection is a 1st-order spatial PDE. "
-            "You cannot pass 'laplacian' (2nd-order) as its operator."
-        )
-        
-    parity = [1]
-    
-    # state might be a Field; boundary handles Field -> ndarray padding
-    padded_state = boundary(state, parity)
-    
-    # The operator computes the spatial derivative(s)
-    dudx = operator(padded_state, grid, velocity=coefficient)
-    
-    if grid.ndim > 1:
-        dudt = -np.sum(coefficient * dudx, axis=0)
-    else:
-        dudt = -coefficient * dudx
-    
-    return dudt
+class AdvectionEquation:
+    """Linear advection equation."""
+    def __init__(self):
+        self.__name__ = 'advection'
+        self.spatial_order = 1
+        self.parity = [1]
 
-#Linear Advection
-def _advection_flux(padded_state, coefficient, dx):
-    return coefficient * padded_state
+    def __call__(self, t, state, grid, boundary, operator, coefficient):
+        if operator.__name__ == 'laplacian':
+            raise ValueError(
+                "CRITICAL PHYSICS ERROR: Linear advection is a 1st-order spatial PDE. "
+                "You cannot pass 'laplacian' (2nd-order) as its operator."
+            )
+            
+        # state might be a Field; boundary handles Field -> ndarray padding
+        padded_state = boundary(state, self.parity)
+        
+        # The operator computes the spatial derivative(s)
+        dudx = operator(padded_state, grid, velocity=coefficient)
+        
+        if grid.ndim > 1:
+            dudt = -np.sum(coefficient * dudx, axis=0)
+        else:
+            dudt = -coefficient * dudx
+        
+        return dudt
+
+    def flux(self, padded_state, coefficient, dx):
+        return coefficient * padded_state
+
+    def wave_speed(self, padded_state, coefficient):
+        return coefficient
+
+advection = AdvectionEquation()
 
 
 def wave(t, state, dx, boundary, operator, coefficient):
@@ -186,8 +194,6 @@ def _sw_to_primitive(conservative_state):
     return np.stack([h, v], axis=0)
 
 # Wave Speed methods for Direct Upwind
-def _advection_wave_speed(padded_state, coefficient):
-    return coefficient
 
 def _diffusion_wave_speed(padded_state, coefficient):
     return 0.0
@@ -207,20 +213,19 @@ def _sw_wave_speed(padded_state, coefficient):
 def _burgers_wave_speed(padded_state, coefficient):
     return padded_state
 
-advection.parity = [1]          # 1-field: scalar is symmetric
+
 diffusion.parity = [1]          # 1-field: temperature is symmetric
 wave.parity = [1, -1]           # 2-fields: position (u) is symmetric, velocity (v) is anti-symmetric
 shallow_water.parity = [1, -1]  # 2-fields: height (h) is symmetric, velocity (v) is anti-symmetric
 burgers.parity = [1]
 
-advection.spatial_order = 1
+
 diffusion.spatial_order = 2
 wave.spatial_order = 1
 shallow_water.spatial_order = 1
 burgers.spatial_order = 1
 
-advection.flux = _advection_flux
-advection.wave_speed = _advection_wave_speed
+
 
 diffusion.flux = _diffusion_flux
 diffusion.wave_speed = _diffusion_wave_speed
