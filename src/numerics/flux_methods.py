@@ -20,6 +20,19 @@ def _get_flux_comp(flux_array, d, ndim):
     else:
         return flux_array[d]
 
+def _pad_with_ndim(arr, boundary, parity, grid_ndim):
+    """
+    Apply a boundary condition to a raw numpy array using explicit grid_ndim,
+    bypassing the boundary's own ndim inference (which looks at arr.ndim and
+    would incorrectly count the component axis as a spatial axis).
+    """
+    data = arr.data if hasattr(arr, 'data') else arr
+    # Apply the boundary along the last grid_ndim axes only
+    axis_names = ['x', 'y', 'z', 'w']
+    from src.mesh.boundaries import Boundary
+    kwargs = {axis_names[i]: boundary for i in range(grid_ndim)}
+    return Boundary(**kwargs)(data, parity)
+
 def lax_f(state, t, dt, dx, boundary, operator, equation):
     """
     Lax-Friedrichs direct solver.
@@ -55,9 +68,17 @@ def lax_w(state, t, dt, dx, boundary, operator, equation):
     
     Second-order accurate direct flux solver for non-linear equations.
     """
-    cons_state = equation.to_conservative(state) if hasattr(equation, "to_conservative") else state
-    parity = equation.parity if hasattr(equation, "parity") else [1] * state.shape[0]
-    padded_cons = boundary(cons_state, parity)
+    # Extract raw data (lax_w operates entirely on NumPy arrays)
+    state_data = state.data if hasattr(state, 'data') else np.asarray(state)
+    grid_ndim = dx.ndim if hasattr(dx, 'ndim') else 1
+
+    # Wrap boundary so it always uses grid_ndim for axis counting, never state.ndim
+    def _pad(arr, parity_arg=None):
+        return boundary(arr, parity_arg)
+
+    cons_state = equation.to_conservative(state_data) if hasattr(equation, "to_conservative") else state_data
+    parity = equation.parity if hasattr(equation, "parity") else [1] * cons_state.shape[0]
+    padded_cons = _pad(cons_state, parity)
 
     if not hasattr(equation, "flux"):
         raise AttributeError(f"CRITICAL: Equation '{equation.__name__}' must register a .flux method to run under Lax-Wendroff.")
@@ -72,7 +93,7 @@ def lax_w(state, t, dt, dx, boundary, operator, equation):
     cons_inner = padded_cons[inner_slice]
 
     step = int(round(t / dt))
-    ndim = dx.ndim if hasattr(dx, "ndim") else 1
+    ndim = grid_ndim
     spatial_axes = tuple(range(-ndim, 0))
     
     # ------------------------------------------------------------------
@@ -102,7 +123,7 @@ def lax_w(state, t, dt, dx, boundary, operator, equation):
     # ------------------------------------------------------------------
     # Corrector step
     # ------------------------------------------------------------------
-    padded_U_star = boundary(U_star, parity)
+    padded_U_star = _pad(U_star, parity)
     F_star = equation.flux(padded_U_star, dx)
     source_res = equation.source(padded_U_star, dx) if hasattr(equation, "source") else None
     S_star = source_res[inner_slice] if source_res is not None else 0.0

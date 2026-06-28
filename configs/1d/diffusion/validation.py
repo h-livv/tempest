@@ -3,7 +3,11 @@ from src.mesh import boundaries
 from src.numerics import operators, integrators
 from src.physics import equations, init_conditions#Define stable grid configurations (protects CFL stability)
 grid_configs = [
-    {"N": 50, "dx": 0.05, "dt": 0.001}
+    {
+        "N": 200,
+        "dx": 0.005,
+        "dt": 0.002
+    }
 ]
 
 #Define custom conditions for automated pipeline, as many parameters as required
@@ -13,7 +17,7 @@ operators_list = [operators.laplacian]
 equations_list = [equations.DiffusionEquation(diffusivity=1.0)]
 integrators_list = [integrators.rk4, integrators.euler]
 
-FINAL_TIME = 10
+FINAL_TIME = 5.0
 STEPS_PER_FRAME = 300   # animation only
 RECORD_INTERVAL = 10    # metrics: snapshot every N timesteps
 

@@ -2,7 +2,7 @@
 from src.mesh import boundaries
 from src.numerics import operators, integrators
 from src.physics import equations, init_conditions
-from src.numerics import direct_solvers
+from src.numerics import flux_methods
 
 grid_configs= [
     {"N": 50,  "dx": 1.0,   "dt": 0.02},
@@ -19,7 +19,7 @@ operators_list = [operators.upwind]
 equations_list = [equations.BurgersEquation(viscosity=0.02)]
 
 # Comparing Lax-Friedrichs, Lax-Wendroff, and RK4
-integrators_list = [direct_solvers.lax_f, direct_solvers.lax_w, integrators.rk4]
+integrators_list = [flux_methods.lax_f, flux_methods.lax_w, integrators.rk4]
 
 
 FINAL_TIME = 10.0

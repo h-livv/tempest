@@ -150,7 +150,7 @@ class Simulation:
                 self._append_snapshot()
 
     # ------------------------------------------------------------------
-    # Public API
+    # Collect Results
     # ------------------------------------------------------------------
 
     def run(self) -> SimulationResults:
@@ -191,7 +191,7 @@ class Simulation:
         
         # Compute energy stability at t=0
         init_energies = stability.tracking(
-            self.state.data,
+            self.state,
             grid,
             config.boundary,
             self.equation,
@@ -206,15 +206,17 @@ class Simulation:
             init_energies,
         )
 
+        """
         # =======================================================================
         # SECTION 4: Visualization & Animation Update Loop
         # =======================================================================
+        """
         def update_frame(frame: int):
             if frame > 0:
                 self._advance_to(frame * steps_per_frame)
 
             current_energies = stability.tracking(
-                self.state.data,
+                self.state,
                 grid,
                 config.boundary,
                 self.equation,
@@ -260,9 +262,11 @@ class Simulation:
             )
             plt.show()
 
+        """
         # =======================================================================
         # SECTION 5: Data Export Packaging
         # =======================================================================
+        """
         tracker = self.tracker
 
         return SimulationResults(
