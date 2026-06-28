@@ -44,7 +44,7 @@ def upwind_axis(padded_array, spacing, velocity, active_axis, spatial_axes):
     backward_diff = (center - left) / spacing
     forward_diff = (right - center) / spacing
 
-    v_center = velocity
+    v_center = velocity[_slice_along_axis(velocity, 0, active_axis, spatial_axes)] if isinstance(velocity, np.ndarray) and velocity.shape == padded_array.shape else velocity
     
     return np.where(v_center >= 0.0, backward_diff, forward_diff)
 
@@ -69,19 +69,11 @@ def _get_spatial_axes(ndim):
     """
     return tuple(range(-ndim, 0))
 
-def gradient(padded_state, grid_or_dx):
+def gradient(padded_state, grid, **kwargs):
     """
     Computes the gradient across all spatial dimensions of the grid.
     Returns a stacked array of gradients (e.g. [grad_y, grad_x] for 2D, [grad_x] for 1D).
     """
-    if isinstance(grid_or_dx, (float, int)):
-        # Compatibility shim for 1D
-        spacing = grid_or_dx
-        left = padded_state[..., 0:-2]
-        right = padded_state[..., 2:]
-        return (right - left) / (2 * spacing)
-        
-    grid = grid_or_dx
     spatial_axes = _get_spatial_axes(grid.ndim)
     grads = []
     # Compute gradient for each spatial axis
@@ -94,19 +86,10 @@ def gradient(padded_state, grid_or_dx):
         return grads[0]
     return np.stack(grads, axis=0)
 
-def laplacian(padded_state, grid_or_dx):
+def laplacian(padded_state, grid, **kwargs):
     """
     Computes the Laplacian by summing the second derivatives across all spatial axes.
     """
-    if isinstance(grid_or_dx, (float, int)):
-        # Compatibility shim for 1D
-        spacing = grid_or_dx
-        left = padded_state[..., 0:-2]
-        center = padded_state[..., 1:-1]
-        right = padded_state[..., 2:]
-        return (right - 2*center + left) / (spacing**2)
-
-    grid = grid_or_dx
     spatial_axes = _get_spatial_axes(grid.ndim)
     lap = 0
     for i, ax in enumerate(spatial_axes):
@@ -114,7 +97,7 @@ def laplacian(padded_state, grid_or_dx):
         lap += laplacian_axis(padded_state, spacing, ax, spatial_axes)
     return lap
 
-def upwind(padded_state, grid_or_dx, velocity=None):
+def upwind(padded_state, grid, velocity=None):
     """
     Computes the upwind advection derivative. 
     If velocity is a vector field (stack of velocities for each axis), it applies the 
@@ -123,20 +106,6 @@ def upwind(padded_state, grid_or_dx, velocity=None):
     if velocity is None:
         velocity = padded_state
 
-    if isinstance(grid_or_dx, (float, int)):
-        # Compatibility shim for 1D
-        spacing = grid_or_dx
-        center = padded_state[..., 1:-1]
-        left = padded_state[..., 0:-2]
-        right = padded_state[..., 2:]
-
-        backward_diff = (center - left) / spacing
-        forward_diff = (right - center) / spacing
-
-        v_center = velocity
-        return np.where(v_center >= 0.0, backward_diff, forward_diff)
-
-    grid = grid_or_dx
     spatial_axes = _get_spatial_axes(grid.ndim)
     
     grads = []
@@ -159,18 +128,11 @@ def upwind(padded_state, grid_or_dx, velocity=None):
         return grads[0]
     return np.stack(grads, axis=0)
 
-def spatial_average(padded_state, grid_or_dx=None):
+def spatial_average(padded_state, grid):
     """
     Applies spatial averaging across all spatial axes for Lax-Friedrichs schemes.
     Averages over all spatial dimensions sequentially.
     """
-    if isinstance(grid_or_dx, (float, int)) or grid_or_dx is None:
-        # Compatibility shim for 1D
-        left = padded_state[..., 0:-2]
-        right = padded_state[..., 2:]
-        return 0.5 * (right + left)
-
-    grid = grid_or_dx
     spatial_axes = _get_spatial_axes(grid.ndim)
     
     # We apply averaging recursively over each axis
@@ -191,20 +153,11 @@ def spatial_average(padded_state, grid_or_dx=None):
         total_avg += spatial_average_axis(padded_state, ax, spatial_axes)
     return total_avg / grid.ndim
 
-def central_flux_divergence(padded_flux, grid_or_dx):
+def central_flux_divergence(padded_flux, grid):
     """
     Computes the divergence of a flux vector field or scalar field.
     If padded_flux is a stacked vector field, computes sum(dF_i / dx_i).
     """
-    if isinstance(grid_or_dx, (float, int)):
-        # Compatibility shim for 1D
-        spacing = grid_or_dx
-        left = padded_flux[..., 0:-2]
-        right = padded_flux[..., 2:]
-        return (right - left) / (2 * spacing)
-
-    grid = grid_or_dx
-    
     # System PDE recursion: If padded_flux has an extra dimension for component states
     if padded_flux.ndim == grid.ndim + 2:
         return np.stack([central_flux_divergence(padded_flux[c], grid) for c in range(padded_flux.shape[0])], axis=0)
@@ -224,3 +177,7 @@ def central_flux_divergence(padded_flux, grid_or_dx):
         divergence += central_flux_divergence_axis(flux_comp, spacing, ax, spatial_axes)
         
     return divergence
+
+gradient.convergence_order = 2
+laplacian.convergence_order = 2
+upwind.convergence_order = 1
