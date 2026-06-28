@@ -1,7 +1,7 @@
 import numpy as np
 from src import operators
 
-def advection(t, state, dx, boundary, operator, coefficient):
+def advection(t, state, grid, boundary, operator, coefficient):
     
     if operator.__name__ == 'laplacian':
         raise ValueError(
@@ -11,16 +11,18 @@ def advection(t, state, dx, boundary, operator, coefficient):
         
     parity = [1]
     
+    # state might be a Field; boundary handles Field -> ndarray padding
     padded_state = boundary(state, parity)
     
-    dudx = operator(padded_state, dx, velocity=coefficient) #First derivative of state
+    # The operator computes the spatial derivative(s)
+    dudx = operator(padded_state, grid, velocity=coefficient)
     
-    if isinstance(dx, tuple) or (hasattr(dx, 'ndim') and dx.ndim > 1):
+    if grid.ndim > 1:
         dudt = -np.sum(coefficient * dudx, axis=0)
     else:
-        dudt = -coefficient*dudx #PDE equation for advection
+        dudt = -coefficient * dudx
     
-    return dudt #Returns velocity
+    return dudt
 
 #Linear Advection
 def _advection_flux(padded_state, coefficient, dx):
@@ -127,7 +129,9 @@ def _sw_flux(padded_cons, coefficient, dx):
     f1 = q
     
     eps = 1e-5
-    q_sq_over_h = np.where(h > eps, (q**2) / h, 0.0)
+    q_sq_over_h = np.zeros_like(q)
+    mask = h > eps
+    q_sq_over_h[mask] = (q[mask]**2) / h[mask]
     
     f2 = q_sq_over_h + 0.5 * g * (h**2)
     return np.stack([f1, f2], axis=0)
@@ -176,7 +180,9 @@ def _sw_to_conservative(primitive_state):
 def _sw_to_primitive(conservative_state):
     h, q = conservative_state
     eps = 1e-5
-    v = np.where(h > eps, q / h, 0.0)
+    v = np.zeros_like(q)
+    mask = h > eps
+    v[mask] = q[mask] / h[mask]
     return np.stack([h, v], axis=0)
 
 # Wave Speed methods for Direct Upwind
@@ -193,7 +199,9 @@ def _sw_wave_speed(padded_state, coefficient):
     h, q = padded_state
     g = 9.81
     eps = 1e-5
-    v = np.where(h > eps, q / h, 0.0)
+    v = np.zeros_like(q)
+    mask = h > eps
+    v[mask] = q[mask] / h[mask]
     return np.abs(v) + np.sqrt(g * h)
 
 def _burgers_wave_speed(padded_state, coefficient):
@@ -204,6 +212,12 @@ diffusion.parity = [1]          # 1-field: temperature is symmetric
 wave.parity = [1, -1]           # 2-fields: position (u) is symmetric, velocity (v) is anti-symmetric
 shallow_water.parity = [1, -1]  # 2-fields: height (h) is symmetric, velocity (v) is anti-symmetric
 burgers.parity = [1]
+
+advection.spatial_order = 1
+diffusion.spatial_order = 2
+wave.spatial_order = 1
+shallow_water.spatial_order = 1
+burgers.spatial_order = 1
 
 advection.flux = _advection_flux
 advection.wave_speed = _advection_wave_speed
