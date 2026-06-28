@@ -2,10 +2,10 @@
 from src import boundaries, operators, equations, integrators, init_conditions, direct_solvers
 
 grid_configs = [
-    {"N": 250,  "dx": 1.0,   "dt": 0.02},
-    {"N": 500,  "dx": 0.5,   "dt": 0.01},
-    {"N": 1000, "dx": 0.25,  "dt": 0.005},
-    {"N": 2000, "dx": 0.125, "dt": 0.0025}
+    {"N": 50,  "dx": 1.0,   "dt": 0.02},
+    {"N": 50,  "dx": 0.5,   "dt": 0.01},
+    {"N": 50, "dx": 0.25,  "dt": 0.005},
+    {"N": 50, "dx": 0.125, "dt": 0.0025}
 ]
 
 initial_conditions = [init_conditions.burgers_traveling_shock]

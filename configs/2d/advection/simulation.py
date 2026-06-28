@@ -15,7 +15,7 @@ integrators_list = [direct_solvers.lax_w]
 # Velocity vector (y-velocity, x-velocity)
 coefficients = [np.array([1.0, 1.0]).reshape(2, 1, 1)]
 
-FINAL_TIME = 20.0        # Enough time for the wave to wrap around periodic boundaries
+FINAL_TIME = 10.0        # Enough time for the wave to wrap around periodic boundaries
 STEPS_PER_FRAME = 2      # Balanced for smooth fluid evolution and speed
 RECORD_INTERVAL = 10
 

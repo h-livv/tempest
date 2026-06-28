@@ -20,8 +20,37 @@ git clone https://github.com/h-livv/tempest.git
 cd tempest
 pip install -r requirements.txt
 ```
+```bash
+python main.py configs/1d/advection/simulation.py
 ```
-python main.py configs/{dimension}/{any available configuration}
+
+### Direct API Usage (Simulation)
+
+You can also bypass the pipeline and use the core simulation engine directly:
+
+```python
+from src.core.config import SimulationConfig
+from src.core.simulation import Simulation
+from src.init_conditions import advec_gauss
+from src.equations import AdvectionEquation
+from src.operators import upwind
+from src.boundaries import periodic
+from src.integrators import rk4
+
+config = SimulationConfig(
+    shape=(100,),
+    spacing=(0.01,),
+    dt=0.005,
+    final_time=2.0,
+    steps_per_frame=10,
+    equation=AdvectionEquation(coefficient=1.0),
+    operator=upwind,
+    boundary=periodic,
+    integrator=rk4,
+    initial_condition=advec_gauss
+)
+
+results = Simulation(config).run()
 ```
 ---
 
@@ -101,15 +130,17 @@ Machine Learning
 
 ## Module overview:
 
-```
+```text
 Tempest/
 │
 ├── configs/                  # Stored configurations for stable PDE runs
-├── diagnostics/              # Analysis & Verification Tools (energy, stability)
 ├── docs/                     # Formal mathematical documentation and studies
 ├── ml/                       # Code and outputs related to machine learning
 ├── pipeline_results/         # Automated CI/CT CSV outputs and validation data
-├── src/                      # Core PDE Evolution Engine (equations, integrators)
+├── src/                      # Core PDE Evolution Engine
+│   ├── core/                 # Simulation state, Grid, and Field abstractions
+│   ├── diagnostics/          # Analysis tools (energy, stability, validation)
+│   ├── ...                   # Numerics and Equations
 ├── visualizations/           # Decoupled matplotlib plotting architecture
 │
 ├── main.py                   # Automated data pipeline entry point

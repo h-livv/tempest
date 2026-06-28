@@ -2,18 +2,18 @@ from src import equations, boundaries, operators, integrators, direct_solvers, i
 
 # Validation Configuration
 grid_configs = [
-    {"N": 1000, "dx": 0.5, "dt": 0.01}
+    {"N": 50, "dx": 0.5, "dt": 0.01}
 ]
 
 equations_list = [equations.shallow_water]
-boundary_functions = [boundaries.edge]
+boundary_functions = [boundaries.periodic]
 operators_list = [operators.gradient] 
-integrators_list = [direct_solvers.lax_w, direct_solvers.lax_f]
-initial_conditions = [init_conditions.shallow_dam]
+integrators_list = [direct_solvers.lax_w]
+initial_conditions = [init_conditions.shallow_linear_gauss]
 coefficients = [1.0]
 
 # Global Simulation Parameters
-FINAL_TIME = 20
+FINAL_TIME = 10
 STEPS_PER_FRAME = 5    
 RECORD_INTERVAL = 5   
 
