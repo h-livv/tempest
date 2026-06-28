@@ -1,5 +1,5 @@
 import numpy as np
-from src import operators
+from src.numerics import operators
 
 def tracking(state, grid, boundary, equation):
     state = np.asarray(state)

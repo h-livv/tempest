@@ -58,8 +58,8 @@ initial_condition : callable
 
 from dataclasses import dataclass
 from typing import Callable, Union
-from src.init_conditions import InitialCondition
-from src.equations import Equation
+from src.physics.init_conditions import InitialCondition
+from src.physics.equations import Equation
 
 
 @dataclass

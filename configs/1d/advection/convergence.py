@@ -1,7 +1,10 @@
 #Module imports
-from src import boundaries, operators, equations, integrators, init_conditions
+from src.mesh import boundaries
+from src.numerics import operators, integrators
+from src.physics import equations
+from src.physics import init_conditions
 
-grid_configs = [
+grid_configs= [
     {"N": 50,  "dx": 0.1,    "dt": 0.01},
     {"N": 50,  "dx": 0.05,   "dt": 0.005},
     {"N": 50, "dx": 0.025,  "dt": 0.0025},

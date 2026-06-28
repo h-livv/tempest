@@ -3,11 +3,11 @@ matplotlib.use('Agg')
 import numpy as np
 from src.core.config import SimulationConfig
 from src.core.simulation import Simulation
-from src.equations import AdvectionEquation
-from src.operators import upwind
-from src.integrators import euler
-from src.boundaries import periodic
-from src.init_conditions import GaussianIC
+from src.physics.equations import AdvectionEquation
+from src.numerics.operators import upwind
+from src.numerics.integrators import euler
+from src.mesh.boundaries import periodic
+from src.physics.init_conditions import GaussianIC
 
 def test_simulation_runs():
     config = SimulationConfig(

@@ -61,8 +61,8 @@ import numpy as np
 # results.py decoupled from that path change.
 if TYPE_CHECKING:
     import pandas as pd
-    from src.grid import Grid
-    from src.fields import Field
+    from src.mesh.grid import Grid
+    from src.mesh.fields import Field
 
 
 @dataclass

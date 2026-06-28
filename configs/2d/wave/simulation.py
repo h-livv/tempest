@@ -1,6 +1,6 @@
-from src import boundaries, operators, equations, integrators, init_conditions
-
-# Define grid configuration for 2D (Optimized grid size & stable dt for fast smooth rendering)
+from src.mesh import boundaries
+from src.numerics import operators, integrators
+from src.physics import equations, init_conditions# Define grid configuration for 2D (Optimized grid size & stable dt for fast smooth rendering)
 grid_configs = [
     {"N": (60, 60), "dx": (0.3, 0.3), "dt": 0.02}
 ]

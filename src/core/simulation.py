@@ -24,13 +24,15 @@ from __future__ import annotations
 
 import numpy as np
 
-from src.grid import Grid
-from src.fields import Field, ScalarField, VectorField
+from src.mesh.grid import Grid
+from src.mesh.fields import Field, ScalarField, VectorField
 from src.core.config import SimulationConfig
 from src.core.results import SimulationResults
 from src.diagnostics.tracker import DataTracker
-from src.diagnostics import stability, validation
-from visualizations.visualization import TempestVisualizer
+from src.validation import validation
+from src.diagnostics import stability
+
+from src.visualization.visualization import TempestVisualizer
 
 
 class Simulation:
