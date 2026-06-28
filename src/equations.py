@@ -1,14 +1,19 @@
 import numpy as np
 from src import operators
 
-class AdvectionEquation:
+class Equation:
+    """Base class for all Tempest equations."""
+    pass
+
+class AdvectionEquation(Equation):
     """Linear advection equation."""
-    def __init__(self):
+    def __init__(self, coefficient):
         self.__name__ = 'advection'
+        self.coefficient = coefficient
         self.spatial_order = 1
         self.parity = [1]
 
-    def __call__(self, t, state, grid, boundary, operator, coefficient):
+    def __call__(self, t, state, grid, boundary, operator):
         if operator.__name__ == 'laplacian':
             raise ValueError(
                 "CRITICAL PHYSICS ERROR: Linear advection is a 1st-order spatial PDE. "
@@ -19,22 +24,23 @@ class AdvectionEquation:
         padded_state = boundary(state, self.parity)
         
         # The operator computes the spatial derivative(s)
-        dudx = operator(padded_state, grid, velocity=coefficient)
+        dudx = operator(padded_state, grid, velocity=self.coefficient)
         
         if grid.ndim > 1:
-            dudt = -np.sum(coefficient * dudx, axis=0)
+            dudt = -np.sum(self.coefficient * dudx, axis=0)
         else:
-            dudt = -coefficient * dudx
+            dudt = -self.coefficient * dudx
         
         return dudt
 
-    def flux(self, padded_state, coefficient, dx):
-        return coefficient * padded_state
+    def flux(self, padded_state, dx):
+        return self.coefficient * padded_state
 
-    def wave_speed(self, padded_state, coefficient):
-        return coefficient
+    def wave_speed(self, padded_state):
+        return self.coefficient
 
-advection = AdvectionEquation()
+AdvectionEquation.__name__ = 'advection'
+advection = AdvectionEquation
 
 
 def wave(t, state, dx, boundary, operator, coefficient):
