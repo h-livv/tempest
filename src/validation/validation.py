@@ -28,22 +28,34 @@ def validation(equation, state, init_condition, grid, t, boundary):
     analytic_state = None
     actual_u = state[0] if (state.ndim > 1 and state.shape[0] >= 1) else state
     
-    if grid.ndim > 1:
+    if grid.ndim > 1 and equation.__name__ not in ["advection", "diffusion"]:
         return np.zeros_like(actual_u)
 
     
     if equation.__name__ == "advection":
-        if boundary == "dirichlet":
-            x_shifted = x - c*t
-        else:
-            x_shifted = (x - c*t - x[0]) % L + x[0]
-            
         class GridProxy:
             ndim = grid.ndim
             shape = grid.shape
             spacing = grid.spacing
-            coordinates = [x_shifted] if grid.ndim == 1 else x_shifted
             
+        shifted_coords = []
+        for i in range(grid.ndim):
+            # Velocity might be an N-D tensor, so we flatten it to extract components
+            if hasattr(c, "__len__") and len(c.flatten()) >= grid.ndim:
+                v_i = float(c.flatten()[i])
+            else:
+                v_i = float(c)
+                
+            x_i = grid.coordinates[i] if grid.ndim > 1 else grid.coordinates[0]
+            L_i = grid.shape[i] * grid.spacing[i]
+            x0 = float(x_i.flat[0])
+            
+            if boundary == "dirichlet":
+                shifted_coords.append(x_i - v_i * t)
+            else:
+                shifted_coords.append((x_i - v_i * t - x0) % L_i + x0)
+                
+        GridProxy.coordinates = shifted_coords
         analytic_state = init_condition(GridProxy())[0]
 
     elif equation.__name__ == "wave":
@@ -107,47 +119,56 @@ def validation(equation, state, init_condition, grid, t, boundary):
             raise ValueError(f"Unknown boundary type for wave validation: {boundary}")
         
     elif equation.__name__ == "diffusion":
-        
         u0 = init_condition(grid)[0]
-        x_c = x[np.argmax(u0)]
+        analytic_state = np.ones_like(actual_u, dtype=float)
         
-        # Sample non-peak grid points to isolate the coefficient 'a' from: u = exp(-a*(x-xc)^2)
-        curve_mask = (u0 > 0.01) & (u0 < 0.99)
-        if np.any(curve_mask):
-            eps = 1e-5
-            a_estimates = -np.log(u0[curve_mask]) / (x[curve_mask] - x_c + eps)**2
-            a = float(np.nanmean(a_estimates[np.isfinite(a_estimates)]))
-        else:
-            a = 100.0  # Safe fallback matching your physical coordinate setup
+        coords = grid.coordinates if grid.ndim > 1 else [grid.coordinates[0]]
+        shapes = grid.shape if grid.ndim > 1 else [grid.shape[0]]
+        spacings = grid.spacing if grid.ndim > 1 else [grid.spacing[0]]
+        
+        for i in range(grid.ndim):
+            x_i = coords[i]
+            L_i = shapes[i] * spacings[i]
             
-        # 2. Infinite-domain analytical Gaussian diffusion equation
-        def u_inf(x_arr, t_val, center):
-            if t_val == 0:
-                return np.exp(-a * (x_arr - center)**2)
-            variance_factor = 1.0 + 4.0 * a * c * t_val
-            return (1.0 / np.sqrt(variance_factor)) * np.exp(-a * (x_arr - center)**2 / variance_factor)
-
-        # 3. Sum over neighboring mirror images to satisfy boundary conditions
-        analytic_state = np.zeros_like(x, dtype=float)
-        
-        # Summing from -3 to 3 covers 7 virtual worlds (perfect for machine precision accuracy)
-        for m in range(-3, 4):
-            if boundary == "periodic":
-                # Periodic images repeat every full domain length
-                analytic_state += u_inf(x, t, x_c + m * L)
-                
-            elif boundary in ["reflect", "edge"]:
-                # Rigid walls: add overlapping right-side-up mirror profiles
-                analytic_state += u_inf(x, t, x_c + 2 * m * L)
-                analytic_state += u_inf(x, t, 2 * x[0] - x_c + 2 * m * L)
-                
-            elif boundary == "constant":
-                # Fixed walls (u=0): subtract inverted mirror profiles to force cancellation at boundaries
-                analytic_state += u_inf(x, t, x_c + 2 * m * L)
-                analytic_state -= u_inf(x, t, 2 * x[0] - x_c + 2 * m * L)
-                
+            axes_to_reduce = tuple(j for j in range(grid.ndim) if j != i)
+            u0_1d = np.max(u0, axis=axes_to_reduce) if len(axes_to_reduce) > 0 else u0
+            
+            slices = [0] * grid.ndim
+            slices[i] = slice(None)
+            x_i_1d = x_i[tuple(slices)] if grid.ndim > 1 else x_i
+            
+            x_c = x_i_1d[np.argmax(u0_1d)]
+            
+            curve_mask = (u0_1d > 0.01) & (u0_1d < 0.99)
+            if np.any(curve_mask):
+                eps = 1e-5
+                a_estimates = -np.log(u0_1d[curve_mask]) / (x_i_1d[curve_mask] - x_c + eps)**2
+                a = float(np.nanmean(a_estimates[np.isfinite(a_estimates)]))
             else:
-                raise ValueError(f"Unknown boundary type for diffusion validation: {boundary}")
+                a = 100.0  # Safe fallback
+                
+            def u_inf(x_arr, t_val, center):
+                if t_val == 0:
+                    return np.exp(-a * (x_arr - center)**2)
+                variance_factor = 1.0 + 4.0 * a * c * t_val
+                return (1.0 / np.sqrt(variance_factor)) * np.exp(-a * (x_arr - center)**2 / variance_factor)
+                
+            analytic_1d = np.zeros_like(x_i, dtype=float)
+            x0_val = float(x_i.flat[0])
+            
+            for m in range(-3, 4):
+                if boundary == "periodic":
+                    analytic_1d += u_inf(x_i, t, x_c + m * L_i)
+                elif boundary in ["reflect", "edge"]:
+                    analytic_1d += u_inf(x_i, t, x_c + 2 * m * L_i)
+                    analytic_1d += u_inf(x_i, t, 2 * x0_val - x_c + 2 * m * L_i)
+                elif boundary in ["constant", "dirichlet"]:
+                    analytic_1d += u_inf(x_i, t, x_c + 2 * m * L_i)
+                    analytic_1d -= u_inf(x_i, t, 2 * x0_val - x_c + 2 * m * L_i)
+                else:
+                    raise ValueError(f"Unknown boundary type for diffusion validation: {boundary}")
+                    
+            analytic_state *= analytic_1d
                 
     elif equation.__name__ == "shallow_water":
         dx_clean = x[1] - x[0]

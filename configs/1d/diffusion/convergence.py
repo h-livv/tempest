@@ -3,10 +3,26 @@ from src.mesh import boundaries
 from src.numerics import operators, integrators
 from src.physics import equations, init_conditions#Define stable grid configurations (protects CFL stability)
 grid_configs = [
-    {"N": 50,  "dx": 1.0,    "dt": 0.25},
-    {"N": 50,  "dx": 0.5,   "dt": 0.0625},
-    {"N": 50, "dx": 0.25,  "dt": 0.015625},
-    {"N": 50, "dx": 0.125, "dt": 0.00390625},
+    {
+        "N": 50,
+        "dx": 0.02,
+        "dt": 0.002
+    },
+    {
+        "N": 100,
+        "dx": 0.01,
+        "dt": 0.002
+    },
+    {
+        "N": 200,
+        "dx": 0.005,
+        "dt": 0.002
+    },
+    {
+        "N": 400,
+        "dx": 0.0025,
+        "dt": 0.002
+    }
 ]
 
 #Define custom conditions for automated pipeline, as many parameters as required
@@ -16,7 +32,7 @@ operators_list = [operators.laplacian]
 equations_list = [equations.DiffusionEquation(diffusivity=1.0)]
 integrators_list = [integrators.euler, integrators.rk4]
 
-FINAL_TIME = 10
+FINAL_TIME = 5.0
 STEPS_PER_FRAME = 300   # animation only
 RECORD_INTERVAL = 10    # metrics: snapshot every N timesteps
 # Toggle to True to bypass data export and run the visual dashboard in the main thread

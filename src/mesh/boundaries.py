@@ -26,7 +26,12 @@ class BoundaryCondition:
 
     def __call__(self, state, parity=None):
         """Simplifies calling syntax, applying the condition to all spatial axes of the state."""
-        ndim = state.grid.ndim if hasattr(state, 'grid') else state.ndim
+        if hasattr(state, 'grid'):
+            ndim = state.grid.ndim
+        else:
+            # Mirror _apply_all_axes: if state's first axis matches len(parity), it's a system
+            is_system = (parity is not None and state.ndim > 1 and state.shape[0] == len(parity))
+            ndim = state.ndim - 1 if is_system else state.ndim
         axis_names = ['x', 'y', 'z', 'w']
         kwargs = { axis_names[i]: self for i in range(ndim) }
         return Boundary(**kwargs)(state, parity)
@@ -161,7 +166,7 @@ def _apply_all_axes(condition_class, state, parity=None):
     if hasattr(state, 'grid'):
         ndim = state.grid.ndim
     else:
-        is_system = (parity is not None and len(parity) > 1)
+        is_system = (parity is not None and state.shape[0] == len(parity))
         ndim = state.ndim - 1 if is_system else state.ndim
     axis_names = ['x', 'y', 'z', 'w']
     kwargs = { axis_names[i]: condition_class() for i in range(ndim) }

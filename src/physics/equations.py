@@ -12,8 +12,15 @@ class Equation:
     def wave_speed(self, padded_state):
         raise NotImplementedError
 
-    def source(self, padded_state, grid_or_dx):
+    def source(self, padded_state, grid):
         return None
+
+    def compute_energies(self, field, boundary):
+        """Generic energy computation (L2 norm)."""
+        dV = np.prod(field.grid.spacing)
+        data = field.data if hasattr(field, 'data') else np.asarray(field)
+        total_e = np.sum(data**2) * dV
+        return 0.0, 0.0, total_e
 
 
 class AdvectionEquation(Equation):
@@ -32,16 +39,16 @@ class AdvectionEquation(Equation):
             )
             
         padded_state = boundary(state, self.parity)
-        dudx = operator(padded_state, grid, velocity=self.velocity)
+        grad_u = operator(padded_state, grid, velocity=self.velocity)
         
         if grid.ndim > 1:
-            dudt = -np.sum(self.velocity * dudx, axis=0)
+            dudt = -np.sum(self.velocity * grad_u, axis=0)
         else:
-            dudt = -self.velocity * dudx
+            dudt = -self.velocity * grad_u
         
         return dudt
 
-    def flux(self, padded_state, dx):
+    def flux(self, padded_state, grid):
         return self.velocity * padded_state
 
     def wave_speed(self, padded_state):
@@ -71,23 +78,35 @@ class WaveEquation(Equation):
         
         return np.stack([state[1], d2udt2], axis=0)
 
-    def flux(self, padded_state, dx):
+    def flux(self, padded_state, grid):
         u, v = padded_state
-        dudx = operators.gradient(u, dx)
-        ndim = dx.ndim if hasattr(dx, 'ndim') else 1
-        pad_width = [(0, 0)] * (dudx.ndim - ndim) + [(1, 1)] * ndim
-        padded_dudx = np.pad(dudx, pad_width=pad_width, mode='edge')
+        grad_u = operators.gradient(u, grid)
+        ndim = grid.ndim
+        pad_width = [(0, 0)] * (grad_u.ndim - ndim) + [(1, 1)] * ndim
+        padded_grad_u = np.pad(grad_u, pad_width=pad_width, mode='edge')
         
-        f1 = np.zeros_like(padded_dudx)
-        f2 = -(self.wave_speed_val**2) * padded_dudx
+        f1 = np.zeros_like(padded_grad_u)
+        f2 = -(self.wave_speed_val**2) * padded_grad_u
         return np.stack([f1, f2], axis=0)
 
-    def source(self, padded_state, dx):
+    def source(self, padded_state, grid):
         u, v = padded_state
         return np.stack([v, np.zeros_like(v)], axis=0)
 
     def wave_speed(self, padded_state):
         return self.wave_speed_val
+
+    def compute_energies(self, field, boundary):
+        dV = np.prod(field.grid.spacing)
+        data = field.data if hasattr(field, 'data') else np.asarray(field)
+        u, v = data[0], data[1]
+        
+        u_padded = boundary(u)
+        grad_u = operators.gradient(u_padded, field.grid)
+        
+        pe = ((self.wave_speed_val**2)/2) * np.sum(grad_u**2) * dV
+        ke = (1/2) * np.sum(v**2) * dV
+        return pe, ke, pe + ke
 
 
 class DiffusionEquation(Equation):
@@ -111,11 +130,11 @@ class DiffusionEquation(Equation):
         
         return du_dt
 
-    def flux(self, padded_state, dx):
-        dudx = operators.gradient(padded_state, dx)
-        ndim = dx.ndim if hasattr(dx, 'ndim') else 1
-        pad_width = [(0, 0)] * (dudx.ndim - ndim) + [(1, 1)] * ndim
-        padded_flux = np.pad(dudx, pad_width=pad_width, mode='edge')
+    def flux(self, padded_state, grid):
+        grad_u = operators.gradient(padded_state, grid)
+        ndim = grid.ndim
+        pad_width = [(0, 0)] * (grad_u.ndim - ndim) + [(1, 1)] * ndim
+        padded_flux = np.pad(grad_u, pad_width=pad_width, mode='edge')
         return -self.diffusivity * padded_flux
 
     def wave_speed(self, padded_state):
@@ -140,8 +159,8 @@ class ShallowWaterEquation(Equation):
         g = 9.81 
         eps = 1e-5
         
-        v_unpadded = state[1]
-        h, v = padded_state
+        v_unpadded = state[1:]
+        h, v = padded_state[0], padded_state[1:]
         q = h * v
         q_sq_by_h = np.where(h > eps, (q**2) / h, 0.0)
         
@@ -151,7 +170,7 @@ class ShallowWaterEquation(Equation):
             
         return np.stack([dh_dt, dv_dt], axis=0)
 
-    def flux(self, padded_cons, dx):
+    def flux(self, padded_cons, grid):
         h, q = padded_cons[0], padded_cons[1]
         g = 9.81
         f1 = q
@@ -178,12 +197,31 @@ class ShallowWaterEquation(Equation):
         return np.stack([h, h * v], axis=0)
         
     def to_primitive(self, conservative_state):
-        h, q = conservative_state
+        h = conservative_state[0]                # shape (..., N) or (N,)
+        q = conservative_state[1:]               # shape (n_v, N) or (N,)
         eps = 1e-5
-        v = np.zeros_like(q)
         mask = h > eps
-        v[mask] = q[mask] / h[mask]
-        return np.stack([h, v], axis=0)
+        v = np.zeros_like(q)
+        # Broadcast-safe division: expand mask to match q's shape if needed
+        if v.ndim > mask.ndim:
+            expanded_mask = np.broadcast_to(mask, v.shape)
+            v[expanded_mask] = q[expanded_mask] / np.broadcast_to(h, v.shape)[expanded_mask]
+        else:
+            v[mask] = q[mask] / h[mask]
+        # Return as primitive [h, v1, v2, ...] stacked on axis 0
+        v_squeezed = v[0] if (v.ndim > h.ndim and v.shape[0] == 1) else v
+        return np.stack([h, v_squeezed], axis=0)
+
+    def compute_energies(self, field, boundary):
+        dV = np.prod(field.grid.spacing)
+        data = field.data if hasattr(field, 'data') else np.asarray(field)
+        h = data[0]
+        v = data[1:]
+        g = 9.81
+        
+        ke = 0.5 * np.sum(h * np.sum(v**2, axis=0)) * dV
+        pe = 0.5 * g * np.sum(h**2) * dV
+        return pe, ke, pe + ke
 
 
 class BurgersEquation(Equation):
@@ -212,14 +250,26 @@ class BurgersEquation(Equation):
         du_dt = wave_term + adv_term
         return du_dt
 
-    def flux(self, padded_state, dx):
-        adv_flux = 0.5*(padded_state)**2
-        wave_flux = -self.viscosity*(operators.gradient(padded_state, dx))
-        ndim = dx.ndim if hasattr(dx, 'ndim') else 1
-        pad_width = [(0, 0)] * (wave_flux.ndim - ndim) + [(1, 1)] * ndim
-        padded_flux = np.pad(wave_flux, pad_width=pad_width, mode='edge')
-
-        return adv_flux + padded_flux
+    def flux(self, padded_state, grid):
+        adv_flux = 0.5 * (padded_state)**2
+        # Compute viscous flux using a central difference that preserves the
+        # full padded shape. For each spatial axis, use np.roll to compute
+        # (u[i+1] - u[i-1]) / (2*dx) across the whole padded domain.
+        ndim = grid.ndim
+        wave_flux = np.zeros_like(padded_state, dtype=float)
+        for i in range(ndim):
+            spacing = grid.get_spacing(i)
+            ax = -(ndim - i)
+            wave_flux += -self.viscosity * (
+                np.roll(padded_state, -1, axis=ax) - np.roll(padded_state, 1, axis=ax)
+            ) / (2.0 * spacing)
+        return adv_flux + wave_flux
 
     def wave_speed(self, padded_state):
         return padded_state
+
+    def compute_energies(self, field, boundary):
+        dV = np.prod(field.grid.spacing)
+        data = field.data if hasattr(field, 'data') else np.asarray(field)
+        total_e = np.sum(0.5 * data**2) * dV
+        return 0.0, 0.0, total_e

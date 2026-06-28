@@ -181,7 +181,8 @@ def run_single_simulation(params):
         # Directory creation and file saving
         clean_eq_name = str(eq_name).replace(" ", "_").lower()
         run_dir_name = f"{clean_eq_name}_{int_name}_{op_name}_{ic_name}_N{N}_{timestamp}"
-        run_dir_path = Path(output_dir) / clean_eq_name / "validation" / run_dir_name
+        dim_folder = f"{len(N) if isinstance(N, tuple) else 1}D"
+        run_dir_path = Path(output_dir) / clean_eq_name / dim_folder / "validation" / run_dir_name
         run_dir_path.mkdir(parents=True, exist_ok=True)
         (run_dir_path / "plots").mkdir(exist_ok=True)
         (run_dir_path / "data").mkdir(exist_ok=True)
@@ -200,7 +201,7 @@ def run_single_simulation(params):
             N=N,
             dx=dx,
             dt=dt,
-            x=legacy_output["x"],
+            grid=legacy_output["grid"],
             u_numerical=legacy_output["final_numerical"],
             u_analytical=legacy_output["final_analytic"],
             raw_tensor_data=legacy_output.get("raw_tensor_data"),
@@ -264,6 +265,8 @@ if __name__ == '__main__':
     cfg = load_config(args.config)
 
     visual_mode = getattr(cfg, "VISUAL_MODE", False)
+    if os.environ.get("TEMPEST_TEST_MODE") == "1":
+        visual_mode = False
     verbose = not visual_mode
     def vprint(*args, **kwargs):
         if verbose:
@@ -308,8 +311,13 @@ if __name__ == '__main__':
     parent_sweep_dir = None
 
     final_time = getattr(cfg, "FINAL_TIME", 2000)
+    if os.environ.get("TEMPEST_TEST_MODE") == "1":
+        max_dt = max(grid.get("dt", 0.01) for grid in cfg.grid_configs)
+        final_time = max_dt * 2
     steps_per_frame = getattr(cfg, "STEPS_PER_FRAME", 50)
     record_interval = getattr(cfg, "RECORD_INTERVAL", 1)
+    if os.environ.get("TEMPEST_TEST_MODE") == "1":
+        record_interval = 1
 
     # Package all necessary parameters for ProcessPoolExecutor mapping
     execution_params = [
@@ -381,7 +389,9 @@ if __name__ == '__main__':
         eq_n, int_n, op_n, ic_n, bc_n, cfl_n = group_key
         study_name = f"{eq_n}_{int_n}_{op_n}_{ic_n}_{bc_n}"
         clean_eq_n = str(eq_n).replace(" ", "_").lower()
-        group_plot_dir = Path(output_dir) / clean_eq_n / "convergence" / f"{eq_n}_{int_n}_{op_n}_{ic_n}_{timestamp}".lower()
+        first_dx = data["dx_values"][0] if data["dx_values"] else 1
+        dim_folder = f"{len(first_dx) if isinstance(first_dx, tuple) else 1}D"
+        group_plot_dir = Path(output_dir) / clean_eq_n / dim_folder / "convergence" / f"{eq_n}_{int_n}_{op_n}_{ic_n}_{timestamp}".lower()
         (group_plot_dir / "plots").mkdir(parents=True, exist_ok=True)
         (group_plot_dir / "data").mkdir(parents=True, exist_ok=True)
         plotter = TempestPlotter(output_dir=group_plot_dir / "plots")

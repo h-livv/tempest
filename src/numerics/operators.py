@@ -80,7 +80,8 @@ def upwind_axis(padded_array, spacing, velocity, active_axis, spatial_axes):
     backward_diff = (center - left) / spacing
     forward_diff = (right - center) / spacing
 
-    v_center = velocity[_slice_along_axis(velocity, 0, active_axis, spatial_axes)] if isinstance(velocity, np.ndarray) else velocity
+    v_center = velocity
+    #[_slice_along_axis(velocity, 0, active_axis, spatial_axes)] if isinstance(velocity, np.ndarray) else velocity
     
     return np.where(v_center >= 0.0, backward_diff, forward_diff)
 

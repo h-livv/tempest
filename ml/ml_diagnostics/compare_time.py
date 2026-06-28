@@ -13,11 +13,11 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 sys.path.append(project_root)
 
 from src.solver import solver
-from src.equations import advection
-from src.integrators import rk4
-from src.operators import upwind
-from src.init_conditions import advec_gauss
-from src.boundaries import periodic
+from src.physics.equations import advection
+from src.numerics.integrators import rk4
+from src.numerics.operators import upwind
+from src.physics.init_conditions import advec_gauss
+from src.mesh.boundaries import periodic
 
 class ConvSurrogate(nn.Module):
     def __init__(self, grid_size):
