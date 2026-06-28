@@ -60,6 +60,15 @@ class Simulation:
         # ------------------------------------------------------------------
         self.time: float = 0.0
         self.step: int = 0
+        
+        # ------------------------------------------------------------------
+        # Instantiate equation if it is a new-style class
+        # ------------------------------------------------------------------
+        from src.equations import Equation
+        if isinstance(self.config.equation, type) and issubclass(self.config.equation, Equation):
+            self.equation = self.config.equation(coefficient=self.config.coefficient)
+        else:
+            self.equation = self.config.equation
 
         # ------------------------------------------------------------------
         # Tracker  (same arguments the old solver used)
@@ -86,12 +95,6 @@ class Simulation:
         """Record one diagnostic snapshot into the tracker."""
         actual_u = self._extract_field()
 
-        # Analytical reference (returns zeros when no closed form exists).
-        #
-        # validation.validation() expects an init_condition callable with the
-        # OLD signature (N, x) -> array, not the new (grid) -> Field|ndarray
-        # signature.  We bridge the gap with a thin adapter so that
-        # validation.py does not need to change in this step.
         x_compat = (
             self.grid.coordinates[0]
             if self.grid.ndim == 1
@@ -104,35 +107,36 @@ class Simulation:
             self.grid.spacing[0] if self.grid.ndim == 1 else self.grid.spacing
         )
 
-        # Adapter: calls the new-style IC with a temporary single-axis Grid
-        # built from the N and x arguments supplied by validation.validation.
-        def _ic_adapter(N_arg, x_arg):
-            """Evaluate initial_condition at the exact x_arg coordinates.
+        # validation.validation() expects an (N, x) -> array callable.
+        #
+        # If initial_condition was created with make_ic(), its _legacy_fn
+        # attribute holds the original (N, x) callable – use it directly.
+        #
+        # Otherwise fall back to a minimal duck-typed proxy so hand-written
+        # (grid) -> array callables still work without modification.
+        legacy_fn = getattr(self.config.initial_condition, "_legacy_fn", None)
 
-            validation.validation() passes (N, x_shifted) to evaluate the IC
-            at specific spatial positions (e.g. shifted for advection).  We
-            build a minimal duck-typed proxy that gives the IC access to those
-            exact positions via the grid.coordinates interface, so no Grid
-            reconstruction is needed.
-            """
-            class _GridProxy:
-                ndim = 1
-                shape = (len(x_arg),)
-                spacing = (dx_compat,)
-                coordinates = [x_arg]  # IC reads grid.coordinates[0]
+        if legacy_fn is not None:
+            # Fast path: no wrapper needed.
+            validation_initial_condition = legacy_fn
+        else:
+            # Fallback: build a proxy that feeds x_arg into grid.coordinates.
+            def validation_initial_condition(N_arg, x_arg):
+                class _GridProxy:
+                    ndim = 1
+                    shape = (len(x_arg),)
+                    spacing = (dx_compat,)
+                    coordinates = [x_arg]
 
-            result = self.config.initial_condition(_GridProxy())
-            data = result.data if hasattr(result, "data") else np.asarray(result)
-            # Ensure (1, N) shape – validation.py indexes with [0].
-            # Use squeeze rather than data[0] to avoid NumPy 2.x view restrictions
-            # on non-owned arrays.
-            flat = np.squeeze(data, axis=0) if data.ndim > 1 else data
-            return flat[np.newaxis]
+                result = self.config.initial_condition(_GridProxy())
+                data = result.data if hasattr(result, "data") else np.asarray(result)
+                flat = np.squeeze(data, axis=0) if data.ndim > 1 else data
+                return flat[np.newaxis]
 
         true_u = validation.validation(
-            self.config.equation,
+            self.equation,
             self.state.data,
-            _ic_adapter,
+            validation_initial_condition,
             N_compat,
             x_compat,
             self.time,
@@ -145,7 +149,7 @@ class Simulation:
             self.state,
             self.grid,
             self.config.boundary,
-            self.config.equation.__name__,
+            self.equation.__name__,
             self.config.coefficient,
         )
 
@@ -161,7 +165,7 @@ class Simulation:
             self.grid,
             self.config.boundary,
             self.config.operator,
-            self.config.equation,
+            self.equation,
             self.config.coefficient,
         )
         # Preserve Field type when the integrator returns a raw array
@@ -213,7 +217,7 @@ class Simulation:
             self.state,
             config.spacing[0] if grid.ndim == 1 else config.spacing,
             config.dt,
-            config.equation.__name__,
+            self.equation.__name__,
             max_frames,
             steps_per_frame,
             final_time=config.final_time,
@@ -232,7 +236,7 @@ class Simulation:
                 self.state.data,
                 grid,
                 config.boundary,
-                config.equation.__name__,
+                self.equation.__name__,
                 config.coefficient,
             ),
         )
@@ -248,7 +252,7 @@ class Simulation:
                 self.state.data,
                 grid,
                 config.boundary,
-                config.equation.__name__,
+                self.equation.__name__,
                 config.coefficient,
             )
             updated = visualizer.render_frame(
