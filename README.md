@@ -31,7 +31,7 @@ You can also bypass the pipeline and use the core simulation engine directly:
 ```python
 from src.core.config import SimulationConfig
 from src.core.simulation import Simulation
-from src.physics.init_conditions import advec_gauss
+from src.physics.init_conditions import GaussianIC
 from src.physics.equations import AdvectionEquation
 from src.numerics.operators import upwind
 from src.mesh.boundaries import periodic
@@ -43,11 +43,11 @@ config = SimulationConfig(
     dt=0.005,
     final_time=2.0,
     steps_per_frame=10,
-    equation=AdvectionEquation(coefficient=1.0),
+    equation=AdvectionEquation(velocity=1.0),
     operator=upwind,
     boundary=periodic,
     integrator=rk4,
-    initial_condition=advec_gauss
+    initial_condition=GaussianIC(sigma=10.0, center_ratio=0.5)
 )
 
 results = Simulation(config).run()
@@ -63,14 +63,14 @@ Tempest includes an automated validation and convergence testing pipeline design
 * **The Diffusion-Dispersion Tradeoff (Advection):** Contrasts the severe artificial dissipation of upwind schemes against the dispersive nature of central differencing.
 * **Spatial Error Dominance (Diffusion):** Under parabolic stability constraints, spatial truncation error overwhelmingly dominates. Computationally expensive higher-order time integrators (like RK4) offer no practical advantage over Forward Euler for explicitly integrated diffusion.
 * **Hamiltonian Conservation (Wave Equation):** While standard RK4 introduces truncation-induced energy fluctuations, Tempest's symplectic Leapfrog implementation perfectly preserves the shadow Hamiltonian, maintaining total system energy.
-* **Shock-Capturing Limitations (Shallow Water Equations):** Captures the fundamental breakdown of standard linear schemes in discontinuous regimes (e.g., dam breaks).Artificial viscosity in Lax-Friedrichs yields sub-first-order convergence, while Lax-Wendroff suffers from severe numerical dispersion and Gibbs oscillations in the presence of infinite gradients.
+* **Shock-Capturing Limitations (Shallow Water Equations):** Captures the fundamental breakdown of standard linear schemes in discontinuous regimes (e.g., dam breaks). Artificial viscosity in Lax-Friedrichs yields sub-first-order convergence, while Lax-Wendroff suffers from severe numerical dispersion and Gibbs oscillations in the presence of infinite gradients.
 * **Limitations of boundary conditions in shock-based systems (Burgers' Equation):** Periodic boundary conditions encounter critical physics discrepancies with shock-based PDEs such as the Burgers' equation. The periodic expansion jump forms a rarefaction fan which alters the shock so it no longer represents the same physical problem. A Dirichlet boundary condition strictly holds the boundaries at the values the analytical domain requires.
 
 The full formal methodology paper is available in [docs/validation_study_final.md](./docs/validation_study_final.md). 
 
 Burgers' equation validation and convergence: [docs/burgers_validation.md](./docs/burgers_validation.md)
 
-(Detailed numerical outputs, comparisons, and convergence CSVs are available in the /pipeline_results directory).
+(Detailed numerical outputs, comparisons, and convergence CSVs are available in the `/outputs` directory).
 
 ---
 
@@ -102,7 +102,7 @@ The full optimization process, experiments, and failure analysis are documented 
 
 Grid Infrastructure
 - 1D and 2D supported structured grids
-- Custom initial conditions
+- Custom initial conditions (object-oriented, grid-native)
 - Configurable boundary conditions
 
 Numerical Methods
@@ -136,12 +136,15 @@ Tempest/
 ├── configs/                  # Stored configurations for stable PDE runs
 ├── docs/                     # Formal mathematical documentation and studies
 ├── ml/                       # Code and outputs related to machine learning
-├── pipeline_results/         # Automated CI/CT CSV outputs and validation data
+├── outputs/                  # Structured CI/CT CSV outputs and validation data
 ├── src/                      # Core PDE Evolution Engine
-│   ├── core/                 # Simulation state, Grid, and Field abstractions
-│   ├── diagnostics/          # Analysis tools (energy, stability, validation)
-│   ├── ...                   # Numerics and Equations
-├── visualizations/           # Decoupled matplotlib plotting architecture
+│   ├── core/                 # Simulation clock, state management, and orchestration
+│   ├── mesh/                 # Grid, Fields, and Boundary condition abstractions
+│   ├── physics/              # Equations and InitialConditions encapsulated as objects
+│   ├── numerics/             # Finite difference operators, Integrators, and Direct solvers
+│   ├── validation/           # Analytical validation solutions
+│   ├── visualization/        # Decoupled visualization/plotting architecture
+│   └── diagnostics/          # Energy tracking and stability diagnostics
 │
 ├── main.py                   # Automated data pipeline entry point
 ├── README.md                 # Project documentation and quick start guide
@@ -154,7 +157,7 @@ Tempest/
 1. Extend shock-capturing methods to 2D systems
 2. Expand neural surrogate models to multi-dimensional PDEs
 3. Investigate neural operators for generalized evolution learning
-4. 
+
 ### Long-term ML research directions
 - Generalized PDE evolution framework
 - Learned numerical operators
