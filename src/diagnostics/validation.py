@@ -200,9 +200,10 @@ def validation(equation, state, init_condition, N, x, t, c, boundary, dx):
         u0 = init_condition(N, x)[0]
         # Route based on the initial condition function name
         if "stationary" in init_condition.__name__:
-            # Estimate U from the maximum amplitude
+            # Estimate U from the maximum amplitude, center at domain midpoint to match IC
             U_est = float(np.max(np.abs(u0)))
-            analytic_state = -U_est * np.tanh(U_est * x / (2.0 * c))
+            x_0 = 0.5 * (x[0] + x[-1])
+            analytic_state = -U_est * np.tanh(U_est * (x - x_0) / (2.0 * c))
         elif "traveling" in init_condition.__name__:
             # u_L is on the left, u_R is on the right
             u_L_est = float(u0[0])

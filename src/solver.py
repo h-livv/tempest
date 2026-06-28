@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import pandas as pd
 from visualizations.visualization import TempestVisualizer
-from diagnostics import stability, validation
-from diagnostics.tracker import DataTracker
+from src.diagnostics import stability, validation
+from src.diagnostics.tracker import DataTracker
 from src.grid import Grid
 from src.fields import ScalarField, VectorField
 
@@ -23,7 +23,7 @@ def solver(
     RECORD_INTERVAL=1,
 ):
     # Construct unified Grid
-    # Phase 2 Backward compatibility
+    # Compatibility with 1D
     # Ensure N and dx are sequences if they are passed as scalars.
     actual_shape = N if isinstance(N, tuple) else (N,)
     actual_spacing = dx if isinstance(dx, tuple) else (dx,)
@@ -31,15 +31,9 @@ def solver(
 
     # Initial state initialization agnostic of dimensions
     if isinstance(actual_shape, tuple) and len(actual_shape) > 1:
-        if equation.__name__ == 'burgers':
-            state_data = init_state(*actual_shape, *grid.coordinates, nu=coefficient)
-        else:
-            state_data = init_state(*actual_shape, *grid.coordinates)
+        state_data = init_state(*actual_shape, *grid.coordinates)
     else:
-        if equation.__name__ == 'burgers':
-            state_data = init_state(actual_shape[0], grid.coordinates[0], nu=coefficient)
-        else:
-            state_data = init_state(actual_shape[0], grid.coordinates[0])
+        state_data = init_state(actual_shape[0], grid.coordinates[0])
 
     # Wrap raw data in appropriate Field abstraction
     if state_data.shape == grid.shape or (state_data.ndim == grid.ndim + 1 and state_data.shape[0] == 1):
@@ -66,12 +60,6 @@ def solver(
         steps_per_frame,
         final_time=FINAL_TIME,
     )
-
-    if equation.__name__ == 'advection' and (boundary.__name__ == 'reflect' or boundary.__name__ == 'edge' or boundary.__name__ == 'constant'):
-        raise ValueError(
-            '''BOUNDARY CONDITION ERROR: It is advised to only use the condition 'periodic' with advection as this most closely replicates physical
-            behaviour and enables accurate validation and convergence study.'''
-        )
 
     # Initialize the Tracker
     # Tracker currently assumes N, will be refactored later if needed
@@ -111,7 +99,7 @@ def solver(
             if step % record_interval == 0 or step == total_steps:
                 _append_snapshot()
 
-    # Record and render the initial condition once (guards duplicate frame-0 callbacks).
+    # Record and render the initial condition once
     _append_snapshot()
     visualizer.render_frame(0, state, current_time, integrator.__name__, stability.tracking(
         state.data, grid, boundary, equation.__name__, coefficient
@@ -166,8 +154,15 @@ def solver(
     return {
         "grid": grid,
         "x": grid.coordinates[0] if grid.ndim == 1 else grid.coordinates,
-        "final_numerical": tracker.numerical[-1] if tracker.idx > 0 else None,
-        "final_analytic": tracker.analytical[-1] if tracker.idx > 0 else None,
+        "final_numerical": tracker.numerical[tracker.idx - 1] if tracker.idx > 0 else None,
+        "final_analytic": tracker.analytical[tracker.idx - 1] if tracker.idx > 0 else None,
         "history_dataframe": tracker.get_history_dataframe(),
-        "raw_tensor_data": tracker.numerical[:tracker.idx]
+        "raw_tensor_data": tracker.numerical[:tracker.idx],
+        "energy_history": {
+            "time": visualizer.time_history.copy(),
+            "pe": visualizer.pe_history.copy(),
+            "ke": visualizer.ke_history.copy(),
+            "total": visualizer.total_history.copy(),
+            "loss": visualizer.loss_history.copy(),
+        }
     }

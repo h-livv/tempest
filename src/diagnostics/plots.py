@@ -1,6 +1,5 @@
 import csv
 import os
-
 import numpy as np
 
 import matplotlib.pyplot as plt
@@ -104,6 +103,8 @@ class TempestPlotter:
         x=None,
         u_numerical=None,
         u_analytical=None,
+        raw_tensor_data=None,
+        energy_history=None,
     ):
         """
         Transient validation chart: global errors vs physical time.
@@ -201,8 +202,63 @@ class TempestPlotter:
                     fig.savefig(state_save_path, bbox_inches="tight")
                     plt.close(fig)
                     print(f"State comparison plot archived: {state_save_path}")
+
+                    # Difference Plot
+                    fig, ax = plt.subplots(figsize=(8, 5), dpi=100)
+                    ax.plot(x, num_y - anal_y, color="#cc3311", lw=2, label="Difference (Numerical - Analytical)")
+                    ax.set_title(f"State Difference: {eq_name} ({solver_name})", fontsize=12, fontweight="bold")
+                    ax.set_xlabel("Space (x)", fontsize=10)
+                    ax.set_ylabel("Difference (u)", fontsize=10)
+                    ax.grid(True, linestyle="--", alpha=0.5)
+                    ax.legend(loc="upper right", frameon=True)
+                    diff_save_path = os.path.join(self.output_dir, f"state_difference_{run_id}.png")
+                    fig.savefig(diff_save_path, bbox_inches="tight")
+                    plt.close(fig)
+                    print(f"State difference plot archived: {diff_save_path}")
             except Exception as e:
                 print(f"Could not generate state comparison plot: {e}")
+
+        # Spacetime plot (1D space only)
+        if raw_tensor_data is not None and x is not None and x.ndim == 1:
+            try:
+                with style.context(self.STYLE):
+                    fig, ax = plt.subplots(figsize=(8, 6), dpi=100)
+                    data_slice = raw_tensor_data[:, 0, :] if raw_tensor_data.ndim == 3 else raw_tensor_data
+                    t_vals = time_history_df["time"].values
+                    T_grid, X_grid = np.meshgrid(t_vals, x, indexing='ij')
+                    im = ax.pcolormesh(X_grid, T_grid, data_slice, cmap="inferno", shading="auto")
+                    fig.colorbar(im, ax=ax, label="State Amplitude")
+                    ax.set_title(f"Spacetime Diagram: {eq_name} ({solver_name})", fontsize=12, fontweight="bold")
+                    ax.set_xlabel("Space (x)", fontsize=10)
+                    ax.set_ylabel("Time (t)", fontsize=10)
+                    spacetime_save_path = os.path.join(self.output_dir, f"spacetime_{run_id}.png")
+                    fig.savefig(spacetime_save_path, bbox_inches="tight")
+                    plt.close(fig)
+                    print(f"Spacetime plot archived: {spacetime_save_path}")
+            except Exception as e:
+                print(f"Could not generate spacetime plot: {e}")
+
+        # Energy plot
+        if energy_history is not None and "time" in energy_history and len(energy_history["time"]) > 0:
+            try:
+                with style.context(self.STYLE):
+                    fig, ax = plt.subplots(figsize=(8, 5), dpi=100)
+                    t_vals = energy_history["time"]
+                    ax.plot(t_vals, energy_history["pe"], color="#ffaa00", lw=2, label="PE")
+                    ax.plot(t_vals, energy_history["ke"], color="#ff007f", lw=2, label="KE")
+                    ax.plot(t_vals, energy_history["total"], color="#00ff00", lw=2.5, label="Total E")
+                    ax.plot(t_vals, energy_history["loss"], color="#ff3333", linestyle="--", lw=2, label="Loss")
+                    ax.set_title(f"Energy Conservation: {eq_name} ({solver_name})", fontsize=12, fontweight="bold")
+                    ax.set_xlabel("Time (t)", fontsize=10)
+                    ax.set_ylabel("Energy", fontsize=10)
+                    ax.grid(True, linestyle="--", alpha=0.5)
+                    ax.legend(loc="upper right", frameon=True)
+                    energy_save_path = os.path.join(self.output_dir, f"energy_{run_id}.png")
+                    fig.savefig(energy_save_path, bbox_inches="tight")
+                    plt.close(fig)
+                    print(f"Energy plot archived: {energy_save_path}")
+            except Exception as e:
+                print(f"Could not generate energy plot: {e}")
 
         return save_path
 
@@ -443,6 +499,8 @@ class TempestPlotter:
     ):
         """Write regression data next to the PNG for reproducible analysis."""
         sidecar_path = plot_path.replace(".png", ".csv")
+        if "plots" in sidecar_path:
+            sidecar_path = sidecar_path.replace("plots", "data")
         with open(sidecar_path, "w", newline="") as sidecar_file:
             writer = csv.writer(sidecar_file)
             writer.writerow(
