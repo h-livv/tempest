@@ -119,14 +119,18 @@ def run_single_simulation(params):
         initial_condition=_make_ic(ic),
     )
 
-    sim_output_raw = Simulation(sim_config).run()
+    results = Simulation(sim_config).run()
 
     # ------------------------------------------------------------------
     # Map SimulationResults attributes to the names used below
     # (mirrors the old dict keys so the rest of the function is unchanged)
     # ------------------------------------------------------------------
+    # TODO: remove _SimOutputCompat once the pipeline fully adopts
+    #       SimulationResults and all downstream code reads attributes
+    #       directly (results.history, results.final_numerical, etc.).
     class _SimOutputCompat:
-        """Thin attribute-access shim so downstream code needs no changes."""
+        """Temporary compatibility adapter: maps SimulationResults attributes
+        to the legacy dict-style keys used by the rest of this function."""
         def __init__(self, r):
             self.history_dataframe = r.history
             self.grid              = r.grid
@@ -146,10 +150,10 @@ def run_single_simulation(params):
         def get(self, key, default=None):
             return getattr(self, key, default)
 
-    sim_output = _SimOutputCompat(sim_output_raw)
+    legacy_output = _SimOutputCompat(results)
 
     # Extract and calculate errors
-    run_history_df = sim_output["history_dataframe"]
+    run_history_df = legacy_output["history_dataframe"]
 
     stats = run_history_df[['l2_error', 'l1_error']].agg(['mean', 'median'])
     l2, l1 = run_history_df['l2_error'].iloc[-1], run_history_df['l1_error'].iloc[-1]
@@ -164,7 +168,7 @@ def run_single_simulation(params):
         "final_l1": l1,
     }
 
-    grid_obj = sim_output["grid"]
+    grid_obj = legacy_output["grid"]
     char_spacing = grid_obj.characteristic_spacing()
     mesh_size = grid_obj.mesh_size()
 
@@ -205,11 +209,11 @@ def run_single_simulation(params):
             N=N,
             dx=dx,
             dt=dt,
-            x=sim_output["x"],
-            u_numerical=sim_output["final_numerical"],
-            u_analytical=sim_output["final_analytic"],
-            raw_tensor_data=sim_output.get("raw_tensor_data"),
-            energy_history=sim_output.get("energy_history"),
+            x=legacy_output["x"],
+            u_numerical=legacy_output["final_numerical"],
+            u_analytical=legacy_output["final_analytic"],
+            raw_tensor_data=legacy_output.get("raw_tensor_data"),
+            energy_history=legacy_output.get("energy_history"),
         )
 
         # Disk writing
@@ -241,10 +245,10 @@ def run_single_simulation(params):
 
         np.savez_compressed(
             run_dir_path / "data" / "spatial_data.npz",
-            x=sim_output["x"], 
-            u_numerical=sim_output["final_numerical"],
-            u_analytical=sim_output["final_analytic"], 
-            ml_tensor_data=sim_output["raw_tensor_data"]
+            x=legacy_output["x"], 
+            u_numerical=legacy_output["final_numerical"],
+            u_analytical=legacy_output["final_analytic"], 
+            ml_tensor_data=legacy_output["raw_tensor_data"]
         )
     
     # Return data
