@@ -1,3 +1,7 @@
+"""
+Tempest spatiotemporal direct flux-based solvers.
+"""
+
 import numpy as np
 from src.numerics import operators
 
@@ -11,14 +15,17 @@ def _get_inner_slice(array, grid_or_dx):
 def _get_flux_comp(flux_array, d, ndim):
     if ndim == 1:
         return flux_array
-    if flux_array.ndim == ndim + 2:  # system: (components, ndim, spatial...)
+    if flux_array.ndim == ndim + 2:
         return flux_array[:, d]
-    else:  # scalar: (ndim, spatial...)
+    else:
         return flux_array[d]
 
 def lax_f(state, t, dt, dx, boundary, operator, equation):
     """
-    Lax-Friedrichs Direct Spatiotemporal Solver.
+    Lax-Friedrichs direct solver.
+    
+    Stabilizes unstable spatial differencing by replacing the center value 
+    with the average of spatial neighbors.
     """
     cons_state = equation.to_conservative(state) if hasattr(equation, "to_conservative") else state
     parity = equation.parity if hasattr(equation, "parity") else [1] * state.shape[0]
@@ -44,8 +51,9 @@ def lax_f(state, t, dt, dx, boundary, operator, equation):
 
 def lax_w(state, t, dt, dx, boundary, operator, equation):
     """
-    Lax-Wendroff Direct Spatiotemporal Solver (MacCormack Predictor-Corrector).
-    Naturally handles non-linear PDEs and systems.
+    Lax-Wendroff direct solver (MacCormack Predictor-Corrector flavor).
+    
+    Second-order accurate direct flux solver for non-linear equations.
     """
     cons_state = equation.to_conservative(state) if hasattr(equation, "to_conservative") else state
     parity = equation.parity if hasattr(equation, "parity") else [1] * state.shape[0]
@@ -63,12 +71,13 @@ def lax_w(state, t, dt, dx, boundary, operator, equation):
         
     cons_inner = padded_cons[inner_slice]
 
-    # Use time step to alternate predictor/corrector direction to avoid bias and oscillations
     step = int(round(t / dt))
     ndim = dx.ndim if hasattr(dx, "ndim") else 1
     spatial_axes = tuple(range(-ndim, 0))
     
-    # Predictor
+    # ------------------------------------------------------------------
+    # Predictor step
+    # ------------------------------------------------------------------
     pred_flux_terms = 0.0
     for d in range(ndim):
         spacing = dx.get_spacing(d) if hasattr(dx, "get_spacing") else dx
@@ -90,7 +99,9 @@ def lax_w(state, t, dt, dx, boundary, operator, equation):
         
     U_star = cons_inner - pred_flux_terms + dt * S_n
     
-    # Corrector
+    # ------------------------------------------------------------------
+    # Corrector step
+    # ------------------------------------------------------------------
     padded_U_star = boundary(U_star, parity)
     F_star = equation.flux(padded_U_star, dx)
     source_res = equation.source(padded_U_star, dx) if hasattr(equation, "source") else None
@@ -120,10 +131,7 @@ def lax_w(state, t, dt, dx, boundary, operator, equation):
     return equation.to_primitive(cons_next) if hasattr(equation, "to_primitive") else cons_next
 
 def upwind(state, t, dt, dx, boundary, operator, equation):
-    """
-    Direct Upwind Spatiotemporal Solver.
-    Restricted to scalar PDEs.
-    """
+    """Direct upwind scalar flux solver."""
     if state.shape[0] > 1 or (state.ndim == 2 and state.shape[0] > 1):
         raise ValueError(f"CRITICAL PHYSICS ERROR: Upwind direct solver is only supported for scalar PDEs. Equation '{equation.__name__}' is a system.")
         

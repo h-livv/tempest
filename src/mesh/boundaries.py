@@ -1,37 +1,79 @@
+"""
+Tempest boundary conditions and padding strategies.
+"""
+
 import numpy as np
 
 class BoundaryCondition:
+    """
+    Abstract interface for boundary padding strategies.
+    
+    Think of a BoundaryCondition as the guardrails at the edge of the simulation.
+    Before computing finite-difference spatial derivatives, operators need neighboring 
+    values at the grid boundary. To avoid out-of-bounds indexing, we apply boundary conditions 
+    to append a thin layer of "ghost cells" outside the active grid.
+    """
     def apply(self, state, axis, parity=None):
+        """
+        Pads the state array with ghost cells along a given axis.
+        
+        Args:
+            state (np.ndarray or Field): Input numerical state data.
+            axis (int): Axis index along which to pad.
+            parity (list[int], optional): Sign transformations for vector elements (reflecting boundaries).
+        """
         raise NotImplementedError
 
     def __call__(self, state, parity=None):
+        """Simplifies calling syntax, applying the condition to all spatial axes of the state."""
         ndim = state.grid.ndim if hasattr(state, 'grid') else state.ndim
         axis_names = ['x', 'y', 'z', 'w']
         kwargs = { axis_names[i]: self for i in range(ndim) }
         return Boundary(**kwargs)(state, parity)
 
+
 class Edge(BoundaryCondition):
+    """
+    Zero-gradient boundary condition (Neumann). 
+    Ghost cells copy values directly from the outermost boundary cells.
+    """
     def apply(self, state, axis, parity=None):
         data = state.data if hasattr(state, 'data') else state
         pad_width = [(0, 0)] * data.ndim
         pad_width[axis] = (1, 1)
         return np.pad(data, pad_width=pad_width, mode='edge')
 
+
 class Constant(BoundaryCondition):
+    """
+    Fixed value boundary condition (Dirichlet). 
+    Ghost cells are filled with a constant value (defaults to zero).
+    """
     def apply(self, state, axis, parity=None):
         data = state.data if hasattr(state, 'data') else state
         pad_width = [(0, 0)] * data.ndim
         pad_width[axis] = (1, 1)
         return np.pad(data, pad_width=pad_width, mode='constant')
 
+
 class Periodic(BoundaryCondition):
+    """
+    Periodic boundary condition. 
+    Ghost cells wrap around to the opposite side of the grid.
+    """
     def apply(self, state, axis, parity=None):
         data = state.data if hasattr(state, 'data') else state
         pad_width = [(0, 0)] * data.ndim
         pad_width[axis] = (1, 1)
         return np.pad(data, pad_width=pad_width, mode='wrap')
 
+
 class Reflect(BoundaryCondition):
+    """
+    Reflective boundary condition.
+    Values mirror at boundaries. If parity is specified, values are flipped 
+    (e.g., velocity components hitting a wall invert sign).
+    """
     def apply(self, state, axis, parity=None):
         data = state.data if hasattr(state, 'data') else state
         pad_width = [(0, 0)] * data.ndim
@@ -56,7 +98,12 @@ class Reflect(BoundaryCondition):
                 
         return padded
 
+
 class Dirichlet(BoundaryCondition):
+    """
+    Non-zero fixed Dirichlet boundary condition.
+    Sets explicit left and right ghost values.
+    """
     def __init__(self, left_val, right_val):
         self.left_val = left_val
         self.right_val = right_val
@@ -72,11 +119,15 @@ class Dirichlet(BoundaryCondition):
         
         return np.concatenate([left_arr, data, right_arr], axis=axis)
 
+
 class Boundary:
+    """
+    Composite boundary orchestrator that maps specific boundary conditions to different spatial axes.
+    """
     def __init__(self, **kwargs):
         """
-        kwargs map axis indices (or names like 'x', 'y') to BoundaryConditions.
-        For multidimensional consistency, we'll map 'x' to -1, 'y' to -2, etc.
+        Args:
+            kwargs: Axis identifiers ('x', 'y', 'z', or ints) mapped to BoundaryCondition objects.
         """
         self.conditions = {}
         axis_map = {'x': -1, 'y': -2, 'z': -3}
@@ -86,7 +137,7 @@ class Boundary:
             elif isinstance(k, int):
                 self.conditions[k] = v
             else:
-                self.conditions[-1] = v # Default to -1
+                self.conditions[-1] = v # Default to spatial dimension -1
 
     def __call__(self, state, parity=None):
         padded = state
@@ -97,7 +148,6 @@ class Boundary:
 
     @property
     def __name__(self):
-        # Heuristic for old pipeline logs that expect __name__ on the boundary
         if -1 in self.conditions:
             return self.conditions[-1].__class__.__name__.lower()
         return 'mixed'
@@ -114,7 +164,6 @@ def _apply_all_axes(condition_class, state, parity=None):
         is_system = (parity is not None and len(parity) > 1)
         ndim = state.ndim - 1 if is_system else state.ndim
     axis_names = ['x', 'y', 'z', 'w']
-    # Match spatial axes (which are the last ndim axes of state, i.e. range(-ndim, 0))
     kwargs = { axis_names[i]: condition_class() for i in range(ndim) }
     return Boundary(**kwargs)(state, parity)
 

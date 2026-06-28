@@ -1,23 +1,5 @@
 """
-Simulation – encapsulates all state and logic needed to run one Tempest
-simulation.
-
-Usage::
-
-    config = SimulationConfig(...)
-    sim    = Simulation(config)
-    results = sim.run()
-
-The class owns:
-  - config       the SimulationConfig supplied at construction time
-  - grid         the Grid built from config.shape / config.spacing
-  - state        the current Field (ScalarField or VectorField)
-  - time         the current simulation time (float)
-  - step         the current step count (int)
-  - tracker      the DataTracker instance
-
-The existing ``solver()`` function in src/solver.py is left intact.
-Both code-paths are verified to produce identical results.
+Simulation – high-level Tempest pipeline orchestrator.
 """
 
 from __future__ import annotations
@@ -36,19 +18,40 @@ from src.visualization.visualization import TempestVisualizer
 
 
 class Simulation:
-    """Run a single Tempest simulation described by *config*."""
+    """
+    Simulation orchestrator.
+    
+    Think of the Simulation object as the grand conductor of the Tempest orchestra.
+    It owns and manages the lifecycle of a simulation, coordinating between:
+      - The spatial domain context (Grid and Field abstractions)
+      - The numerical progression schemes (Integrators and operators)
+      - The analytical validation & stability metrics (Validation and Stability diagnostics)
+      - The output visualizations (TempestVisualizer renderers)
+      
+    Attributes:
+        config (SimulationConfig): Container representing initial options and configuration parameters.
+        grid (Grid): Discretised spatial domain coordinate ruler.
+        state (Field): Wrapped array representing current simulation physics variables.
+        time (float): Current elapsed simulation clock time.
+        step (int): Count of elapsed integrator advancement loops.
+        equation (Equation): The instantiated PDE physics rules to evaluate.
+        tracker (DataTracker): Diagnostics snapshot accumulator.
+    """
 
     def __init__(self, config: SimulationConfig) -> None:
+        """
+        =======================================================================
+        SECTION 1: Simulation Setup
+        =======================================================================
+        Sets up the grid, constructs initial states, instantiates the physics
+        models, and logs initial structures.
+        """
         self.config = config
 
-        # ------------------------------------------------------------------
-        # Build the grid
-        # ------------------------------------------------------------------
+        # Construct spatial coordinates
         self.grid = Grid(shape=config.shape, spacing=config.spacing)
 
-        # ------------------------------------------------------------------
-        # Build the initial field
-        # ------------------------------------------------------------------
+        # Build initial physical state using injected InitialCondition callable
         raw = config.initial_condition(self.grid)
         if isinstance(raw, Field):
             self.state = raw
@@ -57,20 +60,14 @@ class Simulation:
         else:
             self.state = VectorField(self.grid, raw)
 
-        # ------------------------------------------------------------------
-        # Simulation clock
-        # ------------------------------------------------------------------
+        # Clock initiation
         self.time: float = 0.0
         self.step: int = 0
         
-        # ------------------------------------------------------------------
-        # Instantiate equation if it is a new-style class
-        # ------------------------------------------------------------------
+        # Pull equation object from config
         self.equation = self.config.equation
 
-        # ------------------------------------------------------------------
-        # Tracker  (same arguments the old solver used)
-        # ------------------------------------------------------------------
+        # Tracker for diagnostics outputs
         self.tracker = DataTracker(
             final_time=config.final_time,
             dt=config.dt,
@@ -79,20 +76,24 @@ class Simulation:
         )
 
     # ------------------------------------------------------------------
-    # Internal helpers  (mirrored from solver.py without modification)
+    # Internal Helpers
     # ------------------------------------------------------------------
 
-    # Extracts the primary 1-D/N-D array from the current Field for diagnostic use.
     def _extract_field(self) -> np.ndarray:
-        """Return the raw array from the current state, unwrapping 1-component stacks."""
+        """Extracts the primary 1-D/N-D array from the current Field for diagnostic plotting."""
         data = self.state.data if hasattr(self.state, "data") else self.state
         return data[0] if data.ndim > self.grid.ndim else data
 
-    # Records the current numerical and analytical state into the DataTracker.
     def _append_snapshot(self) -> None:
-        """Record one diagnostic snapshot into the tracker."""
+        """
+        =======================================================================
+        SECTION 3: Diagnostics & Validation Analysis
+        =======================================================================
+        Invokes analytical validation targets and monitors total system energy conservation.
+        """
         actual_u = self._extract_field()
 
+        # Compute exact physical analytical solution for error matching
         true_u = validation.validation(
             self.equation,
             self.state.data,
@@ -102,6 +103,7 @@ class Simulation:
             self.config.boundary.__name__,
         )
 
+        # Track stability diagnostics (potential, kinetic, and total energy)
         _, _, total_e = stability.tracking(
             self.state,
             self.grid,
@@ -111,9 +113,13 @@ class Simulation:
 
         self.tracker.record(self.time, actual_u, true_u, total_e)
 
-    # Calls the integrator once and advances the clock by one time step.
     def _advance_one_step(self) -> None:
-        """Advance the simulation by a single time step."""
+        """
+        =======================================================================
+        SECTION 2: Solver Execution (Time-Stepping)
+        =======================================================================
+        Invokes the numerical time-integrator to advance the PDE one clock tick forward.
+        """
         next_state = self.config.integrator(
             self.state,
             self.time,
@@ -123,17 +129,18 @@ class Simulation:
             self.config.operator,
             self.equation,
         )
-        # Preserve Field type when the integrator returns a raw array
+        
+        # Re-wrap in grid Field objects if solver returned standard ndarray
         if hasattr(self.state, "grid") and not hasattr(next_state, "grid"):
             self.state = self.state.__class__(self.state.grid, next_state)
         else:
             self.state = next_state
+            
         self.step += 1
         self.time = self.step * self.config.dt
 
-    # Drives the time-loop until the simulation reaches a specified step count.
     def _advance_to(self, target_step: int) -> None:
-        """Run the time-loop up to (but not beyond) *target_step*."""
+        """Drives the time-loop stepping execution up to a target step count."""
         total_steps = int(self.config.final_time / self.config.dt)
         target_step = min(target_step, total_steps)
         record_interval = max(1, int(self.config.record_interval))
@@ -148,26 +155,27 @@ class Simulation:
 
     def run(self) -> SimulationResults:
         """
-        Run the full simulation and return a :class:`SimulationResults`.
-
-        The internal logic is identical to the original ``solver()`` function.
-        The visualiser, animation loop, and diagnostic recording all behave
-        the same way.  The only difference is the return type: instead of a
-        plain dict the caller receives a ``SimulationResults`` dataclass.
+        Runs the full PDE integration simulation.
+        
+        It orchestrates the initialization snapshot, drives the time stepping loop,
+        updates the output visualizations in real-time or headlessly, and packages
+        the output arrays.
+        
+        Returns:
+            SimulationResults: Dataclass wrapping historical trajectory states.
         """
         import matplotlib
         import matplotlib.animation as animation
         import matplotlib.pyplot as plt
 
-        # ------------------------------------------------------------------
-        # Setup – derive timing constants and build the visualiser
-        # ------------------------------------------------------------------
+        # Setup constants and instantiate renderer
         config = self.config
         grid = self.grid
         total_steps = int(config.final_time / config.dt)
         steps_per_frame = max(1, int(config.steps_per_frame))
         max_frames = max(1, total_steps // steps_per_frame)
 
+        # Build TempestVisualizer to orchestrate plotting output files
         visualizer = TempestVisualizer(
             self.state,
             config.spacing[0] if grid.ndim == 1 else config.spacing,
@@ -178,38 +186,41 @@ class Simulation:
             final_time=config.final_time,
         )
 
-        # ------------------------------------------------------------------
-        # Initial snapshot – record t=0 before any time stepping begins
-        # ------------------------------------------------------------------
+        # Initial Snapshot before time integration loops
         self._append_snapshot()
+        
+        # Compute energy stability at t=0
+        init_energies = stability.tracking(
+            self.state.data,
+            grid,
+            config.boundary,
+            self.equation,
+        )
+        
+        # Render initial frame
         visualizer.render_frame(
             0,
             self.state,
             self.time,
             config.integrator.__name__,
-            stability.tracking(
-                self.state.data,
-                grid,
-                config.boundary,
-                self.equation,
-            ),
+            init_energies,
         )
 
         # ------------------------------------------------------------------
-        # Simulation loop – advance and render frame-by-frame
+        # SECTION 5: Visualization & Animation update loop
         # ------------------------------------------------------------------
         def update_frame(frame: int):
             if frame > 0:
                 self._advance_to(frame * steps_per_frame)
 
-            energies = stability.tracking(
+            current_energies = stability.tracking(
                 self.state.data,
                 grid,
                 config.boundary,
                 self.equation,
             )
             updated = visualizer.render_frame(
-                frame, self.state, self.time, config.integrator.__name__, energies
+                frame, self.state, self.time, config.integrator.__name__, current_energies
             )
 
             if frame == visualizer.max_frames - 1:
@@ -234,6 +245,7 @@ class Simulation:
                     print(msg + " Keep plot window open.")
             return updated
 
+        # Execute headless sweep or run Matplotlib dashboard
         if matplotlib.get_backend().lower() == "agg":
             for f in range(visualizer.max_frames):
                 update_frame(f)
@@ -249,7 +261,7 @@ class Simulation:
             plt.show()
 
         # ------------------------------------------------------------------
-        # Package results – collect outputs into SimulationResults
+        # SECTION 4: Data Export packaging
         # ------------------------------------------------------------------
         tracker = self.tracker
 
