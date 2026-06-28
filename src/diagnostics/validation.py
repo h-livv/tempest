@@ -1,13 +1,23 @@
 import numpy as np
 
-def validation(equation, state, init_condition, N, x, t, c, boundary, dx):
+def validation(equation, state, init_condition, grid, t, c, boundary):
     
-    # Calculates length of the domain
-    L = N * dx if not isinstance(N, tuple) else None
+    # Extract properties from grid to minimize disruption to existing analytical math
+    if grid.ndim == 1:
+        x = grid.coordinates[0]
+        N = grid.shape[0]
+        dx = grid.spacing[0]
+        L = N * dx
+    else:
+        x = grid.coordinates
+        N = grid.shape
+        dx = grid.spacing
+        L = None
+
     analytic_state = None
     actual_u = state[0] if (state.ndim > 1 and state.shape[0] >= 1) else state
     
-    if isinstance(x, (tuple, list)):
+    if grid.ndim > 1:
         return np.zeros_like(actual_u)
 
     
@@ -16,7 +26,14 @@ def validation(equation, state, init_condition, N, x, t, c, boundary, dx):
             x_shifted = x - c*t
         else:
             x_shifted = (x - c*t - x[0]) % L + x[0]
-        analytic_state = init_condition(N, x_shifted)[0]
+            
+        class GridProxy:
+            ndim = grid.ndim
+            shape = grid.shape
+            spacing = grid.spacing
+            coordinates = [x_shifted] if grid.ndim == 1 else x_shifted
+            
+        analytic_state = init_condition(GridProxy())[0]
 
     elif equation.__name__ == "wave":
         # 1. Compute true domain metrics from the clean, pristine grid 'x'
@@ -24,7 +41,7 @@ def validation(equation, state, init_condition, N, x, t, c, boundary, dx):
         L_clean = x.max() + dx_clean
         
         # 2. Sample the initial profile shape ONCE on the pristine grid.
-        clean_profile = init_condition(N, x)[0]
+        clean_profile = init_condition(grid)[0]
         
         x_minus = x - c * t  # moving to the right
         x_plus  = x + c * t  # moving to the left
@@ -80,7 +97,7 @@ def validation(equation, state, init_condition, N, x, t, c, boundary, dx):
         
     elif equation.__name__ == "diffusion":
         
-        u0 = init_condition(N, x)[0]
+        u0 = init_condition(grid)[0]
         x_c = x[np.argmax(u0)]
         
         # Sample non-peak grid points to isolate the coefficient 'a' from: u = exp(-a*(x-xc)^2)
@@ -125,7 +142,7 @@ def validation(equation, state, init_condition, N, x, t, c, boundary, dx):
         dx_clean = x[1] - x[0]
         L_clean = x.max() + dx_clean
         
-        full_profile = init_condition(N, x)[0]
+        full_profile = init_condition(grid)[0]
         h_max = np.max(full_profile)
         h_min = np.min(full_profile)
         is_dam_break = (h_max - h_min) > 1.0
@@ -197,7 +214,7 @@ def validation(equation, state, init_condition, N, x, t, c, boundary, dx):
             analytic_state[mask_R] = h_R
             
     elif equation.__name__ == "burgers":
-        u0 = init_condition(N, x)[0]
+        u0 = init_condition(grid)[0]
         # Route based on the initial condition function name
         if "stationary" in init_condition.__name__:
             # Estimate U from the maximum amplitude, center at domain midpoint to match IC

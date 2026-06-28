@@ -8,7 +8,7 @@ grid_configs = [
     {"N": 50, "dx": 0.125, "dt": 0.0025}
 ]
 
-initial_conditions = [init_conditions.burgers_traveling_smooth]
+initial_conditions = [init_conditions.BurgersTravelingShockIC(nu=2.0)]
 boundary_functions = [boundaries.Dirichlet(2.0, 1.0)]
 
 operators_list = [operators.upwind]

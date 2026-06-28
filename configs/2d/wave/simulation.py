@@ -5,7 +5,7 @@ grid_configs = [
     {"N": (60, 60), "dx": (0.3, 0.3), "dt": 0.02}
 ]
 
-initial_conditions = [init_conditions.wave_gauss_2d]
+initial_conditions = [init_conditions.GaussianIC(sigma=2.0, num_fields=2)]
 boundary_functions = [boundaries.reflect]
 operators_list = [operators.laplacian]
 equations_list = [equations.wave]

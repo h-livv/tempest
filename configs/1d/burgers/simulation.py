@@ -7,7 +7,7 @@ grid_configs = [
 
 
 #Define custom conditions for automated pipeline, as many parameters as required
-initial_conditions = [init_conditions.burgers_stationary_shock]
+initial_conditions = [init_conditions.BurgersStationaryShockIC(nu=0.1, U=1.0)]
 boundary_functions = [boundaries.Dirichlet(2.0, 1.0)]
 operators_list = [operators.upwind]
 equations_list = [equations.burgers]
