@@ -1,23 +1,46 @@
+"""
+Tempest ODE time integrators.
+"""
+
 import numpy as np
-from src.numerics import operators#Euler integration
+
 def euler(state, t, dt, grid, boundary, operator, equation):
-    dudt = equation(t, state, grid, boundary, operator)
-    state_futr = state + (dudt*dt) #Future state
-    return state_futr
+    """
+    First-order Explicit Euler time integration.
     
-#RK4 integration
+    Math:
+        u(t + dt) = u(t) + dt * f(t, u)
+    """
+    dudt = equation(t, state, grid, boundary, operator)
+    return state + (dudt * dt)
+    
 def rk4(state, t, dt, grid, boundary, operator, equation):
+    """
+    Fourth-order Runge-Kutta (RK4) time integration.
+    
+    Math:
+        k1 = f(t, u)
+        k2 = f(t + dt/2, u + dt/2 * k1)
+        k3 = f(t + dt/2, u + dt/2 * k2)
+        k4 = f(t + dt, u + dt * k3)
+        u(t + dt) = u(t) + dt/6 * (k1 + 2*k2 + 2*k3 + k4)
+    """
     k1 = equation(t, state, grid, boundary, operator)
     k2 = equation(t + dt/2, state + (k1*dt/2), grid, boundary, operator)
     k3 = equation(t + dt/2, state + (k2*dt/2), grid, boundary, operator)
     k4 = equation(t + dt, state + (k3*dt), grid, boundary, operator)
     
-    state_futr = state + (k1 + 2*k2 + 2*k3 + k4)*(dt/6.0)
-    return state_futr
+    return state + (k1 + 2*k2 + 2*k3 + k4)*(dt/6.0)
 
-#Leapfrog
 def leapfrog(state, t, dt, grid, boundary, operator, equation):
-
+    """
+    Symplectic Leapfrog time integration.
+    
+    Required specifically for second-order wave propagation systems to preserve 
+    conservation properties (shadow Hamiltonian) over long simulations.
+    
+    State is expected to contain [position, velocity].
+    """
     if state.shape[0] < 2:
         raise ValueError(
             "Leapfrog integration requires a multi-state coupled system matrix "
@@ -43,4 +66,3 @@ def leapfrog(state, t, dt, grid, boundary, operator, equation):
     if hasattr(state, 'grid'):
         return state.__class__(state.grid, res)
     return res
-    
