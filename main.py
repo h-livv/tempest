@@ -1,14 +1,10 @@
+#Imports
 import os
-# 1. Address NumPy Thread Contention (CRITICAL)
-os.environ["OMP_NUM_THREADS"] = "1"
-os.environ["OPENBLAS_NUM_THREADS"] = "1"
-os.environ["MKL_NUM_THREADS"] = "1"
-
 import argparse
 import importlib.util
 import sys
 
-# Dynamically set Matplotlib backend to Agg if VISUAL_MODE is not enabled in the config
+# Dynamically set Matplotlib backend to Agg (headless) if VISUAL_MODE is not enabled in the config
 visual_mode = False
 if len(sys.argv) > 1:
     try:
@@ -31,16 +27,26 @@ import math
 import json
 import datetime
 import concurrent.futures
+from pathlib import Path
+from collections import defaultdict
 
 # Module imports
-from src import solver
+from src import solver                          # kept intact; not yet removed
+from src.core.config import SimulationConfig
+from src.core.simulation import Simulation
 from diagnostics.plots import TempestPlotter
 from ml.registry import log_run
 
+# Address NumPy Thread Contention. Limits one process to one thread.
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+
+# IST timesteps for tracking
 ist_timezone = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
 timestamp = datetime.datetime.now(ist_timezone).strftime("%Y%m%d_%H%M%S")
 
-# Loads the configuration profile
+# Load the configuration profile
 def load_config(config_path):
     """Dynamically loads an external Python file as a module."""
     try:
@@ -53,6 +59,7 @@ def load_config(config_path):
         print(f"Error loading configuration file '{config_path}':\n{e}")
         sys.exit(1)
 
+# For convergence runs, creates a dictionary to store dx values and error metrics
 def _init_convergence_entry():
     return {
         "dx_values": [],
@@ -62,97 +69,111 @@ def _init_convergence_entry():
 def safe_log(val):
     return math.log(max(val, 1e-16))
 
-# 2. Encapsulate the Simulation Logic
+# 
 def run_single_simulation(params):
-    combo, output_dir, parent_sweep_dir, timestamp, is_sweep, final_time, steps_per_frame, record_interval = params
+
+    # Unpack parameters
+    (combo, output_dir, parent_sweep_dir, timestamp, is_sweep, final_time, steps_per_frame, record_interval, verbose, visual_mode) = params
     grid, ic, bc, op, eq, int_func, coeff = combo
     N = grid["N"]
     dx = grid["dx"]
     dt = grid["dt"]
 
+    # Extract function names for logging
     eq_name = eq.__name__
     int_name = int_func.__name__
     op_name = op.__name__
     ic_name = ic.__name__
     bc_name = bc.__name__
 
-    print(f'''Pipeline launching job: Running {eq_name} | Integrator={int_name} | Operator={op_name} | Initial state={ic_name} | Boundary={bc_name} | N={N} | dt={dt} | dx={dx}''')
+    if verbose:
+        print(f'''Pipeline launching job: Running {eq_name} | Integrator={int_name} | Operator={op_name} | Initial state={ic_name} | Boundary={bc_name} | N={N} | dt={dt} | dx={dx}''')
 
-    sim_output = solver.solver(
-        N=N,
-        init_state=ic,
-        boundary=bc,
-        operator=op,
+    # ------------------------------------------------------------------
+    # Build SimulationConfig and run via Simulation
+    # ------------------------------------------------------------------
+    # Wrap the legacy ic(N, x) callable into the new initial_condition(grid)
+    # interface expected by Simulation.
+    def _make_ic(ic_func):
+        def initial_condition(grid_obj):
+            return ic_func(grid_obj.shape[0], grid_obj.coordinates[0])
+        initial_condition.__name__ = ic_func.__name__
+        return initial_condition
+
+    # N and dx may be scalars (1-D) or tuples (2-D); normalise to tuples.
+    shape   = N  if isinstance(N,  tuple) else (N,)
+    spacing = dx if isinstance(dx, tuple) else (dx,)
+
+    sim_config = SimulationConfig(
+        shape=shape,
+        spacing=spacing,
+        dt=dt,
+        final_time=final_time,
+        steps_per_frame=steps_per_frame,
+        record_interval=record_interval,
         equation=eq,
+        operator=op,
+        boundary=bc,
         integrator=int_func,
         coefficient=coeff,
-        dt=dt,
-        dx=dx,
-        FINAL_TIME=final_time,
-        STEPS_PER_FRAME=steps_per_frame,
-        RECORD_INTERVAL=record_interval,
+        initial_condition=_make_ic(ic),
     )
 
+    sim_output_raw = Simulation(sim_config).run()
+
+    # ------------------------------------------------------------------
+    # Map SimulationResults attributes to the names used below
+    # (mirrors the old dict keys so the rest of the function is unchanged)
+    # ------------------------------------------------------------------
+    class _SimOutputCompat:
+        """Thin attribute-access shim so downstream code needs no changes."""
+        def __init__(self, r):
+            self.history_dataframe = r.history
+            self.grid              = r.grid
+            self.x                 = (
+                r.grid.coordinates[0]
+                if r.grid.ndim == 1
+                else r.grid.coordinates
+            )
+            self.final_numerical   = r.final_numerical
+            self.final_analytic    = r.final_analytical
+            self.raw_tensor_data   = r.raw_tensor_data
+            self.energy_history    = r.energy_history
+
+        def __getitem__(self, key):       # legacy dict-style access
+            return getattr(self, key)
+
+        def get(self, key, default=None):
+            return getattr(self, key, default)
+
+    sim_output = _SimOutputCompat(sim_output_raw)
+
+    # Extract and calculate errors
     run_history_df = sim_output["history_dataframe"]
 
-    # Calculate errors
-    l2 = run_history_df['l2_error'].iloc[-1]
-    avg_l2 = run_history_df['l2_error'].mean()
-    median_l2 = run_history_df['l2_error'].median()
-
-    l1 = run_history_df['l1_error'].iloc[-1]
-    avg_l1 = run_history_df['l1_error'].mean()
-    median_l1 = run_history_df['l1_error'].median()
-
+    stats = run_history_df[['l2_error', 'l1_error']].agg(['mean', 'median'])
+    l2, l1 = run_history_df['l2_error'].iloc[-1], run_history_df['l1_error'].iloc[-1]
+    avg_l2, median_l2 = stats.loc['mean', 'l2_error'], stats.loc['median', 'l2_error']
+    avg_l1, median_l1 = stats.loc['mean', 'l1_error'], stats.loc['median', 'l1_error']
     peak_max_error = run_history_df['max_error'].max()
 
     metric_values = {
-        "avg_l2": avg_l2,
+        "avg_l2": stats.loc['mean', 'l2_error'],
         "final_l2": l2,
-        "avg_l1": avg_l1,
+        "avg_l1": stats.loc['mean', 'l1_error'],
         "final_l1": l1,
     }
 
-    grid = sim_output["grid"]
-    char_spacing = grid.characteristic_spacing()
-    mesh_size = grid.mesh_size()
+    grid_obj = sim_output["grid"]
+    char_spacing = grid_obj.characteristic_spacing()
+    mesh_size = grid_obj.mesh_size()
 
-    is_diffusion = "diff" in eq_name.lower()
-    if is_diffusion:
-        stability_ratio = dt / (char_spacing ** 2)
-    else:
-        stability_ratio = dt / char_spacing
+    # Physics stability check
+    spatial_order = getattr(eq, "spatial_order", 1)
+    stability_ratio = dt / (char_spacing ** spatial_order)
     group_key = (eq_name, int_name, op_name, ic_name, bc_name, round(stability_ratio, 6))
 
-    clean_eq_name = str(eq_name).replace(" ", "_").lower()
-    run_dir_name = f"{clean_eq_name}_{int_name}_{op_name}_{ic_name}_N{N}_{timestamp}"
-    if is_sweep:
-        run_dir_path = os.path.join(parent_sweep_dir, run_dir_name)
-    else:
-        run_dir_path = os.path.join(output_dir, "runs", run_dir_name)
-    os.makedirs(run_dir_path, exist_ok=True)
-
-    log_run("sweep" if is_sweep else "single", "main", eq_name, op_name, ic_name, run_dir_path, metadata={"N": N, "dt": dt, "dx": dx})
-
-    plotter = TempestPlotter(output_dir=run_dir_path)
-    if int_name.startswith("lax") or int_name in ["maccormack"]:
-        display_solver_name = int_name
-    else:
-        display_solver_name = f"{int_name} + {op_name}"
-
-    plotter.plot_validation(
-        time_history_df=run_history_df,
-        eq_name=eq_name,
-        solver_name=display_solver_name,
-        run_id="transient_errors",
-        N=N,
-        dx=dx,
-        dt=dt,
-        x=sim_output["x"],
-        u_numerical=sim_output["final_numerical"],
-        u_analytical=sim_output["final_analytic"],
-    )
-
+    # Data packaging
     row_data = {
         'Equation': eq_name, 'N': N, 'Initial Condition': ic_name, 'Boundary Function': bc_name,
         'DX': dx, 'DT': dt, 'L2 Error': l2, 'Avg L2 Error': avg_l2, 'Median L2 Error': median_l2,
@@ -161,58 +182,102 @@ def run_single_simulation(params):
         'log(L1)': safe_log(l1), 'log(mean L1)': safe_log(avg_l1), 'log(median L1)': safe_log(median_l1)
     }
 
-    local_csv_columns = list(row_data.keys())
-    local_csv_path = os.path.join(run_dir_path, 'metrics.csv')
-    with open(local_csv_path, 'w', newline='') as local_file:
-        csv_writer = csv.DictWriter(local_file, fieldnames=local_csv_columns)
-        csv_writer.writeheader()
-        csv_writer.writerow(row_data)
+    if not visual_mode:
+        # Directory creation and file saving
+        clean_eq_name = str(eq_name).replace(" ", "_").lower()
+        run_dir_name = f"{clean_eq_name}_{int_name}_{op_name}_{ic_name}_N{N}_{timestamp}"
+        run_dir_path = Path(output_dir) / "runs" / run_dir_name
+        run_dir_path.mkdir(parents=True, exist_ok=True)
+        (run_dir_path / "plots").mkdir(exist_ok=True)
+        (run_dir_path / "data").mkdir(exist_ok=True)
 
-    run_history_df.to_csv(os.path.join(run_dir_path, "time_history.csv"), index=False)
+        log_run("sweep" if is_sweep else "single", "main", eq_name, op_name, ic_name, run_dir_path, metadata={"N": N, "dt": dt, "dx": dx})
 
-    config_data = {
-        "equation": eq_name,
-        "integrator": int_name,
-        "operator": op_name,
-        "initial_condition": ic_name,
-        "boundary_function": bc_name,
-        "N": N,
-        "dt": dt,
-        "dx": dx,
-        "coefficient": coeff,
-        "final_time": final_time,
-        "steps_per_frame": steps_per_frame,
-        "record_interval": record_interval
-    }
-    with open(os.path.join(run_dir_path, "config.json"), "w") as f:
-        json.dump(config_data, f, indent=4)
+        #Plotting
+        plotter = TempestPlotter(output_dir=run_dir_path / "plots")
+        display_solver_name = int_name if getattr(int_func, "is_direct_solver", False) else f"{int_name} + {op_name}"
 
-    np.savez_compressed(
-        os.path.join(run_dir_path, "spatial_data.npz"),
-        x=sim_output["x"],
-        u_numerical=sim_output["final_numerical"],
-        u_analytical=sim_output["final_analytic"],
-        ml_tensor_data=sim_output["raw_tensor_data"]
-    )
+        plotter.plot_validation(
+            time_history_df=run_history_df,
+            eq_name=eq_name,
+            solver_name=display_solver_name,
+            run_id="transient_errors",
+            N=N,
+            dx=dx,
+            dt=dt,
+            x=sim_output["x"],
+            u_numerical=sim_output["final_numerical"],
+            u_analytical=sim_output["final_analytic"],
+            raw_tensor_data=sim_output.get("raw_tensor_data"),
+            energy_history=sim_output.get("energy_history"),
+        )
+
+        # Disk writing
+        with open(run_dir_path / 'data' / 'metrics.csv', 'w', newline='') as local_file:
+            csv_writer = csv.DictWriter(local_file, fieldnames=list(row_data.keys()))
+            csv_writer.writeheader()
+            csv_writer.writerow(row_data)
+
+        run_history_df.to_csv(run_dir_path / "data" / "time_history.csv", index=False)
+
+        # Config data
+        config_data = {
+            "equation": eq_name,
+            "integrator": int_name,
+            "operator": op_name,
+            "initial_condition": ic_name,
+            "boundary_function": bc_name,
+            "N": N,
+            "dt": dt,
+            "dx": dx,
+            "coefficient": coeff,
+            "final_time": final_time,
+            "steps_per_frame": steps_per_frame,
+            "record_interval": record_interval
+        }
+
+        with open(run_dir_path / "data" / "config.json", "w") as f:
+            json.dump(config_data, f, indent=4)
+
+        np.savez_compressed(
+            run_dir_path / "data" / "spatial_data.npz",
+            x=sim_output["x"], 
+            u_numerical=sim_output["final_numerical"],
+            u_analytical=sim_output["final_analytic"], 
+            ml_tensor_data=sim_output["raw_tensor_data"]
+        )
     
-    # Return data to be aggregated sequentially by main thread
+    # Return data
     return {
         "row_data": row_data,
         "group_key": group_key,
         "mesh_size": mesh_size,
-        "metric_values": metric_values
+        "metric_values": metric_values,
+        "operator_order": getattr(op, "convergence_order", 2),
+        "ic_order": getattr(ic, "convergence_order", None),
+        "is_direct": getattr(int_func, "is_direct_solver", False)
     }
 
 
-# 4. The Multiprocessing Guard (CRITICAL)
+# The Multiprocessing Guard
 if __name__ == '__main__':
+
+    # Run a custom config file
     parser = argparse.ArgumentParser(description="Project Tempest: Pipeline Execution")
-    parser.add_argument("config", help="Path to the config profile script (e.g., Configs/wave_sweep.py)")
+    parser.add_argument("config", help="Path to the config profile script")
     args = parser.parse_args()
 
     cfg = load_config(args.config)
+
+    visual_mode = getattr(cfg, "VISUAL_MODE", False)
+    verbose = not visual_mode
+    def vprint(*args, **kwargs):
+        if verbose:
+            print(*args, **kwargs)
+
     convergence_metrics = getattr(cfg, "CONVERGENCE_METRICS", ["avg_l2", "avg_l1"])
 
+    # Cartesian product of all configs
     param_combinations = list(itertools.product(
         cfg.grid_configs,
         cfg.initial_conditions,
@@ -223,9 +288,10 @@ if __name__ == '__main__':
         cfg.coefficients
     ))
 
-    output_dir = 'pipeline_results'
-    os.makedirs(output_dir, exist_ok=True)
+    output_dir = Path('pipeline_results')
+    output_dir.mkdir(exist_ok=True)
 
+    # Write to master csv
     csv_columns = [
         'Equation', 'N', 'Initial Condition', 'Boundary Function', 'DX', 'DT',
         'L2 Error', 'Avg L2 Error', 'Median L2 Error',
@@ -234,70 +300,80 @@ if __name__ == '__main__':
         'log(L1)', 'log(mean L1)', 'log(median L1)'
     ]
 
-    master_csv_path = os.path.join(output_dir, 'master_metrics.csv')
-    file_exists = os.path.exists(master_csv_path)
+    master_csv_path = output_dir / 'master_metrics.csv'
 
-    if not file_exists:
+    if not master_csv_path.exists():
         with open(master_csv_path, 'w', newline='') as master_file:
-            csv_writer = csv.DictWriter(master_file, fieldnames=csv_columns)
-            csv_writer.writeheader()
-        print(f"Initialized new global metrics database at '{master_csv_path}'")
+            csv.DictWriter(master_file, fieldnames=csv_columns).writeheader()
+        vprint(f"Initialized new global metrics database at '{master_csv_path}'")
     else:
-        print(f"Existing global database found. Appending run data to '{master_csv_path}'")
+        vprint(f"Existing global database found. Appending run data to '{master_csv_path}'")
 
-    convergence_tracker = {}
+    convergence_tracker = defaultdict(_init_convergence_entry)
 
     is_sweep = len(param_combinations) > 1
-    
-    if is_sweep:
-        base_eq_name = param_combinations[0][4].__name__
-        base_op_name = param_combinations[0][3].__name__
-        base_int_name = param_combinations[0][5].__name__
-        ic_names = "_".join(sorted(list(set([combo[1].__name__ for combo in param_combinations]))))
-        parent_sweep_dir = os.path.join(output_dir, "sweeps", f"{base_eq_name}_{base_int_name}_{base_op_name}_{ic_names}_sweep_{timestamp}".lower())
-        os.makedirs(parent_sweep_dir, exist_ok=True)
-    else:
-        parent_sweep_dir = None
+    parent_sweep_dir = None
 
     final_time = getattr(cfg, "FINAL_TIME", 2000)
     steps_per_frame = getattr(cfg, "STEPS_PER_FRAME", 50)
     record_interval = getattr(cfg, "RECORD_INTERVAL", 1)
 
     # Package all necessary parameters for ProcessPoolExecutor mapping
-    execution_params = []
-    for combo in param_combinations:
-        execution_params.append((
-            combo, output_dir, parent_sweep_dir, timestamp, is_sweep, 
-            final_time, steps_per_frame, record_interval
-        ))
+    execution_params = [
+        (combo, str(output_dir), str(parent_sweep_dir) if parent_sweep_dir else None, 
+         timestamp, is_sweep, final_time, steps_per_frame, record_interval, verbose, visual_mode)
+        for combo in param_combinations
+    ]
 
-    results = []
+    if visual_mode:
+        # Run visual simulation directly in the main thread and skip CSV updates/convergence steps
+        run_single_simulation(execution_params[0])
+        import sys; sys.exit(0)
 
-    # 3. Implement the Parallel Execution Pool
-    if is_sweep:
-        max_workers = max(1, os.cpu_count() - 2)
-        print(f"\nInitiating parallel sweep across {max_workers} CPU cores...\n")
-        with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
-            # Map returns results in the order the iterables were given
-            for res in executor.map(run_single_simulation, execution_params):
-                results.append(res)
-    else:
-        print(f"\nInitiating single run sequentially...\n")
-        results.append(run_single_simulation(execution_params[0]))
+    vprint(f"\nInitiating {'parallel sweep' if is_sweep else 'single run'}...\n")
 
-    # Aggregate results synchronously to avoid race conditions on the master CSV and convergence tracker
+    # Open the CSV once in append mode for the duration of the execution
     with open(master_csv_path, 'a', newline='') as master_file:
         csv_writer = csv.DictWriter(master_file, fieldnames=csv_columns)
-        for res in results:
+        
+        if is_sweep:
+            max_workers = max(1, os.cpu_count() - 2)
+            with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
+                # Submit all tasks to the pool
+                futures = {executor.submit(run_single_simulation, p): p for p in execution_params}
+                
+                # Yield results as they finish
+                for future in concurrent.futures.as_completed(futures):
+                    res = future.result()
+                    
+                    # Write to disk immediately
+                    csv_writer.writerow(res["row_data"])
+                    master_file.flush() # Force write to prevent data loss on crash
+                    
+                    # Track convergence data in memory
+                    group_key = res["group_key"]
+                    entry = convergence_tracker[group_key]
+                    if "operator_order" not in entry:
+                        entry["operator_order"] = res["operator_order"]
+                        entry["ic_order"] = res["ic_order"]
+                        entry["is_direct"] = res["is_direct"]
+                    entry["dx_values"].append(res["mesh_size"])
+                    for m_name, m_val in res["metric_values"].items():
+                        entry["metrics"][m_name].append(m_val)
+        else:
+            # Fallback for single run
+            res = run_single_simulation(execution_params[0])
             csv_writer.writerow(res["row_data"])
             
             group_key = res["group_key"]
-            if group_key not in convergence_tracker:
-                convergence_tracker[group_key] = _init_convergence_entry()
-            
-            convergence_tracker[group_key]["dx_values"].append(res["mesh_size"])
-            for metric_name, metric_value in res["metric_values"].items():
-                convergence_tracker[group_key]["metrics"][metric_name].append(metric_value)
+            entry = convergence_tracker[group_key]
+            if "operator_order" not in entry:
+                entry["operator_order"] = res["operator_order"]
+                entry["ic_order"] = res["ic_order"]
+                entry["is_direct"] = res["is_direct"]
+            entry["dx_values"].append(res["mesh_size"])
+            for m_name, m_val in res["metric_values"].items():
+                entry["metrics"][m_name].append(m_val)
 
     print("\nEvaluating data for automated grid convergence studies...")
     for group_key, data in convergence_tracker.items():
@@ -311,25 +387,21 @@ if __name__ == '__main__':
             
         eq_n, int_n, op_n, ic_n, bc_n, cfl_n = group_key
         study_name = f"{eq_n}_{int_n}_{op_n}_{ic_n}_{bc_n}"
-        group_plot_dir = os.path.join(parent_sweep_dir if parent_sweep_dir else output_dir, f"{eq_n}_{int_n}_{op_n}_{ic_n}_convergence".lower())
-        plotter = TempestPlotter(output_dir=group_plot_dir)
+        group_plot_dir = Path(output_dir) / "runs" / f"{eq_n}_{int_n}_{op_n}_{ic_n}_convergence_{timestamp}".lower()
+        (group_plot_dir / "plots").mkdir(parents=True, exist_ok=True)
+        (group_plot_dir / "data").mkdir(parents=True, exist_ok=True)
+        plotter = TempestPlotter(output_dir=group_plot_dir / "plots")
 
         print(
             f"Executing log-log regression for: {study_name} "
             f"(CFL dt/dx={cfl_n})"
         )
 
-        if "upwind" in op_n.lower():
-            target_order = 1
-        elif "shallow_dam" in ic_n.lower():
-            target_order = {"avg_l1": 1.0, "avg_l2": 0.5, "final_l1": 1.0, "final_l2": 0.5}
-        else:
-            target_order = 2
+        target_order = data["ic_order"]
+        if target_order is None:
+            target_order = data["operator_order"]
 
-        if int_n.startswith("lax") or int_n in ["maccormack"]:
-            display_solver_name = int_n
-        else:
-            display_solver_name = f"{int_n} + {op_n}"
+        display_solver_name = int_n if data["is_direct"] else f"{int_n} + {op_n}"
 
         plotter.plot_convergence_suite(
             dx_values=data["dx_values"],
