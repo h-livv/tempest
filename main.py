@@ -181,7 +181,7 @@ def run_single_simulation(params):
         # Directory creation and file saving
         clean_eq_name = str(eq_name).replace(" ", "_").lower()
         run_dir_name = f"{clean_eq_name}_{int_name}_{op_name}_{ic_name}_N{N}_{timestamp}"
-        run_dir_path = Path(output_dir) / "runs" / run_dir_name
+        run_dir_path = Path(output_dir) / clean_eq_name / "validation" / run_dir_name
         run_dir_path.mkdir(parents=True, exist_ok=True)
         (run_dir_path / "plots").mkdir(exist_ok=True)
         (run_dir_path / "data").mkdir(exist_ok=True)
@@ -281,7 +281,7 @@ if __name__ == '__main__':
         cfg.integrators_list
     ))
 
-    output_dir = Path('pipeline_results')
+    output_dir = Path('outputs')
     output_dir.mkdir(exist_ok=True)
 
     # Write to master csv
@@ -380,7 +380,8 @@ if __name__ == '__main__':
             
         eq_n, int_n, op_n, ic_n, bc_n, cfl_n = group_key
         study_name = f"{eq_n}_{int_n}_{op_n}_{ic_n}_{bc_n}"
-        group_plot_dir = Path(output_dir) / "runs" / f"{eq_n}_{int_n}_{op_n}_{ic_n}_convergence_{timestamp}".lower()
+        clean_eq_n = str(eq_n).replace(" ", "_").lower()
+        group_plot_dir = Path(output_dir) / clean_eq_n / "convergence" / f"{eq_n}_{int_n}_{op_n}_{ic_n}_{timestamp}".lower()
         (group_plot_dir / "plots").mkdir(parents=True, exist_ok=True)
         (group_plot_dir / "data").mkdir(parents=True, exist_ok=True)
         plotter = TempestPlotter(output_dir=group_plot_dir / "plots")

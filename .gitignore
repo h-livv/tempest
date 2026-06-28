@@ -19,8 +19,8 @@ env/
 .DS_Store
 Thumbs.db
 
-pipeline_results/**/**/**/*.csv
-pipeline_results/sweeps/**/**/*.csv
+outputs/**/**/**/*.csv
+outputs/sweeps/**/**/*.csv
 ml/runs/sweeps/**/*.csv
 
 # large outputs
