@@ -4,8 +4,8 @@ __pycache__/
 *$py.class
 
 # TEMPEST specific development folders
-Logs/
-future/
+logs/
+ideas/
 
 # Virtual Environments
 venv/
@@ -19,9 +19,7 @@ env/
 .DS_Store
 Thumbs.db
 
-outputs/**/**/**/*.csv
-outputs/sweeps/**/**/*.csv
-ml/runs/sweeps/**/*.csv
+ml/runs/
 
 # large outputs
 external_data/
