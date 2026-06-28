@@ -1,5 +1,5 @@
 import numpy as np
-from src import operators
+from src.numerics import operators
 
 def _get_inner_slice(array, grid_or_dx):
     ndim = grid_or_dx.ndim if hasattr(grid_or_dx, "ndim") else 1

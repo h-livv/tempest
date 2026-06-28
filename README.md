@@ -31,11 +31,11 @@ You can also bypass the pipeline and use the core simulation engine directly:
 ```python
 from src.core.config import SimulationConfig
 from src.core.simulation import Simulation
-from src.init_conditions import advec_gauss
-from src.equations import AdvectionEquation
-from src.operators import upwind
-from src.boundaries import periodic
-from src.integrators import rk4
+from src.physics.init_conditions import advec_gauss
+from src.physics.equations import AdvectionEquation
+from src.numerics.operators import upwind
+from src.mesh.boundaries import periodic
+from src.numerics.integrators import rk4
 
 config = SimulationConfig(
     shape=(100,),

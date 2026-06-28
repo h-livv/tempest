@@ -1,7 +1,7 @@
 #Module imports
-from src import boundaries, operators, equations, integrators, init_conditions
-
-#Define stable grid configurations (protects CFL stability)
+from src.mesh import boundaries
+from src.numerics import operators, integrators
+from src.physics import equations, init_conditions#Define stable grid configurations (protects CFL stability)
 grid_configs = [
     {"N": 50, "dx": 0.1,    "dt": 0.01},
     {"N": 50, "dx": 0.05,   "dt": 0.005},

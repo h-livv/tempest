@@ -1,6 +1,6 @@
-from src import equations, boundaries, operators, integrators, direct_solvers, init_conditions
-
-# Convergence Configuration (Halving dx and dt to maintain CFL)
+from src.physics import equations, init_conditions
+from src.mesh import boundaries
+from src.numerics import operators, integrators, direct_solvers# Convergence Configuration (Halving dx and dt to maintain CFL)
 grid_configs = [
     {"N": 50, "dx": 1.0, "dt": 0.02},
     {"N": 50, "dx": 0.5, "dt": 0.01},

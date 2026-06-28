@@ -1,6 +1,6 @@
-from src import equations, boundaries, operators, integrators, direct_solvers, init_conditions
-
-# Validation Configuration
+from src.physics import equations, init_conditions
+from src.mesh import boundaries
+from src.numerics import operators, integrators, direct_solvers# Validation Configuration
 grid_configs = [
     {"N": 50, "dx": 0.5, "dt": 0.01}
 ]

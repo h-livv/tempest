@@ -1,5 +1,5 @@
 import numpy as np
-from src import operators
+from src.numerics import operators
 
 class Equation:
     """Base class for all Tempest equations."""
