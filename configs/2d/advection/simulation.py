@@ -4,8 +4,8 @@ from src.numerics import operators, integrators, flux_methods
 from src.physics import equations, init_conditions
 # Define grid configuration for 2D (Optimized grid size & stable dt for fast smooth rendering)
 grid_configs = [
-    {"N": (100,100),
-     "dx": (0.01,0.01),
+    {"N": (100, 100),
+     "dx": (0.01, 0.01),
      "dt": 2.83e-3}
 ]
 

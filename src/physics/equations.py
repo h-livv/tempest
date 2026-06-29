@@ -3,23 +3,33 @@ from src.numerics import operators
 
 class Equation:
     """Base class for all Tempest equations."""
-    def __call__(self, t, state, grid, boundary, operator):
+    def __call__(self, t, state_data, dx, boundary, operator):
         raise NotImplementedError
 
-    def flux(self, padded_state, grid_or_dx):
+    def parity(self, grid_ndim):
+        """Returns the reflection parity of each component. By default, scalar fields are fully symmetric [1]."""
+        return [1]
+
+    def flux(self, padded_state, dx):
+        """
+        Computes the spatial flux for the equation.
+        
+        Expected Return Shapes:
+        - Scalar equations: (grid_ndim, ...)
+        - System equations: (num_components, grid_ndim, ...)
+        """
         raise NotImplementedError
 
     def wave_speed(self, padded_state):
         raise NotImplementedError
 
-    def source(self, padded_state, grid):
+    def source(self, padded_state, dx):
         return None
 
-    def compute_energies(self, field, boundary):
+    def compute_energies(self, state_data, dx, boundary):
         """Generic energy computation (L2 norm)."""
-        dV = np.prod(field.grid.spacing)
-        data = field.data if hasattr(field, 'data') else np.asarray(field)
-        total_e = np.sum(data**2) * dV
+        dV = np.prod(dx)
+        total_e = np.sum(state_data**2) * dV
         return 0.0, 0.0, total_e
 
 
@@ -29,26 +39,52 @@ class AdvectionEquation(Equation):
         self.__name__ = 'advection'
         self.velocity = velocity
         self.spatial_order = 1
-        self.parity = [1]
 
-    def __call__(self, t, state, grid, boundary, operator):
+    def parity(self, grid_ndim):
+        return [1]
+
+    def __call__(self, t, state_data, dx, boundary, operator):
         if operator.__name__ == 'laplacian':
             raise ValueError(
                 "CRITICAL PHYSICS ERROR: Linear advection is a 1st-order spatial PDE. "
                 "You cannot pass 'laplacian' (2nd-order) as its operator."
             )
             
-        padded_state = boundary(state, self.parity)
-        grad_u = operator(padded_state, grid, velocity=self.velocity)
-        
-        if grid.ndim > 1:
-            dudt = -np.sum(self.velocity * grad_u, axis=0)
+        vel = self.velocity
+        if isinstance(vel, (list, tuple, np.ndarray)):
+            vel = np.asarray(vel)
+            if vel.ndim == 1 and len(dx) > 1:
+                vel = vel.reshape((len(dx),) + (1,) * len(dx))
+
+        # Strip leading component axis if present (e.g. VectorField with 1 component)
+        # so operators work on the pure spatial array
+        ndim = len(dx)
+        has_component_axis = state_data.ndim > ndim
+        if has_component_axis:
+            u = state_data[0]  # shape: (*grid_shape)
         else:
-            dudt = -self.velocity * grad_u
+            u = state_data
+
+        padded_u = boundary(u, ndim, self.parity(ndim))
+        grad_u = operator(padded_u, dx, velocity=vel)
         
+        if ndim > 1:
+            # vel broadcast shape: (ndim, 1, ...) against grad_u shape: (ndim, *grid)
+            dudt = -np.sum(vel * grad_u, axis=0)
+        else:
+            dudt = -vel * grad_u
+        
+        # Restore component axis if it was present
+        if has_component_axis:
+            return dudt[np.newaxis, ...]
         return dudt
 
-    def flux(self, padded_state, grid):
+    def flux(self, padded_state, dx):
+        """Returns scalar flux vector: shape (grid_ndim, ...)"""
+        # Linear advection flux is simply the velocity field advecting the state.
+        # Since velocity can be a vector, the flux takes shape (grid_ndim, ...)
+        if np.isscalar(self.velocity):
+            return np.stack([self.velocity * padded_state] * len(dx), axis=0)
         return self.velocity * padded_state
 
     def wave_speed(self, padded_state):
@@ -61,27 +97,33 @@ class WaveEquation(Equation):
         self.__name__ = 'wave'
         self.wave_speed_val = wave_speed
         self.spatial_order = 1
-        self.parity = [1, -1] # Position is symmetric, velocity is asymmetric
 
-    def __call__(self, t, state, grid, boundary, operator):
+    def parity(self, grid_ndim):
+        # State has exactly 2 components: [u (position), du/dt (velocity)].
+        # Position is symmetric (+1) and velocity is antisymmetric (-1) at a reflecting wall.
+        # This is independent of the number of spatial dimensions.
+        return [1, -1]
+
+    def __call__(self, t, state_data, dx, boundary, operator):
         if operator.__name__ in ('gradient', 'upwind'):
             raise ValueError(
                 "CRITICAL PHYSICS ERROR: Wave propagation is a 2nd-order spatial PDE. "
                 "You cannot pass 'gradient' or 'upwind' (1st-order) as its operator."
             )
         
-        padded_state = boundary(state, self.parity)
+        padded_state = boundary(state_data, len(dx), self.parity(len(dx)))
         u, v = padded_state
         
-        d2udx2 = operator(u, grid)
+        d2udx2 = operator(u, dx)
         d2udt2 = (self.wave_speed_val**2) * d2udx2
         
-        return np.stack([state[1], d2udt2], axis=0)
+        return np.stack([state_data[1], d2udt2], axis=0)
 
-    def flux(self, padded_state, grid):
+    def flux(self, padded_state, dx):
+        """Returns system flux tensor: shape (num_components, grid_ndim, ...)"""
         u, v = padded_state
-        grad_u = operators.gradient(u, grid)
-        ndim = grid.ndim
+        grad_u = operators.gradient(u, dx)
+        ndim = len(dx)
         pad_width = [(0, 0)] * (grad_u.ndim - ndim) + [(1, 1)] * ndim
         padded_grad_u = np.pad(grad_u, pad_width=pad_width, mode='edge')
         
@@ -89,20 +131,19 @@ class WaveEquation(Equation):
         f2 = -(self.wave_speed_val**2) * padded_grad_u
         return np.stack([f1, f2], axis=0)
 
-    def source(self, padded_state, grid):
+    def source(self, padded_state, dx):
         u, v = padded_state
         return np.stack([v, np.zeros_like(v)], axis=0)
 
     def wave_speed(self, padded_state):
         return self.wave_speed_val
 
-    def compute_energies(self, field, boundary):
-        dV = np.prod(field.grid.spacing)
-        data = field.data if hasattr(field, 'data') else np.asarray(field)
-        u, v = data[0], data[1]
+    def compute_energies(self, state_data, dx, boundary):
+        dV = np.prod(dx)
+        u, v = state_data[0], state_data[1]
         
-        u_padded = boundary(u)
-        grad_u = operators.gradient(u_padded, field.grid)
+        u_padded = boundary(u, len(dx))
+        grad_u = operators.gradient(u_padded, dx)
         
         pe = ((self.wave_speed_val**2)/2) * np.sum(grad_u**2) * dV
         ke = (1/2) * np.sum(v**2) * dV
@@ -115,24 +156,33 @@ class DiffusionEquation(Equation):
         self.__name__ = 'diffusion'
         self.diffusivity = diffusivity
         self.spatial_order = 2
-        self.parity = [1]
 
-    def __call__(self, t, state, grid, boundary, operator):
+    def parity(self, grid_ndim):
+        return [1]
+
+    def __call__(self, t, state_data, dx, boundary, operator):
         if operator.__name__ in ('gradient', 'upwind'):
             raise ValueError(
                 "CRITICAL PHYSICS ERROR: Diffusion is a 2nd-order spatial PDE. "
                 "You cannot pass 'gradient' or 'upwind' (1st-order) as its operator."
             )
         
-        padded_state = boundary(state, self.parity)
-        d2udx2 = operator(padded_state, grid)
+        ndim = len(dx)
+        has_component_axis = state_data.ndim > ndim
+        u = state_data[0] if has_component_axis else state_data
+
+        padded_u = boundary(u, ndim, self.parity(ndim))
+        d2udx2 = operator(padded_u, dx)
         du_dt = self.diffusivity * d2udx2
         
+        if has_component_axis:
+            return du_dt[np.newaxis, ...]
         return du_dt
 
-    def flux(self, padded_state, grid):
-        grad_u = operators.gradient(padded_state, grid)
-        ndim = grid.ndim
+    def flux(self, padded_state, dx):
+        """Returns scalar flux vector: shape (grid_ndim, ...)"""
+        grad_u = operators.gradient(padded_state, dx)
+        ndim = len(dx)
         pad_width = [(0, 0)] * (grad_u.ndim - ndim) + [(1, 1)] * ndim
         padded_flux = np.pad(grad_u, pad_width=pad_width, mode='edge')
         return -self.diffusivity * padded_flux
@@ -146,55 +196,80 @@ class ShallowWaterEquation(Equation):
     def __init__(self):
         self.__name__ = 'shallow_water'
         self.spatial_order = 1
-        self.parity = [1, -1]
+    def parity(self, grid_ndim):
+        return [1] + [-1] * grid_ndim
 
-    def __call__(self, t, state, grid, boundary, operator):
+    def __call__(self, t, state_data, dx, boundary, operator):
         if operator.__name__ == 'laplacian':
             raise ValueError(
                 "CRITICAL PHYSICS ERROR: Shallow water equation is a 1st-order spatial PDE. "
                 "You cannot pass 'laplacian' (2nd-order) as its operator."
             )
         
-        padded_state = boundary(state, self.parity)
+        padded_state = boundary(state_data, len(dx), self.parity(len(dx)))
         g = 9.81 
         eps = 1e-5
         
-        v_unpadded = state[1:]
-        h, v = padded_state[0], padded_state[1:]
-        q = h * v
-        q_sq_by_h = np.where(h > eps, (q**2) / h, 0.0)
+        grid_ndim = len(dx)
+        v_unpadded = state_data[1:] # shape (grid_ndim, ...)
+        h = padded_state[0]
+        v = padded_state[1:]      # shape (grid_ndim, ...)
+        q = h * v                 # shape (grid_ndim, ...)
         
-        dh_dt = -operator(q, grid)
-        dq_dt = -operator((q_sq_by_h + 0.5 * g * (h**2)), grid)
-        dv_dt = -v_unpadded * operator(v, grid) - g * operator(h, grid)
+        grad_q = operator(q, dx)
+        if grid_ndim > 1 and grad_q.ndim == grid_ndim + 2:
+            dh_dt = -np.sum([grad_q[i, i] for i in range(grid_ndim)], axis=0)
+        else:
+            dh_dt = -grad_q
+        
+        dv_dt = np.zeros_like(v_unpadded)
+        
+        for i in range(grid_ndim):
+            v_grad_i = operator(v[i], dx)
+            v_dot_grad = np.sum(v_unpadded * v_grad_i, axis=0)
+            grad_h = operator(h, dx)
+            dv_dt[i] = -v_dot_grad - g * grad_h[i]
             
-        return np.stack([dh_dt, dv_dt], axis=0)
+        return np.concatenate([dh_dt[np.newaxis, ...], dv_dt], axis=0)
 
-    def flux(self, padded_cons, grid):
-        h, q = padded_cons[0], padded_cons[1]
+    def flux(self, padded_cons, dx):
+        """Returns system flux tensor: shape (num_components, grid_ndim, ...)"""
+        grid_ndim = len(dx)
+        h = padded_cons[0]
+        q = padded_cons[1:]
         g = 9.81
-        f1 = q
-        
         eps = 1e-5
-        q_sq_over_h = np.zeros_like(q)
-        mask = h > eps
-        q_sq_over_h[mask] = (q[mask]**2) / h[mask]
         
-        f2 = q_sq_over_h + 0.5 * g * (h**2)
-        return np.stack([f1, f2], axis=0)
+        F = np.zeros((1 + grid_ndim, grid_ndim) + h.shape)
+        F[0, :] = q
+        
+        mask = h > eps
+        for d in range(grid_ndim):
+            for i in range(grid_ndim):
+                q_i_q_d_over_h = np.zeros_like(h)
+                q_i_q_d_over_h[mask] = (q[i][mask] * q[d][mask]) / h[mask]
+                F[1+i, d] = q_i_q_d_over_h
+                if i == d:
+                    F[1+i, d] += 0.5 * g * h**2
+                    
+        return F
 
     def wave_speed(self, padded_state):
-        h, q = padded_state
+        h = padded_state[0]
+        q = padded_state[1:]
         g = 9.81
         eps = 1e-5
-        v = np.zeros_like(q)
+        v_mag = np.zeros_like(h)
         mask = h > eps
-        v[mask] = q[mask] / h[mask]
-        return np.abs(v) + np.sqrt(g * h)
+        q_sq = np.sum(q**2, axis=0)
+        v_mag[mask] = np.sqrt(q_sq[mask]) / h[mask]
+        return v_mag + np.sqrt(g * h)
         
     def to_conservative(self, primitive_state):
-        h, v = primitive_state
-        return np.stack([h, h * v], axis=0)
+        h = primitive_state[0]
+        v = primitive_state[1:]
+        q = h * v
+        return np.concatenate([h[np.newaxis, ...], q], axis=0)
         
     def to_primitive(self, conservative_state):
         h = conservative_state[0]                # shape (..., N) or (N,)
@@ -208,15 +283,12 @@ class ShallowWaterEquation(Equation):
             v[expanded_mask] = q[expanded_mask] / np.broadcast_to(h, v.shape)[expanded_mask]
         else:
             v[mask] = q[mask] / h[mask]
-        # Return as primitive [h, v1, v2, ...] stacked on axis 0
-        v_squeezed = v[0] if (v.ndim > h.ndim and v.shape[0] == 1) else v
-        return np.stack([h, v_squeezed], axis=0)
+        return np.concatenate([h[np.newaxis, ...], v], axis=0)
 
-    def compute_energies(self, field, boundary):
-        dV = np.prod(field.grid.spacing)
-        data = field.data if hasattr(field, 'data') else np.asarray(field)
-        h = data[0]
-        v = data[1:]
+    def compute_energies(self, state_data, dx, boundary):
+        dV = np.prod(dx)
+        h = state_data[0]
+        v = state_data[1:]
         g = 9.81
         
         ke = 0.5 * np.sum(h * np.sum(v**2, axis=0)) * dV
@@ -230,46 +302,65 @@ class BurgersEquation(Equation):
         self.__name__ = 'burgers'
         self.viscosity = viscosity
         self.spatial_order = 1
-        self.parity = [1]
 
-    def __call__(self, t, state, grid, boundary, operator):
+    def parity(self, grid_ndim):
+        return [1]
+
+    def __call__(self, t, state_data, dx, boundary, operator):
         if operator.__name__ == 'laplacian':
             raise ValueError(
                 "CRITICAL PHYSICS ERROR: You are controlling the operator of the advection term in Burgers' equation "
                 "You cannot pass 'laplacian' (2nd-order) as its operator."
             )
 
-        padded_state = boundary(state, self.parity)
+        ndim = len(dx)
+        has_component_axis = state_data.ndim > ndim
+        u = state_data[0] if has_component_axis else state_data
 
-        wave_term = self.viscosity * operators.laplacian(padded_state, grid)
-        adv_term = -operator(0.5*(padded_state)**2, grid, velocity=padded_state)
+        padded_u = boundary(u, ndim, self.parity(ndim))
+
+        wave_term = self.viscosity * operators.laplacian(padded_u, dx)
+        adv_term = -operator(0.5*(padded_u)**2, dx, velocity=padded_u)
         
-        if hasattr(grid, 'ndim') and grid.ndim > 1:
+        if ndim > 1:
             adv_term = np.sum(adv_term, axis=0)
 
         du_dt = wave_term + adv_term
+        
+        if has_component_axis:
+            return du_dt[np.newaxis, ...]
         return du_dt
 
-    def flux(self, padded_state, grid):
+    def flux(self, padded_state, dx):
+        """Returns scalar flux vector: shape (num_components, grid_ndim, ...)"""
         adv_flux = 0.5 * (padded_state)**2
+        
+        grid_ndim = len(dx)
+        if grid_ndim > 1:
+            F_adv = np.stack([adv_flux] * grid_ndim, axis=1)
+        else:
+            F_adv = adv_flux[np.newaxis, ...]
+            
         # Compute viscous flux using a central difference that preserves the
-        # full padded shape. For each spatial axis, use np.roll to compute
-        # (u[i+1] - u[i-1]) / (2*dx) across the whole padded domain.
-        ndim = grid.ndim
-        wave_flux = np.zeros_like(padded_state, dtype=float)
-        for i in range(ndim):
-            spacing = grid.get_spacing(i)
-            ax = -(ndim - i)
-            wave_flux += -self.viscosity * (
-                np.roll(padded_state, -1, axis=ax) - np.roll(padded_state, 1, axis=ax)
-            ) / (2.0 * spacing)
-        return adv_flux + wave_flux
+        # full padded shape.
+        grads = []
+        for i in range(grid_ndim):
+            spacing = dx[i]
+            ax = -(grid_ndim - i)
+            grad = (np.roll(padded_state, -1, axis=ax) - np.roll(padded_state, 1, axis=ax)) / (2.0 * spacing)
+            grads.append(grad)
+            
+        if grid_ndim > 1:
+            wave_flux = -self.viscosity * np.stack(grads, axis=1)
+        else:
+            wave_flux = -self.viscosity * grads[0][np.newaxis, ...]
+            
+        return F_adv + wave_flux
 
     def wave_speed(self, padded_state):
         return padded_state
 
-    def compute_energies(self, field, boundary):
-        dV = np.prod(field.grid.spacing)
-        data = field.data if hasattr(field, 'data') else np.asarray(field)
-        total_e = np.sum(0.5 * data**2) * dV
+    def compute_energies(self, state_data, dx, boundary):
+        dV = np.prod(dx)
+        total_e = np.sum(0.5 * state_data**2) * dV
         return 0.0, 0.0, total_e

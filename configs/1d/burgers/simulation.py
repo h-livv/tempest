@@ -8,7 +8,7 @@ grid_configs = [
     {
         "N": 200,
         "dx": 0.005,
-        "dt": 0.002
+        "dt": 2.5e-4  # Viscous CFL: ν*dt/dx² = 0.02*2.5e-4/2.5e-5 = 0.2 < 0.5 ✓
     }
 ]
 
@@ -21,7 +21,7 @@ equations_list = [equations.BurgersEquation(viscosity=0.02)]
 integrators_list = [integrators.rk4]
 
 FINAL_TIME = 5.0
-STEPS_PER_FRAME = 10   # animation only: steps between plot refreshes
-RECORD_INTERVAL = 2    # metrics: snapshot every N timesteps (fixed for all runs)
+STEPS_PER_FRAME = 20   # steps per frame so animation stays fluid
+RECORD_INTERVAL = 100  # metrics: snapshot every N timesteps
 # Toggle to True to bypass data export and run the visual dashboard in the main thread
 VISUAL_MODE = True

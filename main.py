@@ -31,7 +31,6 @@ from pathlib import Path
 from collections import defaultdict
 
 # Module imports
-
 from src.core.config import SimulationConfig
 from src.core.simulation import Simulation
 from src.diagnostics.plots import TempestPlotter
@@ -69,7 +68,7 @@ def _init_convergence_entry():
 def safe_log(val):
     return math.log(max(val, 1e-16))
 
-# 
+
 def run_single_simulation(params):
 
     # Unpack parameters
@@ -116,35 +115,8 @@ def run_single_simulation(params):
     # Map SimulationResults attributes to the names used below
     # (mirrors the old dict keys so the rest of the function is unchanged)
     # ------------------------------------------------------------------
-    # TODO: remove _SimOutputCompat once the pipeline fully adopts
-    #       SimulationResults and all downstream code reads attributes
-    #       directly (results.history, results.final_numerical, etc.).
-    class _SimOutputCompat:
-        """Temporary compatibility adapter: maps SimulationResults attributes
-        to the legacy dict-style keys used by the rest of this function."""
-        def __init__(self, r):
-            self.history_dataframe = r.history
-            self.grid              = r.grid
-            self.x                 = (
-                r.grid.coordinates[0]
-                if r.grid.ndim == 1
-                else r.grid.coordinates
-            )
-            self.final_numerical   = r.final_numerical
-            self.final_analytic    = r.final_analytical
-            self.raw_tensor_data   = r.raw_tensor_data
-            self.energy_history    = r.energy_history
-
-        def __getitem__(self, key):       # legacy dict-style access
-            return getattr(self, key)
-
-        def get(self, key, default=None):
-            return getattr(self, key, default)
-
-    legacy_output = _SimOutputCompat(results)
-
     # Extract and calculate errors
-    run_history_df = legacy_output["history_dataframe"]
+    run_history_df = results.history
 
     stats = run_history_df[['l2_error', 'l1_error']].agg(['mean', 'median'])
     l2, l1 = run_history_df['l2_error'].iloc[-1], run_history_df['l1_error'].iloc[-1]
@@ -159,14 +131,14 @@ def run_single_simulation(params):
         "final_l1": l1,
     }
 
-    grid_obj = legacy_output["grid"]
+    grid_obj = results.grid
     char_spacing = grid_obj.characteristic_spacing()
     mesh_size = grid_obj.mesh_size()
 
     # Physics stability check
     spatial_order = getattr(eq, "spatial_order", 1)
     stability_ratio = dt / (char_spacing ** spatial_order)
-    group_key = (eq_name, int_name, op_name, ic_name, bc_name, round(stability_ratio, 6))
+    group_key = (eq_name, int_name, op_name, ic_name, bc_name)
 
     # Data packaging
     row_data = {
@@ -201,11 +173,11 @@ def run_single_simulation(params):
             N=N,
             dx=dx,
             dt=dt,
-            grid=legacy_output["grid"],
-            u_numerical=legacy_output["final_numerical"],
-            u_analytical=legacy_output["final_analytic"],
-            raw_tensor_data=legacy_output.get("raw_tensor_data"),
-            energy_history=legacy_output.get("energy_history"),
+            grid=results.grid,
+            u_numerical=results.final_numerical,
+            u_analytical=results.final_analytical,
+            raw_tensor_data=results.raw_tensor_data,
+            energy_history=results.energy_history,
         )
 
         # Disk writing
@@ -234,12 +206,14 @@ def run_single_simulation(params):
         with open(run_dir_path / "data" / "config.json", "w") as f:
             json.dump(config_data, f, indent=4)
 
+        x_coords = results.grid.coordinates[0] if results.grid.ndim == 1 else results.grid.coordinates
+
         np.savez_compressed(
             run_dir_path / "data" / "spatial_data.npz",
-            x=legacy_output["x"], 
-            u_numerical=legacy_output["final_numerical"],
-            u_analytical=legacy_output["final_analytic"], 
-            ml_tensor_data=legacy_output["raw_tensor_data"]
+            x=x_coords, 
+            u_numerical=results.final_numerical,
+            u_analytical=results.final_analytical, 
+            ml_tensor_data=results.raw_tensor_data
         )
     
     # Return data
@@ -386,7 +360,7 @@ if __name__ == '__main__':
             )
             continue
             
-        eq_n, int_n, op_n, ic_n, bc_n, cfl_n = group_key
+        eq_n, int_n, op_n, ic_n, bc_n = group_key
         study_name = f"{eq_n}_{int_n}_{op_n}_{ic_n}_{bc_n}"
         clean_eq_n = str(eq_n).replace(" ", "_").lower()
         first_dx = data["dx_values"][0] if data["dx_values"] else 1
@@ -397,8 +371,7 @@ if __name__ == '__main__':
         plotter = TempestPlotter(output_dir=group_plot_dir / "plots")
 
         print(
-            f"Executing log-log regression for: {study_name} "
-            f"(CFL dt/dx={cfl_n})"
+            f"Executing log-log regression for: {study_name}"
         )
 
         target_order = data["ic_order"]

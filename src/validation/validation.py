@@ -1,4 +1,75 @@
 import numpy as np
+import warnings
+
+def _check_compatibility(equation_name, init_condition_name, boundary):
+    supported_configs = {
+        "advection": {
+            "ics": ["Any"],
+            "bcs": ["periodic"]
+        },
+        "wave": {
+            "ics": ["Any"],
+            "bcs": ["periodic", "reflect"]
+        },
+        "diffusion": {
+            "ics": ["gaussian"],
+            "bcs": ["periodic", "reflect", "constant", "dirichlet", "edge"]
+        },
+        "burgers": {
+            "ics": ["burgers_stationary_shock", "burgers_traveling_shock"],
+            "bcs": ["periodic", "dirichlet"]
+        },
+        "shallow_water": {
+            "ics": ["shallow_gaussian", "shallow_dam"],
+            "bcs": ["Any"]
+        }
+    }
+    
+    if equation_name not in supported_configs:
+        return
+        
+    config = supported_configs[equation_name]
+    ic_supported = "Any" in config["ics"] or init_condition_name in config["ics"]
+    
+    if equation_name == "shallow_water":
+        if init_condition_name == "shallow_gaussian":
+            bc_supported = boundary == "periodic"
+            valid_bcs_str = "periodic"
+        elif init_condition_name == "shallow_dam":
+            bc_supported = True
+            valid_bcs_str = "Any"
+        else:
+            bc_supported = False
+            valid_bcs_str = "N/A"
+    else:
+        bc_supported = "Any" in config["bcs"] or boundary in config["bcs"]
+        valid_bcs_str = "\n         ".join(config["bcs"])
+        
+    if not (ic_supported and bc_supported):
+        valid_ics_str = "\n         ".join(config["ics"])
+        
+        if equation_name == "shallow_water" and ic_supported:
+            valid_bcs_str = "periodic" if init_condition_name == "shallow_gaussian" else "Any"
+            
+        msg = f"""Analytical validation for {equation_name.capitalize()}Equation currently supports:
+
+    Initial Conditions:
+         {valid_ics_str}
+
+    Boundary Conditions:
+         {valid_bcs_str}
+
+Received:
+
+    Initial Condition:
+        {init_condition_name}
+
+    Boundary:
+        {boundary}
+
+No closed-form analytical solution is implemented for this configuration."""
+        raise ValueError(msg)
+
 
 def validation(equation, state, init_condition, grid, t, boundary):
     # Dynamically extract physical constant if it exists
@@ -28,10 +99,10 @@ def validation(equation, state, init_condition, grid, t, boundary):
     analytic_state = None
     actual_u = state[0] if (state.ndim > 1 and state.shape[0] >= 1) else state
     
-    if grid.ndim > 1 and equation.__name__ not in ["advection", "diffusion"]:
+    if grid.ndim > 1 and equation.__name__ not in ["advection", "diffusion", "wave"]:
         return np.zeros_like(actual_u)
-
-    
+        
+    _check_compatibility(equation.__name__, init_condition.__name__, boundary)
     if equation.__name__ == "advection":
         class GridProxy:
             ndim = grid.ndim
@@ -59,65 +130,62 @@ def validation(equation, state, init_condition, grid, t, boundary):
         analytic_state = init_condition(GridProxy())[0]
 
     elif equation.__name__ == "wave":
-        # 1. Compute true domain metrics from the clean, pristine grid 'x'
-        dx_clean = x[1] - x[0]
-        L_clean = x.max() + dx_clean
-        
-        # 2. Sample the initial profile shape ONCE on the pristine grid.
-        clean_profile = init_condition(grid)[0]
-        
-        x_minus = x - c * t  # moving to the right
-        x_plus  = x + c * t  # moving to the left
-        
-        if boundary == "periodic":
-            x_R = (x_minus - x[0]) % L_clean + x[0]
-            x_L = (x_plus - x[0]) % L_clean + x[0]
+        if grid.ndim == 1:
+            # 1. Compute true domain metrics from the clean, pristine grid 'x'
+            dx_clean = x[1] - x[0]
+            L_clean = x.max() + dx_clean
             
-            u_R = np.interp(x_R, x, clean_profile)
-            u_L = np.interp(x_L, x, clean_profile)
-            analytic_state = 0.5 * (u_R + u_L)
+            # 2. Sample the initial profile shape ONCE on the pristine grid.
+            clean_profile = init_condition(grid)[0]
             
-        elif boundary == 'reflect':
-            def map_reflective(x_val):
-                rel_x = (x_val - x[0]) % (2 * L_clean)
-                mask = rel_x > L_clean
-                mapped = rel_x.copy()
-                mapped[mask] = 2 * L_clean - rel_x[mask]
-                return mapped + x[0]
+            x_minus = x - c * t  # moving to the right
+            x_plus  = x + c * t  # moving to the left
             
-            u_R = np.interp(map_reflective(x_minus), x, clean_profile)
-            u_L = np.interp(map_reflective(x_plus), x, clean_profile)
-            analytic_state = 0.5 * (u_R + u_L)
-            
-        elif boundary in ["constant", "dirichlet"]:
-            def map_constant(x_val):
-                rel_x = (x_val - x[0]) % (2 * L_clean)
-                mask = rel_x > L_clean
-                mapped = rel_x.copy()
-                mapped[mask] = 2 * L_clean - rel_x[mask]
+            if boundary == "periodic":
+                x_R = (x_minus - x[0]) % L_clean + x[0]
+                x_L = (x_plus - x[0]) % L_clean + x[0]
                 
-                sign = np.ones_like(x_val)
-                sign[mask] = -1.0
-                return mapped + x[0], sign
+                u_R = np.interp(x_R, x, clean_profile)
+                u_L = np.interp(x_L, x, clean_profile)
+                analytic_state = 0.5 * (u_R + u_L)
+            elif boundary == "reflect":
+                u0 = clean_profile
+                N = len(u0)
+                u0_mirrored = np.concatenate([u0, u0[-2:0:-1]]) if N > 2 else u0
+                N_m = len(u0_mirrored)
+                U_fft = np.fft.fft(u0_mirrored)
+                k = np.fft.fftfreq(N_m, d=dx_clean) * 2 * np.pi
+                omega = c * np.abs(k)
+                analytic_mirrored = np.real(np.fft.ifft(U_fft * np.cos(omega * t)))
+                analytic_state = analytic_mirrored[:N]
+            else:
+                raise ValueError(f"Unknown boundary type for wave validation: {boundary}")
+        elif grid.ndim == 2:
+            u0 = init_condition(grid)[0]
+            Ny, Nx = grid.shape
+            dy, dx = grid.spacing
             
-            x_R, sign_R = map_constant(x_minus)
-            x_L, sign_L = map_constant(x_plus)
-            
-            u_R = np.interp(x_R, x, clean_profile) * sign_R
-            u_L = np.interp(x_L, x, clean_profile) * sign_L
-            analytic_state = 0.5 * (u_R + u_L)
+            if boundary == "periodic":
+                U_fft = np.fft.fft2(u0)
+                ky = np.fft.fftfreq(Ny, d=dy) * 2 * np.pi
+                kx = np.fft.fftfreq(Nx, d=dx) * 2 * np.pi
+                KY, KX = np.meshgrid(ky, kx, indexing='ij')
+                omega = c * np.sqrt(KY**2 + KX**2)
+                analytic_state = np.real(np.fft.ifft2(U_fft * np.cos(omega * t)))
+            elif boundary == "reflect":
+                u0_mirrored = np.concatenate([u0, u0[-2:0:-1]], axis=0) if Ny > 2 else u0
+                u0_mirrored = np.concatenate([u0_mirrored, u0_mirrored[:, -2:0:-1]], axis=1) if Nx > 2 else u0_mirrored
                 
-        elif boundary == "edge":
-            x_R = np.clip(x_minus, x[0], x[-1])
-            x_L = np.clip(x_plus, x[0], x[-1])
-            
-            u_R = np.interp(x_R, x, clean_profile)
-            u_L = np.interp(x_L, x, clean_profile)
-            analytic_state = 0.5 * (u_R + u_L)
-            
-        else:
-            raise ValueError(f"Unknown boundary type for wave validation: {boundary}")
-        
+                Ny_m, Nx_m = u0_mirrored.shape
+                U_fft = np.fft.fft2(u0_mirrored)
+                ky = np.fft.fftfreq(Ny_m, d=dy) * 2 * np.pi
+                kx = np.fft.fftfreq(Nx_m, d=dx) * 2 * np.pi
+                KY, KX = np.meshgrid(ky, kx, indexing='ij')
+                omega = c * np.sqrt(KY**2 + KX**2)
+                analytic_mirrored = np.real(np.fft.ifft2(U_fft * np.cos(omega * t)))
+                analytic_state = analytic_mirrored[:Ny, :Nx]
+            else:
+                raise ValueError(f"Unknown boundary type for wave validation: {boundary}")
     elif equation.__name__ == "diffusion":
         u0 = init_condition(grid)[0]
         analytic_state = np.ones_like(actual_u, dtype=float)
@@ -139,13 +207,15 @@ def validation(equation, state, init_condition, grid, t, boundary):
             
             x_c = x_i_1d[np.argmax(u0_1d)]
             
+            # The Gaussian parameter should only be obtained explicitly, but since the implementation relies on extracting it
+            # from the profile, we'll keep the extraction but we know it's a Gaussian due to the compatibility check.
+            eps = 1e-5
             curve_mask = (u0_1d > 0.01) & (u0_1d < 0.99)
             if np.any(curve_mask):
-                eps = 1e-5
                 a_estimates = -np.log(u0_1d[curve_mask]) / (x_i_1d[curve_mask] - x_c + eps)**2
                 a = float(np.nanmean(a_estimates[np.isfinite(a_estimates)]))
             else:
-                a = 100.0  # Safe fallback
+                a = 100.0  # Fallback for very sharp gaussians
                 
             def u_inf(x_arr, t_val, center):
                 if t_val == 0:
@@ -177,9 +247,8 @@ def validation(equation, state, init_condition, grid, t, boundary):
         full_profile = init_condition(grid)[0]
         h_max = np.max(full_profile)
         h_min = np.min(full_profile)
-        is_dam_break = (h_max - h_min) > 1.0
         
-        if not is_dam_break:
+        if init_condition.__name__ == "shallow_gaussian":
             h0 = h_min
             clean_profile = full_profile - h0
             g = 9.81
@@ -206,8 +275,13 @@ def validation(equation, state, init_condition, grid, t, boundary):
             g = 9.81
             x_0 = 0.5 * x.max()
             
+            
             c_L = np.sqrt(g * h_L)
             c_R = np.sqrt(g * h_R)
+            c_max = max(c_L, c_R)
+            
+            if c_max * t > L_clean / 2.0:
+                warnings.warn(f"Dam break waves may have reached the boundaries (c_max*t = {c_max*t:.3f} > L/2 = {L_clean/2.0:.3f}). Analytical solution assumes infinite domain and may be invalid.", UserWarning)
             
             # Root finding for intermediate depth h_m (Bisection)
             def f(hm):

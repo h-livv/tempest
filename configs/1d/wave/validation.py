@@ -12,7 +12,7 @@ grid_configs = [
 
 #Define custom conditions for automated pipeline, as many parameters as required
 initial_conditions = [init_conditions.GaussianIC(sigma=2.0, num_fields=2, use_L_for_center=True)]
-boundary_functions = [boundaries.reflect]
+boundary_functions = [boundaries.periodic]
 operators_list = [operators.laplacian]
 equations_list = [equations.WaveEquation(wave_speed=1.0)]
 integrators_list = [integrators.leapfrog]

@@ -83,7 +83,7 @@ class Scalar2DValidationRenderer:
 
     @staticmethod
     def render(plotter, grid, u_numerical, u_analytical, eq_name, solver_name, run_id, time_history_df, raw_tensor_data):
-        X, Y = grid.coordinates[0], grid.coordinates[1]
+        Y, X = grid.coordinates[0], grid.coordinates[1]
         num_y = u_numerical[0] if u_numerical.ndim > 2 else u_numerical
         anal_y = u_analytical[0] if u_analytical.ndim > 2 else u_analytical
         
