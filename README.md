@@ -4,12 +4,18 @@ A modular framework for simulating, validating, and learning PDE evolution opera
 ---
 
 ## Shallow Water Equations
+Gravity Wave propagation
+
 <img width="1280" height="500" alt="shallow" src="https://github.com/user-attachments/assets/1ad0bf57-f510-482f-9b89-9f377fb27b77" />
 
 ## Burgers' Equation
+Nonlinear steepening
+
 <img width="1280" height="500" alt="burgers" src="https://github.com/user-attachments/assets/e4171ddf-0994-47a6-8774-ccc0ac57a860" />
 
 ## Wave Equation
+Standing waves
+
 <img width="1280" height="500" alt="wave" src="https://github.com/user-attachments/assets/c559920b-d273-43e8-b4fc-4e6cae927e0f" />
 
 ---
@@ -109,7 +115,7 @@ Numerical Methods
 - **Integration**: Explicit Euler, Runge-Kutta 4 (RK4), Leapfrog, Lax-Friedrichs, Lax-Wendroff
 - **Spatial Operators**: Upwind gradients, Central gradients, Laplacian
 
-Physical Systems
+Implemented PDEs
 - Linear advection
 - Diffusion
 - Wave propagation
@@ -154,9 +160,10 @@ Tempest/
 
 ## Roadmap
 ### Near-term
-1. Simulate complex physical phenomena using available PDE suite
-2. Expand neural surrogate models to multi-dimensional PDEs
-3. Investigate neural operators for generalized evolution learning
+1. Simulation of physically meaningful 2D phenomena (gravity waves, tsunamis, atmospheric flows)
+2. Multi-dimensional neural surrogate models
+3. Investigation of neural operators and Fourier-based evolution models
+4. Expansion to additional PDE families beyond fluid dynamics
 
 ### Long-term ML research directions
 - Generalized PDE evolution framework
