@@ -3,14 +3,14 @@ A modular framework for simulating, validating, and learning PDE evolution opera
 
 ---
 
+## Shallow Water Equations
+<img width="1280" height="500" alt="shallow" src="https://github.com/user-attachments/assets/1ad0bf57-f510-482f-9b89-9f377fb27b77" />
+
+## Burgers' Equation
+<img width="1280" height="500" alt="burgers" src="https://github.com/user-attachments/assets/e4171ddf-0994-47a6-8774-ccc0ac57a860" />
+
 ## Wave Equation
-<img width="1280" height="600" alt="wave" src="https://github.com/user-attachments/assets/84a809dc-0ec8-484e-bbde-0da33aac43fb" />
-
-## Diffusion
-<img width="1280" height="600" alt="diffusion" src="https://github.com/user-attachments/assets/55179cc2-cd2d-41d5-bd87-f2702a6a3791" />
-
-## Linear advection
-<img width="1280" height="600" alt="advection" src="https://github.com/user-attachments/assets/1c102fd2-15c2-4175-a05b-8aedca4f13a6" />
+<img width="1280" height="500" alt="wave" src="https://github.com/user-attachments/assets/c559920b-d273-43e8-b4fc-4e6cae927e0f" />
 
 ---
 ## Quick start
@@ -154,7 +154,7 @@ Tempest/
 
 ## Roadmap
 ### Near-term
-1. Extend shock-capturing methods to 2D systems
+1. Simulate complex physical phenomena using available PDE suite
 2. Expand neural surrogate models to multi-dimensional PDEs
 3. Investigate neural operators for generalized evolution learning
 
