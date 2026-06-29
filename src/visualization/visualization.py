@@ -34,7 +34,8 @@ class TempestVisualizer:
             'final_time': self.final_time,
             'shape': initial_state.grid.shape if is_field else initial_state.shape,
             'spacing': initial_state.grid.spacing if is_field else (dx if isinstance(dx, tuple) else (dx,)),
-            'characteristic_spacing': initial_state.grid.characteristic_spacing() if is_field else (min(dx) if isinstance(dx, tuple) else dx)
+            'characteristic_spacing': initial_state.grid.characteristic_spacing() if is_field else (min(dx) if isinstance(dx, tuple) else dx),
+            'eq_name': eq_name
         }
 
         # Energy Trackers
@@ -73,7 +74,7 @@ class TempestVisualizer:
                 'energy': gs[1, 2]          # Energy Stats
             }
 
-        self.renderer = renderer_class(self.fig, self.slots, self.config)
+        self.renderer = renderer_class(self.fig, self.slots, self.config, initial_state)
         
         # Energy Axis Setup
         self.ax_energy = self.fig.add_subplot(self.slots['energy'])

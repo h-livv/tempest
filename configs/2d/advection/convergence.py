@@ -19,8 +19,8 @@ operators_list = [operators.upwind]
 equations_list = [equations.AdvectionEquation(velocity=np.array([1.0, 1.0]).reshape(2, 1, 1))]
 integrators_list = [flux_methods.lax_w]
 
-FINAL_TIME = 5.0
-STEPS_PER_FRAME = 10   # animation only: steps between plot refreshes
-RECORD_INTERVAL = 10    # metrics: snapshot every N timesteps (fixed for all runs)
+FINAL_TIME = 1.0
+STEPS_PER_FRAME = 20   # animation only: steps between plot refreshes
+RECORD_INTERVAL = 40    # metrics: snapshot every N timesteps (fixed for all runs)
 # Toggle to True to bypass data export and run the visual dashboard in the main thread
 VISUAL_MODE = False

@@ -94,14 +94,19 @@ class Simulation:
         actual_u = self._extract_field()
 
         # Compute exact physical analytical solution for error matching
-        true_u = validation.validation(
-            self.equation,
-            self.state.data,
-            self.config.initial_condition,
-            self.grid,
-            self.time,
-            self.config.boundary.__name__,
-        )
+        try:
+            true_u = validation.validation(
+                self.equation,
+                self.state.data,
+                self.config.initial_condition,
+                self.grid,
+                self.time,
+                self.config.boundary.__name__,
+            )
+        except ValueError as e:
+            # Fallback for unsupported configurations
+            print(f"\n[Validation Error] {e}\n")
+            true_u = np.zeros_like(actual_u)
 
         # Track stability diagnostics (potential, kinetic, and total energy)
         _, _, total_e = stability.tracking(
@@ -120,21 +125,29 @@ class Simulation:
         =======================================================================
         Invokes the numerical time-integrator to advance the PDE one clock tick forward.
         """
-        next_state = self.config.integrator(
-            self.state,
+        field_before = id(self.state)
+        grid_before = id(self.grid)
+
+        next_data = self.config.integrator(
+            self.state.data,
             self.time,
             self.config.dt,
-            self.grid,
+            self.grid.spacing,
             self.config.boundary,
             self.config.operator,
             self.equation,
         )
         
-        # Re-wrap in grid Field objects if solver returned standard ndarray
-        if hasattr(self.state, "grid") and not hasattr(next_state, "grid"):
-            self.state = self.state.__class__(self.state.grid, next_state)
-        else:
-            self.state = next_state
+        if next_data.shape != self.state.data.shape:
+            raise RuntimeError(f"Shape mismatch: expected {self.state.data.shape}, got {next_data.shape}")
+        
+        self.state.data[:] = next_data
+        
+        field_after = id(self.state)
+        grid_after = id(self.grid)
+        
+        assert field_before == field_after, "Field object identity changed during step!"
+        assert grid_before == grid_after, "Grid object identity changed during step!"
             
         self.step += 1
         self.time = self.step * self.config.dt
@@ -252,7 +265,7 @@ class Simulation:
             for f in range(visualizer.max_frames):
                 update_frame(f)
         else:
-            anim = animation.FuncAnimation(
+            self.anim = animation.FuncAnimation(
                 visualizer.fig,
                 update_frame,
                 frames=visualizer.max_frames,

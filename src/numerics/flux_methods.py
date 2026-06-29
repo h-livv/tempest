@@ -6,7 +6,7 @@ import numpy as np
 from src.numerics import operators
 
 def _get_inner_slice(array, grid_or_dx):
-    ndim = grid_or_dx.ndim if hasattr(grid_or_dx, "ndim") else 1
+    ndim = len(grid_or_dx)
     slices = [slice(None)] * array.ndim
     for ax in range(-ndim, 0):
         slices[ax] = slice(1, -1)
@@ -14,35 +14,26 @@ def _get_inner_slice(array, grid_or_dx):
 
 def _get_flux_comp(flux_array, d, ndim):
     if ndim == 1:
+        if flux_array.ndim == 3:
+            return flux_array[:, 0]
         return flux_array
-    if flux_array.ndim == ndim + 2:
+    if flux_array.ndim == ndim + 2 and flux_array.shape[1] == ndim:
         return flux_array[:, d]
     else:
         return flux_array[d]
 
-def _pad_with_ndim(arr, boundary, parity, grid_ndim):
-    """
-    Apply a boundary condition to a raw numpy array using explicit grid_ndim,
-    bypassing the boundary's own ndim inference (which looks at arr.ndim and
-    would incorrectly count the component axis as a spatial axis).
-    """
-    data = arr.data if hasattr(arr, 'data') else arr
-    # Apply the boundary along the last grid_ndim axes only
-    axis_names = ['x', 'y', 'z', 'w']
-    from src.mesh.boundaries import Boundary
-    kwargs = {axis_names[i]: boundary for i in range(grid_ndim)}
-    return Boundary(**kwargs)(data, parity)
 
-def lax_f(state, t, dt, dx, boundary, operator, equation):
+
+def lax_f(state_data, t, dt, dx, boundary, operator, equation):
     """
     Lax-Friedrichs direct solver.
     
     Stabilizes unstable spatial differencing by replacing the center value 
     with the average of spatial neighbors.
     """
-    cons_state = equation.to_conservative(state) if hasattr(equation, "to_conservative") else state
-    parity = equation.parity if hasattr(equation, "parity") else [1] * state.shape[0]
-    padded_cons = boundary(cons_state, parity)
+    cons_state = equation.to_conservative(state_data) if hasattr(equation, "to_conservative") else state_data
+    parity = equation.parity(len(dx)) if hasattr(equation, "parity") else [1] * state_data.shape[0]
+    padded_cons = boundary(cons_state, len(dx), parity)
 
     if hasattr(equation, "flux"):
         flux = equation.flux(padded_cons, dx)
@@ -62,22 +53,20 @@ def lax_f(state, t, dt, dx, boundary, operator, equation):
     
     return equation.to_primitive(cons_next) if hasattr(equation, "to_primitive") else cons_next
 
-def lax_w(state, t, dt, dx, boundary, operator, equation):
+def lax_w(state_data, t, dt, dx, boundary, operator, equation):
     """
     Lax-Wendroff direct solver (MacCormack Predictor-Corrector flavor).
     
     Second-order accurate direct flux solver for non-linear equations.
     """
-    # Extract raw data (lax_w operates entirely on NumPy arrays)
-    state_data = state.data if hasattr(state, 'data') else np.asarray(state)
-    grid_ndim = dx.ndim if hasattr(dx, 'ndim') else 1
+    grid_ndim = len(dx)
 
     # Wrap boundary so it always uses grid_ndim for axis counting, never state.ndim
     def _pad(arr, parity_arg=None):
-        return boundary(arr, parity_arg)
+        return boundary(arr, grid_ndim, parity_arg)
 
     cons_state = equation.to_conservative(state_data) if hasattr(equation, "to_conservative") else state_data
-    parity = equation.parity if hasattr(equation, "parity") else [1] * cons_state.shape[0]
+    parity = equation.parity(len(dx)) if hasattr(equation, "parity") else [1] * cons_state.shape[0]
     padded_cons = _pad(cons_state, parity)
 
     if not hasattr(equation, "flux"):
@@ -101,7 +90,7 @@ def lax_w(state, t, dt, dx, boundary, operator, equation):
     # ------------------------------------------------------------------
     pred_flux_terms = 0.0
     for d in range(ndim):
-        spacing = dx.get_spacing(d) if hasattr(dx, "get_spacing") else dx
+        spacing = dx[d]
         active_axis = spatial_axes[d]
         flux_comp = _get_flux_comp(F_n, d, ndim)
         
@@ -130,7 +119,7 @@ def lax_w(state, t, dt, dx, boundary, operator, equation):
     
     corr_flux_terms = 0.0
     for d in range(ndim):
-        spacing = dx.get_spacing(d) if hasattr(dx, "get_spacing") else dx
+        spacing = dx[d]
         active_axis = spatial_axes[d]
         flux_comp = _get_flux_comp(F_star, d, ndim)
         
@@ -151,14 +140,14 @@ def lax_w(state, t, dt, dx, boundary, operator, equation):
     
     return equation.to_primitive(cons_next) if hasattr(equation, "to_primitive") else cons_next
 
-def upwind(state, t, dt, dx, boundary, operator, equation):
+def upwind(state_data, t, dt, dx, boundary, operator, equation):
     """Direct upwind scalar flux solver."""
-    if state.shape[0] > 1 or (state.ndim == 2 and state.shape[0] > 1):
+    if state_data.shape[0] > 1 or (state_data.ndim == 2 and state_data.shape[0] > 1):
         raise ValueError(f"CRITICAL PHYSICS ERROR: Upwind direct solver is only supported for scalar PDEs. Equation '{equation.__name__}' is a system.")
         
-    cons_state = equation.to_conservative(state) if hasattr(equation, "to_conservative") else state
-    parity = equation.parity if hasattr(equation, "parity") else [1] * state.shape[0]
-    padded_cons = boundary(cons_state, parity)
+    cons_state = equation.to_conservative(state_data) if hasattr(equation, "to_conservative") else state_data
+    parity = equation.parity(len(dx)) if hasattr(equation, "parity") else [1] * state_data.shape[0]
+    padded_cons = boundary(cons_state, len(dx), parity)
 
     if not hasattr(equation, "wave_speed"):
         raise AttributeError(f"CRITICAL: Equation '{equation.__name__}' must register a .wave_speed method to run under Direct Upwind.")
@@ -186,7 +175,7 @@ def upwind(state, t, dt, dx, boundary, operator, equation):
         F_diff_fwd = flux[..., 2:] - flux[..., 1:-1]
         F_diff = np.where(speed_inner >= 0, F_diff_bwd, F_diff_fwd)
         
-    cons_next = cons_inner - (dt / dx) * F_diff + dt * S_n
+    cons_next = cons_inner - (dt / dx[0]) * F_diff + dt * S_n
     
     return equation.to_primitive(cons_next) if hasattr(equation, "to_primitive") else cons_next
 

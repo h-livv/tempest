@@ -28,14 +28,38 @@ def _slice_along_axis(array, shift, active_axis, spatial_axes):
             slices[ax] = slice(1, -1)
     return tuple(slices)
 
-def _extract_vector_component(field, index, grid_ndim, state_ndim=None):
-    """Extracts the i-th vector component for multidimensional transport operators."""
-    if isinstance(field, np.ndarray) and field.shape[0] == grid_ndim:
-        if state_ndim is None:
+def _extract_vector_component(field, index, grid_ndim):
+    """
+    Extract the requested vector component.
+
+    Expected layouts:
+        Scalar coefficient:
+            (...)
+        Vector coefficient:
+            (grid_ndim, ...)
+    """
+
+    if not isinstance(field, np.ndarray):
+        return field
+
+    # Vector coefficient field
+    if field.ndim == grid_ndim + 1:
+        if field.shape[0] == grid_ndim:
             return field[index]
-        if field.ndim == grid_ndim + 1 or state_ndim == grid_ndim + 2:
-            return field[index]
-    return field
+        elif field.shape[0] == 1:
+            return field[0]
+        else:
+            raise ValueError(
+                f"Vector field components {field.shape[0]} does not match grid_ndim {grid_ndim}."
+            )
+
+    # Scalar / broadcast coefficient
+    if field.ndim <= grid_ndim:
+        return field
+
+    raise ValueError(
+        f"Unsupported coefficient shape {field.shape} for {grid_ndim}D simulation."
+    )
 
 
 # =============================================================================
@@ -80,8 +104,7 @@ def upwind_axis(padded_array, spacing, velocity, active_axis, spatial_axes):
     backward_diff = (center - left) / spacing
     forward_diff = (right - center) / spacing
 
-    v_center = velocity
-    #[_slice_along_axis(velocity, 0, active_axis, spatial_axes)] if isinstance(velocity, np.ndarray) else velocity
+    v_center = velocity[_slice_along_axis(velocity, 0, active_axis, spatial_axes)] if isinstance(velocity, np.ndarray) else velocity
     
     return np.where(v_center >= 0.0, backward_diff, forward_diff)
 
@@ -105,17 +128,17 @@ def central_flux_divergence_axis(padded_array, spacing, active_axis, spatial_axe
 def _get_spatial_axes(ndim):
     return tuple(range(-ndim, 0))
 
-def gradient(padded_state, grid, **kwargs):
+def gradient(padded_state, dx, **kwargs):
     """
     Computes spatial gradients across all active dimensions.
     
     Returns:
         np.ndarray: Stack of gradient components.
     """
-    spatial_axes = _get_spatial_axes(grid.ndim)
+    spatial_axes = _get_spatial_axes(len(dx))
     grads = []
     for i, ax in enumerate(spatial_axes):
-        spacing = grid.get_spacing(i)
+        spacing = dx[i]
         grad = gradient_axis(padded_state, spacing, ax, spatial_axes)
         grads.append(grad)
     
@@ -123,25 +146,25 @@ def gradient(padded_state, grid, **kwargs):
         return grads[0]
     return np.stack(grads, axis=0)
 
-def laplacian(padded_state, grid, **kwargs):
+def laplacian(padded_state, dx, **kwargs):
     """Computes the Laplacian (sum of second derivatives) across all spatial axes."""
-    spatial_axes = _get_spatial_axes(grid.ndim)
+    spatial_axes = _get_spatial_axes(len(dx))
     lap = 0.0
     for i, ax in enumerate(spatial_axes):
-        spacing = grid.get_spacing(i)
+        spacing = dx[i]
         lap += laplacian_axis(padded_state, spacing, ax, spatial_axes)
     return lap
 
-def upwind(padded_state, grid, velocity=None):
+def upwind(padded_state, dx, velocity=None):
     """Computes upwind advection terms based on directional wind speed velocity."""
     if velocity is None:
         velocity = padded_state
 
-    spatial_axes = _get_spatial_axes(grid.ndim)
+    spatial_axes = _get_spatial_axes(len(dx))
     grads = []
     for i, ax in enumerate(spatial_axes):
-        spacing = grid.get_spacing(i)
-        v_comp = _extract_vector_component(velocity, i, grid.ndim, padded_state.ndim)
+        spacing = dx[i]
+        v_comp = _extract_vector_component(velocity, i, len(dx))
         grad = upwind_axis(padded_state, spacing, v_comp, ax, spatial_axes)
         grads.append(grad)
         
@@ -149,24 +172,24 @@ def upwind(padded_state, grid, velocity=None):
         return grads[0]
     return np.stack(grads, axis=0)
 
-def spatial_average(padded_state, grid):
+def spatial_average(padded_state, dx):
     """Computes multi-dimensional spatial averages of neighbors for Lax schemes."""
-    spatial_axes = _get_spatial_axes(grid.ndim)
+    spatial_axes = _get_spatial_axes(len(dx))
     total_avg = 0.0
     for ax in spatial_axes:
         total_avg += spatial_average_axis(padded_state, ax, spatial_axes)
-    return total_avg / grid.ndim
+    return total_avg / len(dx)
 
-def central_flux_divergence(padded_flux, grid):
+def central_flux_divergence(padded_flux, dx):
     """Computes flux divergence (sum of dF_i / dx_i) over all spatial dimensions."""
-    if padded_flux.ndim == grid.ndim + 2:
-        return np.stack([central_flux_divergence(padded_flux[c], grid) for c in range(padded_flux.shape[0])], axis=0)
+    if padded_flux.ndim == len(dx) + 2:
+        return np.stack([central_flux_divergence(padded_flux[c], dx) for c in range(padded_flux.shape[0])], axis=0)
 
-    spatial_axes = _get_spatial_axes(grid.ndim)
+    spatial_axes = _get_spatial_axes(len(dx))
     divergence = 0.0
     for i, ax in enumerate(spatial_axes):
-        spacing = grid.get_spacing(i)
-        flux_comp = _extract_vector_component(padded_flux, i, grid.ndim)
+        spacing = dx[i]
+        flux_comp = _extract_vector_component(padded_flux, i, len(dx))
         divergence += central_flux_divergence_axis(flux_comp, spacing, ax, spatial_axes)
     return divergence
 

@@ -8,27 +8,27 @@ grid_configs = [
     {
         "N": 500,
         "dx": 0.002,
-        "dt": 0.002
+        "dt": 0.001
     },
     {
         "N": 1000,
         "dx": 0.001,
-        "dt": 0.002
+        "dt": 0.0005
     },
     {
         "N": 2000,
         "dx": 0.0005,
-        "dt": 0.002
+        "dt": 0.00025
     },
     {
         "N": 4000,
         "dx": 0.00025,
-        "dt": 0.002
+        "dt": 0.000125
     }
 ]
 
 #Define custom conditions for automated pipeline, as many parameters as required
-initial_conditions = [init_conditions.GaussianIC(sigma=0.05, center_ratio=0.5)]
+initial_conditions = [init_conditions.GaussianIC(sigma=0.5, center_ratio=0.5)]
 boundary_functions = [boundaries.periodic]
 operators_list = [operators.upwind, operators.gradient]
 equations_list = [equations.AdvectionEquation(velocity=1.0)]

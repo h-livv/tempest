@@ -6,22 +6,22 @@ grid_configs = [
     {
         "N": 50,
         "dx": 0.02,
-        "dt": 0.002
+        "dt": 2.0e-4
     },
     {
         "N": 100,
         "dx": 0.01,
-        "dt": 0.002
+        "dt": 5.0e-5
     },
     {
         "N": 200,
         "dx": 0.005,
-        "dt": 0.002
+        "dt": 1.25e-5
     },
     {
         "N": 400,
         "dx": 0.0025,
-        "dt": 0.002
+        "dt": 3.125e-6
     }
 ]
 
@@ -32,8 +32,8 @@ operators_list = [operators.laplacian]
 equations_list = [equations.DiffusionEquation(diffusivity=1.0)]
 integrators_list = [integrators.euler, integrators.rk4]
 
-FINAL_TIME = 5.0
-STEPS_PER_FRAME = 300   # animation only
-RECORD_INTERVAL = 10    # metrics: snapshot every N timesteps
+FINAL_TIME = 0.5
+STEPS_PER_FRAME = 5000   # animation only
+RECORD_INTERVAL = 100    # metrics: snapshot every N timesteps
 # Toggle to True to bypass data export and run the visual dashboard in the main thread
 VISUAL_MODE = False
