@@ -11,13 +11,13 @@ grid_configs = [
     }
 ]
 
-initial_conditions = [init_conditions.ReservoirIC()]
+initial_conditions = [init_conditions.ShallowGaussianIC()]
 boundary_functions = [boundaries.reflect]
 operators_list = [operators.central_flux_divergence]
 equations_list = [equations.ShallowWaterEquation()]
 integrators_list = [flux_methods.lax_f]
 
-FINAL_TIME = 100
-STEPS_PER_FRAME = 1
+FINAL_TIME = 3
+STEPS_PER_FRAME = 3
 RECORD_INTERVAL = 1
 VISUAL_MODE = True

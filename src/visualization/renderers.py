@@ -46,9 +46,11 @@ class BaseRenderer:
             span = max_val - min_val
             if span < 1e-6:
                 span = 1.0
+            self.initial_span = span
             self.vmin = min_val - 0.1 * span
             self.vmax = max_val + 0.1 * span
         else:
+            self.initial_span = 2.0
             self.vmin = -0.5
             self.vmax = 1.5
             
@@ -168,7 +170,7 @@ class Scalar2DRenderer(BaseRenderer):
         self.im = self.ax_primary.imshow(
             self.current_map,
             aspect="auto",
-            cmap="plasma",
+            cmap="cool",
             extent=[0, nx * dx, 0, ny * dy],
             vmin=self.vmin, vmax=self.vmax,
             origin="lower",
@@ -183,11 +185,14 @@ class Scalar2DRenderer(BaseRenderer):
         
         # Surface
         self.ax_surface.set_title("3D Surface", fontsize=10)
+        self.ax_surface.set_xlabel("X")
+        self.ax_surface.set_ylabel("Y")
+        self.ax_surface.set_zlabel("State")
         self.ax_surface.set_zlim(self.vmin, self.vmax)
         self.ax_surface.grid(True, which='both', color='gray', linestyle='-', linewidth=1.5, alpha=0.6)
         self.surf = self.ax_surface.plot_surface(
-            self.X, self.Y, self.current_map, cmap='plasma', edgecolor='none',
-            rstride=2, cstride=2, vmin=self.vmin, vmax=self.vmax
+            self.X, self.Y, self.current_map, cmap='cool', edgecolor='k', linewidth=0.2,
+            rstride=1, cstride=1, vmin=self.vmin, vmax=self.vmax
         )
         self.artists.append(self.surf) # Note: surface blitting is tricky, might need re-adding
         
@@ -226,9 +231,10 @@ class Scalar2DRenderer(BaseRenderer):
         self.surf.remove()
         if self.surf in self.artists:
             self.artists.remove(self.surf)
+            
         self.surf = self.ax_surface.plot_surface(
-            self.X, self.Y, display_y, cmap='plasma', edgecolor='none',
-            rstride=2, cstride=2, vmin=self.vmin, vmax=self.vmax
+            self.X, self.Y, display_y, cmap='cool', edgecolor='k', linewidth=0.2,
+            rstride=1, cstride=1, vmin=self.vmin, vmax=self.vmax
         )
         self.artists.append(self.surf)
             
@@ -274,9 +280,10 @@ class Vector2DRenderer(Scalar2DRenderer):
         self.surf.remove()
         if self.surf in self.artists:
             self.artists.remove(self.surf)
+            
         self.surf = self.ax_surface.plot_surface(
             self.X, self.Y, display_y, cmap='cool', edgecolor='k', linewidth=0.2,
-            rstride=2, cstride=2, vmin=self.vmin, vmax=self.vmax
+            rstride=1, cstride=1, vmin=self.vmin, vmax=self.vmax
         )
         self.artists.append(self.surf)
         
@@ -304,12 +311,13 @@ class Vector2DRenderer(Scalar2DRenderer):
             u = np.zeros_like(h)
             v = np.zeros_like(h)
         elif data.shape[0] >= 3:
-            # Shallow Water: [h, qx, qy] or primitive [h, u, v]
-            u = data[1]
-            v = data[2]
-        else:
-            u = data[0]
+            # Shallow Water: [h, qy, qx] where index 1 is Y-velocity (v) and index 2 is X-velocity (u)
+            u = data[2]
             v = data[1]
+        else:
+            # 2-component vector field: [qy, qx] where index 0 is Y-velocity (v) and index 1 is X-velocity (u)
+            u = data[1]
+            v = data[0]
             h = np.sqrt(u**2 + v**2)
             
         # Draw Contours of height/magnitude (25 levels for high resolution)
