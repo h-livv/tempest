@@ -5,20 +5,20 @@ from src.physics import equations, init_conditions
 
 grid_configs = [
     {
-        "N": (30, 30),
-        "dx": (0.1, 0.1),
+        "N": (50, 50),
+        "dx": (0.05, 0.05),
         "dt": 0.01
     }
 ]
 
 # Using a standard 2D Gaussian IC for a scalar field
-initial_conditions = [init_conditions.GaussianIC()]
-boundary_functions = [boundaries.edge]
+initial_conditions = [init_conditions.GaussianIC(sigma=0.6)]
+boundary_functions = [boundaries.periodic]
 operators_list = [operators.gradient] # For Lax-Wendroff, the operator argument is passed, even though the solver mainly uses flux
-equations_list = [equations.BurgersEquation(viscosity=0.01)]
+equations_list = [equations.BurgersEquation(viscosity=0.001)]
 integrators_list = [flux_methods.lax_f]
 
-FINAL_TIME = 10
-STEPS_PER_FRAME = 1 
+FINAL_TIME = 1
+STEPS_PER_FRAME = 1
 RECORD_INTERVAL = 1
 VISUAL_MODE = True

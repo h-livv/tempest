@@ -138,7 +138,7 @@ class ShallowCollisionIC(InitialCondition):
     """Two shallow water flows colliding."""
     __name__ = "shallow_collision"
 
-    def __init__(self, split_ratio=0.5, h_val=0.5, v_left=2.0, v_right=-2.0):
+    def __init__(self, split_ratio=0.5, h_val=5.0, v_left=5.0, v_right=-5.0):
         self.split_ratio = split_ratio
         self.h_val = h_val
         self.v_left = v_left
@@ -345,7 +345,7 @@ class ShallowMassDropIC(InitialCondition):
     creating a massive localized depth hump and explosive radially outward velocities."""
     __name__ = "shallow_mass_drop"
 
-    def __init__(self, bg_depth=0.5, drop_amplitude=5.0, sigma=0.1, splash_speed=5.0):
+    def __init__(self, bg_depth=0.5, drop_amplitude=2.0, sigma=1.0, splash_speed=5.0):
         self.bg_depth = bg_depth
         self.drop_amplitude = drop_amplitude
         self.sigma = sigma
@@ -380,7 +380,7 @@ class LocalizedDamBreakIC(InitialCondition):
     """Localized dam break initial condition."""
     __name__ = "localized_dam_break"
 
-    def __init__(self, high_depth=2.0, low_depth=0.5, center=None, transition_width=0.02, gate_width=0.1, orientation="horizontal"):
+    def __init__(self, high_depth=2.0, low_depth=0.5, center=None, transition_width=0.02, gate_width=5.0, orientation="vertical"):
         self.high_depth = high_depth
         self.low_depth = low_depth
         self.center = center # list/tuple of ratios, e.g., (0.5, 0.5)
@@ -472,11 +472,11 @@ class ReservoirIC(InitialCondition):
         Ly = y.max() - y.min()
         Lx = x.max() - x.min()
         
-        # Parse bounds (defaulting to 0.35 to 0.65 ratios if not set)
-        x0 = x.min() + (self.xmin if self.xmin is not None else 0.35) * Lx if (self.xmin is None or self.xmin <= 1.0) else self.xmin
-        x1 = x.min() + (self.xmax if self.xmax is not None else 0.65) * Lx if (self.xmax is None or self.xmax <= 1.0) else self.xmax
-        y0 = y.min() + (self.ymin if self.ymin is not None else 0.35) * Ly if (self.ymin is None or self.ymin <= 1.0) else self.ymin
-        y1 = y.min() + (self.ymax if self.ymax is not None else 0.65) * Ly if (self.ymax is None or self.ymax <= 1.0) else self.ymax
+        # Parse bounds (defaulting to off-center 0.25 to 0.55 ratios if not set)
+        x0 = x.min() + (self.xmin if self.xmin is not None else 0.25) * Lx if (self.xmin is None or self.xmin <= 1.0) else self.xmin
+        x1 = x.min() + (self.xmax if self.xmax is not None else 0.55) * Lx if (self.xmax is None or self.xmax <= 1.0) else self.xmax
+        y0 = y.min() + (self.ymin if self.ymin is not None else 0.25) * Ly if (self.ymin is None or self.ymin <= 1.0) else self.ymin
+        y1 = y.min() + (self.ymax if self.ymax is not None else 0.55) * Ly if (self.ymax is None or self.ymax <= 1.0) else self.ymax
         
         Bx = 0.5 * (np.tanh((x - x0) / self.transition_width) - np.tanh((x - x1) / self.transition_width))
         By = 0.5 * (np.tanh((y - y0) / self.transition_width) - np.tanh((y - y1) / self.transition_width))
@@ -485,3 +485,246 @@ class ReservoirIC(InitialCondition):
         
         v = [np.zeros_like(h) for _ in range(grid.ndim)]
         return np.stack([h] + v, axis=0)
+
+class DamBreakIC(InitialCondition):
+    """Classical 2D dam break initial condition."""
+
+    __name__ = "dam_break"
+
+    def __init__(
+        self,
+        high_depth=2.0,
+        low_depth=0.5,
+        center=None,
+        transition_width=0.0,
+        orientation="vertical",
+    ):
+        self.high_depth = high_depth
+        self.low_depth = low_depth
+        self.center = center
+        self.transition_width = transition_width
+        self.orientation = orientation
+
+    def __call__(self, grid):
+        if grid.ndim != 2:
+            raise NotImplementedError("DamBreakIC only supports 2D grids.")
+
+        y, x = grid.coordinates
+
+        Ly = y.max() - y.min()
+        Lx = x.max() - x.min()
+
+        c = self.center if self.center is not None else (0.5, 0.5)
+        yc = y.min() + c[0] * Ly
+        xc = x.min() + c[1] * Lx
+
+        if self.orientation == "horizontal":
+            if self.transition_width > 0:
+                S = 0.5 * (
+                    1.0 - np.tanh((y - yc) / self.transition_width)
+                )
+                h = self.low_depth + (self.high_depth - self.low_depth) * S
+            else:
+                h = np.where(
+                    y < yc,
+                    self.high_depth,
+                    self.low_depth,
+                )
+
+        else:  # vertical dam
+            if self.transition_width > 0:
+                S = 0.5 * (
+                    1.0 - np.tanh((x - xc) / self.transition_width)
+                )
+                h = self.low_depth + (self.high_depth - self.low_depth) * S
+            else:
+                h = np.where(
+                    x < xc,
+                    self.high_depth,
+                    self.low_depth,
+                )
+
+        u = np.zeros_like(h)
+        v = np.zeros_like(h)
+
+        return np.stack([h, u, v], axis=0)
+
+
+class DoubleGaussianIC(InitialCondition):
+    """Two Gaussian humps placed at a certain distance from each other, traveling towards each other."""
+    __name__ = "double_gaussian"
+
+    def __init__(self, offset=0.2, sigma=0.05, amplitude=2.0, num_fields=1, active_field=0, bg_depth=0.0, speed=1.0, is_wave=False):
+        self.offset = offset
+        self.sigma = sigma
+        self.amplitude = amplitude
+        self.num_fields = num_fields
+        self.active_field = active_field
+        self.bg_depth = bg_depth
+        self.speed = speed
+        self.is_wave = is_wave
+
+    def __call__(self, grid):
+        r1_sq = 0.0
+        r2_sq = 0.0
+        centers = []
+        for d in range(grid.ndim):
+            coord = grid.coordinates[d]
+            L = coord.max() - coord.min()
+            center = coord.min() + 0.5 * L
+            c1 = center - self.offset * L
+            c2 = center + self.offset * L
+            r1_sq += (coord - c1)**2
+            r2_sq += (coord - c2)**2
+            centers.append((c1, c2))
+            
+        g1 = np.exp(-r1_sq / (2 * self.sigma**2))
+        g2 = np.exp(-r2_sq / (2 * self.sigma**2))
+        
+        pos = self.bg_depth + self.amplitude * (g1 + g2)
+        state = np.zeros((self.num_fields, *grid.shape))
+        state[self.active_field] = pos
+        
+        # Set velocity fields so humps travel towards each other
+        if self.num_fields == 2:
+            coord = grid.coordinates[0]
+            c1, c2 = centers[0]
+            if self.is_wave:
+                # 1D Wave equation velocity: du/dt = -c du/dx.
+                # Left hump (g1) goes right (+speed): v1 = speed * (x - c1)/sigma^2 * g1
+                # Right hump (g2) goes left (-speed): v2 = -speed * (x - c2)/sigma^2 * g2
+                state[1] = self.speed * (((coord - c1) / self.sigma**2) * g1 - ((coord - c2) / self.sigma**2) * g2)
+            else:
+                # 1D transport (Shallow Water): left hump (g1) goes right (+speed), right hump (g2) goes left (-speed)
+                state[1] = self.speed * (g1 - g2)
+                
+        elif self.num_fields == 3 and grid.ndim == 2:
+            # 2D Shallow Water: humps travel towards each other along the diagonal
+            # Unit direction vector: [1.0, 1.0] / sqrt(2)
+            dir_y, dir_x = 1.0 / np.sqrt(2.0), 1.0 / np.sqrt(2.0)
+            state[1] = self.speed * dir_y * (g1 - g2) # Y-velocity component (axis 0)
+            state[2] = self.speed * dir_x * (g1 - g2) # X-velocity component (axis 1)
+            
+        return state
+
+
+class CheckerboardIC(InitialCondition):
+    """Multi-dimensional alternating block checkerboard initial condition."""
+    __name__ = "checkerboard"
+
+    def __init__(self, frequency=4.0, amplitude=1.0, high_val=1.0, low_val=-1.0, num_fields=1, active_field=0, bg_depth=0.0):
+        self.frequency = frequency
+        self.amplitude = amplitude
+        self.high_val = high_val
+        self.low_val = low_val
+        self.num_fields = num_fields
+        self.active_field = active_field
+        self.bg_depth = bg_depth
+
+    def __call__(self, grid):
+        pattern = 1.0
+        for d in range(grid.ndim):
+            coord = grid.coordinates[d]
+            L = coord.max() - coord.min()
+            # Sign of sine wave creates alternating blocks
+            pattern *= np.sign(np.sin(2.0 * np.pi * self.frequency * (coord - coord.min()) / L))
+            
+        # Scale to match high_val and low_val bounds
+        norm_pattern = 0.5 * (pattern + 1.0) # 0 to 1
+        pos = self.bg_depth + self.amplitude * (self.low_val + (self.high_val - self.low_val) * norm_pattern)
+        
+        state = np.zeros((self.num_fields, *grid.shape))
+        state[self.active_field] = pos
+        return state
+
+
+class SineWaveIC(InitialCondition):
+    """A multi-dimensional sinusoidal wave pattern."""
+    __name__ = "sine_wave"
+
+    def __init__(self, frequency=1.0, amplitude=1.0, num_fields=1, active_field=0, bg_depth=0.0):
+        self.frequency = frequency
+        self.amplitude = amplitude
+        self.num_fields = num_fields
+        self.active_field = active_field
+        self.bg_depth = bg_depth
+
+    def __call__(self, grid):
+        val = 1.0
+        for d in range(grid.ndim):
+            coord = grid.coordinates[d]
+            L = coord.max() - coord.min()
+            val *= np.sin(2.0 * np.pi * self.frequency * (coord - coord.min()) / L)
+            
+        pos = self.bg_depth + self.amplitude * val
+        state = np.zeros((self.num_fields, *grid.shape))
+        state[self.active_field] = pos
+        return state
+
+
+class SpiralIC(InitialCondition):
+    """A spiral wave pattern for 2D physical states (e.g. vortex or spiral arms)."""
+    __name__ = "spiral"
+
+    def __init__(self, num_arms=2, tightness=5.0, amplitude=1.0, num_fields=1, active_field=0, bg_depth=0.0):
+        self.num_arms = num_arms
+        self.tightness = tightness
+        self.amplitude = amplitude
+        self.num_fields = num_fields
+        self.active_field = active_field
+        self.bg_depth = bg_depth
+
+    def __call__(self, grid):
+        if grid.ndim != 2:
+            raise NotImplementedError("SpiralIC only supports 2D grids.")
+            
+        y, x = grid.coordinates
+        yc = 0.5 * (y.max() + y.min())
+        xc = 0.5 * (x.max() + x.min())
+        
+        r = np.sqrt((x - xc)**2 + (y - yc)**2)
+        theta = np.arctan2(y - yc, x - xc)
+        
+        val = np.sin(self.num_arms * theta - self.tightness * r)
+        R_max = 0.5 * min(x.max() - x.min(), y.max() - y.min())
+        fade = np.exp(-r**2 / (2 * (0.4 * R_max)**2))
+        
+        pos = self.bg_depth + self.amplitude * val * fade
+        state = np.zeros((self.num_fields, *grid.shape))
+        state[self.active_field] = pos
+        return state
+
+
+class GaussianIslandsIC(InitialCondition):
+    """Multiple Gaussian humps representing islands or column anomalies for all PDEs."""
+    __name__ = "gaussian_islands"
+
+    def __init__(self, num_islands=5, island_height=2.0, sigma=0.1, seed=24, num_fields=1, active_field=0, bg_depth=0.0):
+        self.num_islands = num_islands
+        self.island_height = island_height
+        self.sigma = sigma
+        self.seed = seed
+        self.num_fields = num_fields
+        self.active_field = active_field
+        self.bg_depth = bg_depth
+
+    def __call__(self, grid):
+        np.random.seed(self.seed)
+        
+        mins = [coord.min() for coord in grid.coordinates]
+        maxs = [coord.max() for coord in grid.coordinates]
+        lens = [maxs[d] - mins[d] for d in range(grid.ndim)]
+        
+        pos = np.ones(grid.shape) * self.bg_depth
+        for _ in range(self.num_islands):
+            island_center = [mins[d] + np.random.rand() * lens[d] for d in range(grid.ndim)]
+            r2 = 0.0
+            for d in range(grid.ndim):
+                coord = grid.coordinates[d]
+                r2 += (coord - island_center[d])**2
+            pos += self.island_height * np.exp(-r2 / (2 * self.sigma**2))
+            
+        state = np.zeros((self.num_fields, *grid.shape))
+        state[self.active_field] = pos
+        return state
+

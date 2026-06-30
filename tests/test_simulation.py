@@ -117,9 +117,57 @@ def test_new_sw_ics():
     results3 = sim3.run()
     assert results3.final_state.data.shape == (3, 10, 10)
 
+def test_new_generic_ics():
+    from src.physics.init_conditions import DoubleGaussianIC, SineWaveIC, SpiralIC, GaussianIslandsIC, CheckerboardIC
+    from src.physics.equations import AdvectionEquation, DiffusionEquation
+    from src.numerics.operators import upwind, laplacian
+    from src.numerics.integrators import euler, rk4
+    from src.mesh.boundaries import periodic
+    
+    # Test DoubleGaussianIC (1D)
+    cfg1 = SimulationConfig(
+        shape=(20,), spacing=(0.1,), dt=0.01, final_time=0.02, steps_per_frame=1,
+        equation=AdvectionEquation(velocity=1.0), operator=upwind, boundary=periodic, integrator=euler,
+        initial_condition=DoubleGaussianIC()
+    )
+    assert Simulation(cfg1).run().final_state.data.shape == (1, 20)
+    
+    # Test SineWaveIC (2D)
+    cfg2 = SimulationConfig(
+        shape=(10, 10), spacing=(0.1, 0.1), dt=0.01, final_time=0.02, steps_per_frame=1,
+        equation=DiffusionEquation(diffusivity=1.0), operator=laplacian, boundary=periodic, integrator=rk4,
+        initial_condition=SineWaveIC()
+    )
+    assert Simulation(cfg2).run().final_state.data.shape == (1, 10, 10)
+    
+    # Test SpiralIC (2D)
+    cfg3 = SimulationConfig(
+        shape=(10, 10), spacing=(0.1, 0.1), dt=0.01, final_time=0.02, steps_per_frame=1,
+        equation=DiffusionEquation(diffusivity=1.0), operator=laplacian, boundary=periodic, integrator=rk4,
+        initial_condition=SpiralIC()
+    )
+    assert Simulation(cfg3).run().final_state.data.shape == (1, 10, 10)
+    
+    # Test GaussianIslandsIC (2D)
+    cfg4 = SimulationConfig(
+        shape=(10, 10), spacing=(0.1, 0.1), dt=0.01, final_time=0.02, steps_per_frame=1,
+        equation=DiffusionEquation(diffusivity=1.0), operator=laplacian, boundary=periodic, integrator=rk4,
+        initial_condition=GaussianIslandsIC()
+    )
+    assert Simulation(cfg4).run().final_state.data.shape == (1, 10, 10)
+
+    # Test CheckerboardIC (2D)
+    cfg5 = SimulationConfig(
+        shape=(10, 10), spacing=(0.1, 0.1), dt=0.01, final_time=0.02, steps_per_frame=1,
+        equation=DiffusionEquation(diffusivity=1.0), operator=laplacian, boundary=periodic, integrator=rk4,
+        initial_condition=CheckerboardIC()
+    )
+    assert Simulation(cfg5).run().final_state.data.shape == (1, 10, 10)
+
 if __name__ == "__main__":
     test_simulation_runs()
     test_2d_shallow_water_rk4()
     test_2d_wave_validation()
     test_new_sw_ics()
+    test_new_generic_ics()
     print("All integration tests passed!")
