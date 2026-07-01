@@ -119,8 +119,8 @@ Implemented PDEs
 - Linear advection
 - Diffusion
 - Wave propagation
+- - Burgers' equation
 - Shallow water equations
-- Burgers' equation
 
 Validation Diagnostics
 - Energy tracking
