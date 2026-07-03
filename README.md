@@ -1,5 +1,5 @@
 # Tempest
-A modular framework for simulating, validating, and learning PDE evolution operators.<br>
+### A modular framework for simulating, validating, and learning PDE evolution operators.<br>
 
 Tempest combines numerical simulation, rigorous validation, and operator learning to study time-dependent physical systems governed by partial differential equations.
 
