@@ -108,30 +108,30 @@ The full optimization process, experiments, and failure analysis are documented 
 
 ## Current capabilities:
 
-Simulation infrastructure
+**Simulation infrastructure**
 - Structured 1D and 2D grids
 - Configurable boundary conditions
 - Object-oriented initial conditions
 - Automated experiment pipeline
 
-Implemented PDEs
+**Implemented PDEs**
 - Linear advection
 - Diffusion
 - Wave propagation
 - Burgers' equation
 - Shallow water equations
 
-Numerical Methods
+**Numerical Methods**
 - **Integration**: Explicit Euler, Runge-Kutta 4 (RK4), Leapfrog, Lax-Friedrichs, Lax-Wendroff
 - **Spatial Operators**: Upwind gradients, Central gradients, Laplacian
 
-Validation & Diagnostics
+**Validation & Diagnostics**
 - Energy tracking
 - Stability monitoring
 - Error analysis
 - Convergence study
 
-Scientific Machine Learning
+**Scientific Machine Learning**
 - Lightweight model for quick training and outputs
 - Ongoing development of generalized PDE evolution surrogates
 
