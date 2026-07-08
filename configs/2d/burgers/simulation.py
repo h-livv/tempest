@@ -5,7 +5,7 @@ from src.physics import equations, init_conditions
 
 grid_configs = [
     {
-        "N": (50, 50),
+        "N": (100, 100),
         "dx": (0.05, 0.05),
         "dt": 0.01
     }

@@ -14,9 +14,9 @@ grid_configs = [
 # Define custom conditions for automated pipeline, as many parameters as required
 initial_conditions = [init_conditions.GaussianIC(sigma=0.05)]
 boundary_functions = [boundaries.periodic]
-operators_list = [operators.upwind]
+operators_list = [operators.gradient]
 equations_list = [equations.AdvectionEquation(velocity=np.array([1.0, 1.0]).reshape(2, 1, 1))]
-integrators_list = [flux_methods.lax_w]
+integrators_list = [integrators.rk4]
 
 FINAL_TIME = 5.0
 STEPS_PER_FRAME = 2   # animation only: steps between plot refreshes
