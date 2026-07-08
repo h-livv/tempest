@@ -12,8 +12,8 @@ grid_configs = [
 ]
 
 # Using a standard 2D Gaussian IC for a scalar field
-initial_conditions = [init_conditions.GaussianIC(sigma=0.6)]
-boundary_functions = [boundaries.periodic]
+initial_conditions = [init_conditions.BurgersTravelingShockIC()]
+boundary_functions = [boundaries.Dirichlet(2.0, 1.0)]
 operators_list = [operators.gradient] # For Lax-Wendroff, the operator argument is passed, even though the solver mainly uses flux
 equations_list = [equations.BurgersEquation(viscosity=0.001)]
 integrators_list = [flux_methods.lax_f]
@@ -21,4 +21,4 @@ integrators_list = [flux_methods.lax_f]
 FINAL_TIME = 1
 STEPS_PER_FRAME = 1
 RECORD_INTERVAL = 1
-VISUAL_MODE = True
+VISUAL_MODE = False

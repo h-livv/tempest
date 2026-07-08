@@ -21,6 +21,7 @@ env/
 Thumbs.db
 
 ml/runs/
+ml/spectral/outputs
 
 # large outputs
 external_data/
@@ -42,7 +43,7 @@ wandb/
 logs/
 
 # videos
-*.mp4
+#*.mp4
 
 # temp
 tmp/

@@ -33,6 +33,35 @@ class GaussianIC(InitialCondition):
         state[self.active_field] = pos
         return state
 
+class ShiftedGaussianIC(InitialCondition):
+    """A reusable Gaussian initial condition."""
+    __name__ = "shifted_gaussian"
+    
+    def __init__(self, center_ratio=0.25, sigma=0.05, amplitude=2.0, num_fields=1, active_field=0, use_L_for_center=False):
+        self.center_ratio = center_ratio
+        self.sigma = sigma
+        self.amplitude = amplitude
+        self.num_fields = num_fields
+        self.active_field = active_field
+        self.use_L_for_center = use_L_for_center
+
+    def __call__(self, grid):
+        r2 = 0.0
+        for d in range(grid.ndim):
+            coord = grid.coordinates[d]
+            if self.use_L_for_center:
+                L = coord.max() + grid.spacing[d]
+                center = self.center_ratio * L
+            else:
+                center = self.center_ratio * coord.max()
+            r2 += (coord - center)**2
+            
+        pos = self.amplitude * np.exp(-r2 / (2 * self.sigma**2))
+        state = np.zeros((self.num_fields, *grid.shape))
+        state[self.active_field] = pos
+        return state
+
+
 class SquareIC(InitialCondition):
     """A reusable square pulse initial condition."""
     __name__ = "square"

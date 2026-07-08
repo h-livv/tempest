@@ -11,7 +11,16 @@ grid_configs = [
 ]
 
 #Define custom conditions for automated pipeline, as many parameters as required
-initial_conditions = [init_conditions.GaussianIC(sigma=2.0, num_fields=2, use_L_for_center=True)]
+# Wave equation requires [displacement, velocity]; keep velocity zero at t=0.
+WAVE_NUM_FIELDS = 2
+
+initial_conditions = [
+    init_conditions.GaussianIC(num_fields=WAVE_NUM_FIELDS),
+    init_conditions.SquareIC(num_fields=WAVE_NUM_FIELDS),
+    init_conditions.ShiftedGaussianIC(num_fields=WAVE_NUM_FIELDS),
+    init_conditions.SineWaveIC(num_fields=WAVE_NUM_FIELDS),
+    init_conditions.DoubleGaussianIC(num_fields=WAVE_NUM_FIELDS, speed=0.0),
+]
 boundary_functions = [boundaries.periodic]
 operators_list = [operators.laplacian]
 equations_list = [equations.WaveEquation(wave_speed=1.0)]
