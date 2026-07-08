@@ -1,7 +1,7 @@
 # Tempest
 ### A modular framework for simulating, validating, and learning PDE evolution operators.<br>
 
-Tempest combines numerical simulation, rigorous validation, and operator learning to study time-dependent physical systems governed by partial differential equations.
+Tempest is a modular framework for numerical simulation, validation, and scientific machine learning of time-dependent partial differential equations.
 
 ---
 
@@ -24,21 +24,61 @@ Tempest combines numerical simulation, rigorous validation, and operator learnin
 
 ## Validation & Convergence
 
-Tempest includes an automated validation and convergence testing pipeline designed to rigorously verify physical fidelity and asymptotic grid convergence across hyperbolic, parabolic, and conservative PDE systems.
+Tempest includes an automated validation and convergence framework for verifying physical fidelity, stability, and asymptotic accuracy across implemented PDEs.
 
-**Numerical findings**
+**Key numerical findings**
 
-* **The Diffusion-Dispersion Tradeoff (Advection):** Contrasts the severe artificial dissipation of upwind schemes against the dispersive nature of central differencing.
-* **Spatial Error Dominance (Diffusion):** Under parabolic stability constraints, spatial truncation error overwhelmingly dominates. Computationally expensive higher-order time integrators (like RK4) offer no practical advantage over Forward Euler for explicitly integrated diffusion.
-* **Hamiltonian Conservation (Wave Equation):** While standard RK4 introduces truncation-induced energy fluctuations, Tempest's symplectic Leapfrog implementation perfectly preserves the shadow Hamiltonian, maintaining total system energy.
-* **Shock-Capturing Limitations (Shallow Water Equations):** Captures the fundamental breakdown of standard linear schemes in discontinuous regimes (e.g., dam breaks). Artificial viscosity in Lax-Friedrichs yields sub-first-order convergence, while Lax-Wendroff suffers from severe numerical dispersion and Gibbs oscillations in the presence of infinite gradients.
-* **Limitations of boundary conditions in shock-based systems (Burgers' Equation):** Periodic boundary conditions encounter critical physics discrepancies with shock-based PDEs such as the Burgers' equation. The periodic expansion jump forms a rarefaction fan which alters the shock so it no longer represents the same physical problem. A Dirichlet boundary condition strictly holds the boundaries at the values the analytical domain requires.
+- **Advection:** Demonstrates the classical diffusion–dispersion tradeoff between upwind and central difference schemes.
+- **Diffusion:** Confirms spatial error dominates under parabolic stability constraints, making higher-order time integrators unnecessary.
+- **Wave Equation:** Leapfrog preserves the system's shadow Hamiltonian, while RK4 exhibits long-term energy drift.
+- **Shallow Water Equations:** Investigates shock-capturing limitations of Lax–Friedrichs and Lax–Wendroff schemes.
+- **Burgers' Equation:** Highlights the influence of boundary conditions on shock evolution and analytical agreement.
 
-The full formal methodology paper is available in [docs/validation_study_final.md](./docs/validation_study_final.md)
+Further details are available in:
 
-Burgers' equation validation and convergence: [docs/burgers_validation.md](./docs/burgers_validation.md)
+- [Validation Study](docs/validation_study_final.md)
+- [Burgers Validation](docs/burgers_validation.md)
 
-(Detailed numerical outputs, comparisons, and convergence CSVs are available in the `/outputs` directory).
+Detailed validation outputs, convergence studies, and numerical diagnostics are available in the `/outputs` directory.
+
+---
+
+## Features
+
+**Simulation infrastructure**
+- Structured 1D and 2D grids
+- Configurable boundary conditions
+- Object-oriented initial conditions
+- Automated experiment pipeline
+
+**Implemented PDEs**
+- Linear advection
+- Diffusion
+- Wave propagation
+- Burgers' equation
+- Shallow water equations
+
+**Time Integrators**
+- Explicit Euler
+- Runge–Kutta 4 (RK4)
+- Leapfrog
+
+**Finite Difference Schemes**
+- Upwind
+- Central Difference
+- Lax–Friedrichs
+- Lax–Wendroff
+- Laplacian
+
+**Validation & Diagnostics**
+- Energy tracking
+- Stability monitoring
+- Error analysis
+- Convergence study
+
+**Scientific Machine Learning**
+- Experimental CNN and spectral surrogate models for PDE evolution
+- Foundation for generalized neural operators and Fourier Neural Operators (FNOs)
 
 ---
 
@@ -86,54 +126,26 @@ results = Simulation(config).run()
 
 ## Scientific Machine Learning
 
-Tempest includes an experimental machine learning pipeline for learning numerical evolution operators directly from simulated PDE trajectories.
+Tempest includes an experimental Scientific Machine Learning (SciML) framework for learning PDE evolution operators directly from high-fidelity numerical simulations.
 
-Current work focuses on an autoregressive neural surrogate for the linear advection equation, developed as a first step toward generalized learned PDE evolution operators.
+Current work investigates both convolutional and spectral surrogate models for the linear advection equation, serving as a stepping stone toward neural operator architectures such as Fourier Neural Operators (FNOs).
 
-**Key highlights:**
+**Current capabilities:**
 
-* Lightweight 1D CNN architecture
-* Stable autoregressive rollout over 10,000+ timesteps
-* Strong shape and energy conservation
-* Generalization to previously unseen initial conditions
-* Translation-consistent wave transport
-* Near-instant rollout generation after training
+- Lightweight 1D CNN surrogate with stable autoregressive rollout
+- Experimental Fourier-domain surrogate operating directly on spectral coefficients
+- Long-horizon prediction over 10,000+ timesteps
+- Strong conservation of transported waveforms
+- Generalization to unseen initial conditions and waveform combinations
+- Systematic analysis of stability, numerical artifacts, and translation equivariance
+- Near real-time autoregressive inference after training
 
-The full optimization process, experiments, and failure analysis are documented in:
+The complete development process, experiments, and analyses are documented in:
 
-* [docs/surrogate_setup.md](./docs/surrogate_setup.md)
-* [docs/surrogate_evolution.md](./docs/advec_surrogate.md)
+- [CNN Surrogate](docs/CNN_surrogate.md)
+- [Spectral Surrogate](docs/spectral_surrogate.md)
 
----
-
-## Current capabilities:
-
-**Simulation infrastructure**
-- Structured 1D and 2D grids
-- Configurable boundary conditions
-- Object-oriented initial conditions
-- Automated experiment pipeline
-
-**Implemented PDEs**
-- Linear advection
-- Diffusion
-- Wave propagation
-- Burgers' equation
-- Shallow water equations
-
-**Numerical Methods**
-- **Integration**: Explicit Euler, Runge-Kutta 4 (RK4), Leapfrog, Lax-Friedrichs, Lax-Wendroff
-- **Spatial Operators**: Upwind gradients, Central gradients, Laplacian
-
-**Validation & Diagnostics**
-- Energy tracking
-- Stability monitoring
-- Error analysis
-- Convergence study
-
-**Scientific Machine Learning**
-- Lightweight model for quick training and outputs
-- Ongoing development of generalized PDE evolution surrogates
+These investigations form the foundation for future work on neural operators, spectral PDE solvers, and learned scientific simulators within Tempest.
 
 ---
 
@@ -146,10 +158,10 @@ Tempest/
 ├── docs/                     # Formal mathematical documentation and studies
 ├── ml/                       # Code and outputs related to machine learning
 ├── outputs/                  # Structured CI/CT CSV outputs and validation data
-├── src/                      # Core PDE Evolution Engine
+├── src/                      # Core Simulation Engine
 │   ├── core/                 # Simulation clock, state management, and orchestration
 │   ├── mesh/                 # Grid, Fields, and Boundary condition abstractions
-│   ├── physics/              # Equations and InitialConditions encapsulated as objects
+│   ├── physics/              # Physical models, governing equations, and initial conditions
 │   ├── numerics/             # Finite difference operators, Integrators, and Direct solvers
 │   ├── validation/           # Analytical validation solutions
 │   ├── visualization/        # Decoupled visualization/plotting architecture
@@ -176,18 +188,18 @@ Tempest/
 **Geophysical Flows**
 - Tsunami propagation
 
-### Framework Development
-
-- Additional PDE families
-- Higher-dimensional validation
-- GPU acceleration
-
 ### Scientific Machine Learning
 
 - Multi-dimensional surrogates
 - Neural operators
 - Fourier operator learning
 - Hybrid numerical–learned solvers
+
+### Framework Development
+
+- Additional PDE families
+- Higher-dimensional validation
+- GPU acceleration
 
 ---
 
