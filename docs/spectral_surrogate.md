@@ -70,13 +70,7 @@ The surrogate was evaluated on long autoregressive rollouts by repeatedly feedin
 
 The surrogate performed exceptionally well when the Gaussian was centred at its training location, prediction accuracy deteriorated rapidly when evaluated on translated Gaussian profiles.
 
-<video width="500" autoplay loop muted playsinline>
-  <source src="assets/spectral_surrogate/rollout_gaussian.mp4" type="video/mp4">
-</video>
-<video width="500" autoplay loop muted playsinline>
-  <source src="assets/spectral_surrogate/rollout_shifted.mp4" type="video/mp4">
-</video>
-<br>
+<img src="assets/spectral_surrogate/rollout_gaussian.gif" alt="rollout_gauss" width="500"><img src="assets/spectral_surrogate/rollout_shifted.gif" alt="rolllout_shift" width="500"><br>
 
 To quantify this behaviour, the trained model was frozen and evaluated on identical Gaussian profiles with varying centre locations.
 
