@@ -23,14 +23,17 @@ class Equation:
     def wave_speed(self, padded_state):
         raise NotImplementedError
 
-    def source(self, padded_state, dx):
-        return None
+    #def source(self, padded_state, dx):
+        #return None
 
     def compute_energies(self, state_data, dx, boundary):
         """Generic energy computation (L2 norm)."""
         dV = np.prod(dx)
         total_e = np.sum(state_data**2) * dV
         return 0.0, 0.0, total_e
+
+    def source(self, t, state, grid):
+        return np.zeros_like(state)
 
 
 class AdvectionEquation(Equation):
@@ -131,9 +134,9 @@ class WaveEquation(Equation):
         f2 = -(self.wave_speed_val**2) * padded_grad_u
         return np.stack([f1, f2], axis=0)
 
-    def source(self, padded_state, dx):
-        u, v = padded_state
-        return np.stack([v, np.zeros_like(v)], axis=0)
+    #def source(self, padded_state, dx):
+        #u, v = padded_state
+        #return np.stack([v, np.zeros_like(v)], axis=0)
 
     def wave_speed(self, padded_state):
         return self.wave_speed_val
@@ -364,3 +367,38 @@ class BurgersEquation(Equation):
         dV = np.prod(dx)
         total_e = np.sum(0.5 * state_data**2) * dV
         return 0.0, 0.0, total_e
+
+class RossbyWave(Equation):
+    """Rossby wave equation."""
+    def __init__(self, beta, source=None):
+        self.__name__ = 'rossby_wave'
+        self.beta = beta
+        self.poisson = None
+        self.source = source
+        self.spatial_order = 1
+
+    def parity(self, grid_ndim):
+        return [-1]
+
+    def __call__(self, t, state_data, dx, boundary, operator):
+
+        q = state_data[0]
+
+        if self.poisson is None:
+            self.poisson = operators.PoissonSolver(q.shape, dx)
+
+        psi = self.poisson.solve(q)
+
+        padded_psi = boundary(psi, len(dx), self.parity(len(dx)))
+
+        dpsi_dx = operators.gradient(padded_psi, dx)[1]
+
+        dq_dt = -self.beta*dpsi_dx
+
+        rhs = np.stack([dq_dt], axis=0)
+
+        if self.source is not None:
+            src = self.source(t)
+            rhs += src
+
+        return rhs

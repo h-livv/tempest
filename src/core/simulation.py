@@ -48,8 +48,13 @@ class Simulation:
         """
         self.config = config
 
-        # Construct spatial coordinates
+        # Construct spatial coordinates first — must precede source.initialize()
         self.grid = Grid(shape=config.shape, spacing=config.spacing)
+
+        self.source = config.source
+
+        if self.source is not None:
+            self.source.initialize(self.grid)
 
         # Build initial physical state using injected InitialCondition callable
         raw = config.initial_condition(self.grid)
@@ -67,6 +72,10 @@ class Simulation:
         # Pull equation object from config
         self.equation = self.config.equation
 
+        # Initialize any source that lives directly on the equation object
+        if hasattr(self.equation, 'source') and self.equation.source is not None:
+            self.equation.source.initialize(self.grid)
+
         # Tracker for diagnostics outputs
         self.tracker = DataTracker(
             final_time=config.final_time,
@@ -74,6 +83,8 @@ class Simulation:
             record_interval=config.record_interval,
             grid_size=self.grid.shape,
         )
+
+
 
     # ------------------------------------------------------------------
     # Internal Helpers

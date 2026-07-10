@@ -60,6 +60,7 @@ from dataclasses import dataclass
 from typing import Callable, Union
 from src.physics.init_conditions import InitialCondition
 from src.physics.equations import Equation
+from src.physics.sources import Source
 
 
 @dataclass
@@ -92,3 +93,8 @@ class SimulationConfig:
     # Signature: initial_condition(grid) -> Field | np.ndarray
     # Independent of the equation; reusable across any PDE.
     initial_condition: Union[Callable, InitialCondition, None] = None
+
+    # ------------------------------------------------------------------
+    # Source
+    # ------------------------------------------------------------------
+    source: Union[Callable, Source, None] = None

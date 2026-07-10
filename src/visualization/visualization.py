@@ -2,6 +2,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.gridspec as gridspec
 from src.visualization.renderers import RendererRegistry
+from src.visualization.theme import (
+    apply_dashboard_theme,
+    ENERGY_KE,
+    ENERGY_LOSS,
+    ENERGY_PE,
+    ENERGY_TOTAL,
+    style_axis,
+)
 
 class TempestVisualizer:
     def __init__(
@@ -54,6 +62,8 @@ class TempestVisualizer:
 
         renderer_class = RendererRegistry.resolve(initial_state)
 
+        apply_dashboard_theme()
+
         # Unified Figure & GridSpec
         self.fig = plt.figure(num="Tempest Unified Dashboard", figsize=(14, 8), dpi=100)
         
@@ -80,12 +90,12 @@ class TempestVisualizer:
         self.ax_energy = self.fig.add_subplot(self.slots['energy'])
         self.ax_energy.set_xlabel("Elapsed Time (t)")
         self.ax_energy.set_ylabel("Energy")
-        self.ax_energy.grid(True, linestyle="--", alpha=0.5)
+        style_axis(self.ax_energy, grid_style="--", grid_alpha=0.5)
 
-        self.line_pe, = self.ax_energy.plot([], [], color="#ffaa00", lw=2, label="PE")
-        self.line_ke, = self.ax_energy.plot([], [], color="#ff007f", lw=2, label="KE")
-        self.line_total, = self.ax_energy.plot([], [], color="#00ff00", lw=2.5, label="Total E")
-        self.line_loss, = self.ax_energy.plot([], [], color="#ff3333", linestyle="--", lw=2, label="Loss")
+        self.line_pe, = self.ax_energy.plot([], [], color=ENERGY_PE, lw=2, label="PE")
+        self.line_ke, = self.ax_energy.plot([], [], color=ENERGY_KE, lw=2, label="KE")
+        self.line_total, = self.ax_energy.plot([], [], color=ENERGY_TOTAL, lw=2.5, label="Total E")
+        self.line_loss, = self.ax_energy.plot([], [], color=ENERGY_LOSS, linestyle="--", lw=2, label="Loss")
         self.ax_energy.legend(loc="upper right")
         self.ax_energy.set_xlim(0, self.final_time)
         self.energy_axis_initialized = False

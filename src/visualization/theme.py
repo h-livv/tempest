@@ -1,0 +1,83 @@
+"""Dark theme palette and styling helpers for the Tempest Unified Dashboard."""
+
+import matplotlib.pyplot as plt
+
+# Core palette — black background, cyan data, muted grey chrome
+BACKGROUND = "#000000"
+AXES_FACE = "#000000"
+TEXT = "#a9a9a9"
+TITLE = "#cccccc"
+GRID = "#808080"
+PRIMARY = "#00CED1"
+SECONDARY = "#ff6b9d"
+SURFACE_FACE = "#001515"
+SURFACE_EDGE = "#00CED1"
+TELEMETRY_BG = "#1a1a1a"
+TELEMETRY_TEXT = "#cccccc"
+
+ENERGY_PE = "#ffb347"
+ENERGY_KE = "#ff6b9d"
+ENERGY_TOTAL = "#00ff88"
+ENERGY_LOSS = "#ff5555"
+
+DASHBOARD_RCPARAMS = {
+    "figure.facecolor": BACKGROUND,
+    "axes.facecolor": AXES_FACE,
+    "axes.edgecolor": GRID,
+    "axes.labelcolor": TEXT,
+    "axes.titlecolor": TITLE,
+    "xtick.color": TEXT,
+    "ytick.color": TEXT,
+    "text.color": TEXT,
+    "grid.color": GRID,
+    "legend.facecolor": "#1a1a1a",
+    "legend.edgecolor": GRID,
+    "legend.labelcolor": TEXT,
+}
+
+
+def apply_dashboard_theme():
+    plt.rcParams.update(DASHBOARD_RCPARAMS)
+
+
+def style_axis(ax, grid=True, grid_alpha=0.5, grid_style="-", grid_width=1.0):
+    ax.set_facecolor(AXES_FACE)
+    if grid:
+        ax.grid(
+            True,
+            which="both",
+            color=GRID,
+            linestyle=grid_style,
+            linewidth=grid_width,
+            alpha=grid_alpha,
+        )
+    ax.tick_params(colors=TEXT)
+    ax.xaxis.label.set_color(TEXT)
+    ax.yaxis.label.set_color(TEXT)
+    ax.title.set_color(TITLE)
+
+
+def style_3d_axis(ax, grid=True, grid_alpha=0.5):
+    ax.set_facecolor(AXES_FACE)
+    if grid:
+        ax.grid(True, which="both", color=GRID, linestyle="-", linewidth=1.0, alpha=grid_alpha)
+    ax.tick_params(colors=TEXT)
+    ax.xaxis.label.set_color(TEXT)
+    ax.yaxis.label.set_color(TEXT)
+    ax.zaxis.label.set_color(TEXT)
+    ax.title.set_color(TITLE)
+    for axis in (ax.xaxis, ax.yaxis, ax.zaxis):
+        axis.pane.fill = False
+        axis.pane.set_edgecolor(GRID)
+        axis.pane.set_alpha(0.3)
+        axis._axinfo["grid"]["color"] = GRID
+        axis._axinfo["grid"]["alpha"] = grid_alpha
+
+
+def style_colorbar(cbar, label=None):
+    cbar.ax.yaxis.set_tick_params(color=TEXT)
+    cbar.outline.set_edgecolor(GRID)
+    if label:
+        cbar.set_label(label, color=TEXT)
+    elif cbar.ax.yaxis.label:
+        cbar.ax.yaxis.label.set_color(TEXT)
