@@ -32,8 +32,8 @@ class Equation:
         total_e = np.sum(state_data**2) * dV
         return 0.0, 0.0, total_e
 
-    def source(self, t, state, grid):
-        return np.zeros_like(state)
+    #def source(self, t, state, grid):
+        #return np.zeros_like(state)
 
 
 class AdvectionEquation(Equation):
@@ -235,7 +235,7 @@ class ShallowWaterEquation(Equation):
             
         return np.concatenate([dh_dt[np.newaxis, ...], dv_dt], axis=0)
 
-    def flux(self, padded_cons, dx):
+    def flux(self, padded_cons, dx, **kwargs):
         """Returns system flux tensor: shape (num_components, grid_ndim, ...)"""
         grid_ndim = len(dx)
         h = padded_cons[0]
@@ -402,3 +402,20 @@ class RossbyWave(Equation):
             rhs += src
 
         return rhs
+
+    def compute_energies(self, state_data, dx, boundary):
+        dV = np.prod(dx)
+        q = state_data[0]
+
+        if self.poisson is None:
+            self.poisson = operators.PoissonSolver(q.shape, dx)
+
+        psi = self.poisson.solve(q)
+
+        padded_psi = boundary(psi, len(dx), self.parity(len(dx)))
+
+        dpsi_dx = operators.gradient(padded_psi, dx)[1]
+        dpsi_dy = operators.gradient(padded_psi, dx)[0]
+
+        energy = 0.5 * np.sum(dpsi_dx**2 + dpsi_dy**2) * dV
+        return 0.0, 0.0, energy
