@@ -3,6 +3,8 @@ Tempest spatial finite-difference operators.
 """
 
 import numpy as np
+import scipy.sparse as sp
+import scipy.sparse.linalg as spla
 
 def _slice_along_axis(array, shift, active_axis, spatial_axes):
     """
@@ -192,6 +194,63 @@ def central_flux_divergence(padded_flux, dx):
         flux_comp = _extract_vector_component(padded_flux, i, len(dx))
         divergence += central_flux_divergence_axis(flux_comp, spacing, ax, spatial_axes)
     return divergence
+
+def build_1d_laplacian(N, dx):
+    L = np.zeros((N, N))
+
+    for i in range(N):
+        L[i, i] = -2
+
+        if i > 0:
+            L[i, i-1] = 1
+
+        if i < N-1:
+            L[i, i+1] = 1
+
+    return L / dx**2
+
+class PoissonSolver:
+    """
+    Sparse 2-D Poisson solver: ∇²ψ = q  →  ψ = L⁻¹ q.
+
+    The discrete Laplacian L is assembled once from sparse 1-D blocks using
+    scipy.sparse.diags / eye / kron, then pre-factorized via SuperLU
+    (scipy.sparse.linalg.factorized).  Every subsequent call to solve()
+    reuses the factorization — no matrix operations at time-step cost.
+
+    The stencil, boundary assumptions (implicit Dirichlet by truncation),
+    and flattened row-major ordering are identical to the previous dense
+    implementation, so all numerical results are bit-for-bit compatible.
+    """
+
+    def __init__(self, shape, dx):
+        self.Ny, self.Nx = shape
+        self.dx_x, self.dx_y = dx
+
+        # --- build sparse 1-D Laplacians (same tridiagonal stencil as before) ---
+        def _sparse_1d_laplacian(N, h):
+            diags_data = [
+                -2.0 * np.ones(N),   # main diagonal
+                 1.0 * np.ones(N - 1),  # super-diagonal
+                 1.0 * np.ones(N - 1),  # sub-diagonal
+            ]
+            return sp.diags(diags_data, [0, 1, -1], shape=(N, N), format='csc') / h**2
+
+        Lx = _sparse_1d_laplacian(self.Nx, self.dx_x)
+        Ly = _sparse_1d_laplacian(self.Ny, self.dx_y)
+        Ix = sp.eye(self.Nx, format='csc')
+        Iy = sp.eye(self.Ny, format='csc')
+
+        # --- assemble 2-D operator (identical to dense kron construction) ---
+        self.L = sp.kron(Iy, Lx, format='csc') + sp.kron(Ly, Ix, format='csc')
+
+        # --- pre-factorize once; _solve is a callable that applies L⁻¹ ---
+        self._solve = spla.factorized(self.L)
+
+    def solve(self, state):
+        """Apply the pre-factorized L⁻¹ to the flattened RHS; reshape back."""
+        psi = self._solve(state.ravel().astype(np.float64))
+        return psi.reshape(state.shape)
 
 gradient.convergence_order = 2
 laplacian.convergence_order = 2

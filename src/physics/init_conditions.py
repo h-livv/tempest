@@ -757,3 +757,67 @@ class GaussianIslandsIC(InitialCondition):
         state[self.active_field] = pos
         return state
 
+class RossbyGaussianVorticityIC(InitialCondition):
+    """A Gaussian vortex for the Rossby wave equation."""
+    __name__ = "rossby_gaussian_vortex"
+
+    def __init__(self, center_ratio=0.5, sigma=0.05, amplitude=1.0, num_fields=1, active_field=0):
+        self.center_ratio = center_ratio
+        self.sigma = sigma
+        self.amplitude = amplitude
+        self.num_fields = num_fields
+        self.active_field = active_field
+
+    def __call__(self, grid):
+        if grid.ndim != 2:
+            raise NotImplementedError("RossbyGaussianVortexIC only supports 2D grids.")
+
+        y, x = grid.coordinates
+        yc = y.min() + self.center_ratio * (y.max() - y.min())
+        xc = x.min() + self.center_ratio * (x.max() - x.min())
+
+        r = (x - xc)**2 + (y - yc)**2
+
+        val = self.amplitude*np.exp(-r / (2 * self.sigma**2))
+
+        state = np.zeros((self.num_fields, *grid.shape))
+        state[self.active_field] = val
+        return state
+
+class RossbySinusoidalVorticityIC(InitialCondition):
+    """A sinusoidal vorticity field for Rossby wave validation."""
+    __name__ = "rossby_sinusoidal_vorticity"
+
+    def __init__(self,
+                 kx=1,
+                 ky=1,
+                 amplitude=1.0,
+                 num_fields=1,
+                 active_field=0):
+        self.kx = kx
+        self.ky = ky
+        self.amplitude = amplitude
+        self.num_fields = num_fields
+        self.active_field = active_field
+
+    def __call__(self, grid):
+        if grid.ndim != 2:
+            raise NotImplementedError(
+                "RossbySinusoidalVorticityIC only supports 2D grids."
+            )
+
+        y, x = grid.coordinates
+
+        # Normalize coordinates to [0, 1]
+        x_norm = (x - x.min()) / (x.max() - x.min())
+        y_norm = (y - y.min()) / (y.max() - y.min())
+
+        val = (
+            self.amplitude
+            * np.sin(2 * np.pi * self.kx * x_norm)
+            * np.sin(2 * np.pi * self.ky * y_norm)
+        )
+
+        state = np.zeros((self.num_fields, *grid.shape))
+        state[self.active_field] = val
+        return state

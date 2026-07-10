@@ -1012,3 +1012,7 @@ Timestamp,Module,Run Type,Equation,Operator,Initial Condition,Path,Metadata
 2026-07-09 02:38:18,main,sweep,wave,laplacian,shifted_gaussian,outputs/wave/1D/validation/wave_leapfrog_laplacian_shifted_gaussian_N200_20260709_023817,"{'N': 200, 'dt': 0.002, 'dx': 0.005}"
 2026-07-09 02:38:18,main,sweep,wave,laplacian,gaussian,outputs/wave/1D/validation/wave_leapfrog_laplacian_gaussian_N200_20260709_023817,"{'N': 200, 'dt': 0.002, 'dx': 0.005}"
 2026-07-09 02:38:18,main,sweep,wave,laplacian,square,outputs/wave/1D/validation/wave_leapfrog_laplacian_square_N200_20260709_023817,"{'N': 200, 'dt': 0.002, 'dx': 0.005}"
+2026-07-10 14:01:59,main,single,rossby_wave,gradient,rossby_gaussian_vortex,"outputs/rossby_wave/2D/validation/rossby_wave_rk4_gradient_rossby_gaussian_vortex_N(20, 20)_20260710_140140","{'N': (20, 20), 'dt': 0.1, 'dx': (0.1, 0.1)}"
+2026-07-10 14:02:35,main,single,rossby_wave,gradient,rossby_gaussian_vortex,"outputs/rossby_wave/2D/validation/rossby_wave_rk4_gradient_rossby_gaussian_vortex_N(20, 20)_20260710_140231","{'N': (20, 20), 'dt': 0.1, 'dx': (0.1, 0.1)}"
+2026-07-10 14:30:48,main,single,rossby_wave,gradient,constant,"outputs/rossby_wave/2D/validation/rossby_wave_rk4_gradient_constant_N(100, 100)_20260710_143047","{'N': (100, 100), 'dt': 0.01, 'dx': (0.02, 0.02)}"
+2026-07-10 14:44:48,main,single,rossby_wave,gradient,constant,"outputs/rossby_wave/2D/validation/rossby_wave_rk4_gradient_constant_N(100, 100)_20260710_144433","{'N': (100, 100), 'dt': 0.01, 'dx': (0.05, 0.05)}"

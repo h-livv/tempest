@@ -1,5 +1,18 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from src.visualization.theme import (
+    AXES_FACE,
+    GRID,
+    PRIMARY,
+    SECONDARY,
+    SURFACE_EDGE,
+    SURFACE_FACE,
+    TELEMETRY_BG,
+    TELEMETRY_TEXT,
+    style_3d_axis,
+    style_axis,
+    style_colorbar,
+)
 
 class RendererRegistry:
     _registry = []
@@ -82,15 +95,15 @@ class Scalar1DRenderer(BaseRenderer):
         # Primary: Live Line Plot
         self.ax_primary.set_xlim(0, nx * dx)
         self.ax_primary.set_ylim(self.vmin, self.vmax)
-        self.ax_primary.grid(True, which='both', color='gray', linestyle='-', linewidth=1.5, alpha=0.6)
+        style_axis(self.ax_primary)
         self.ax_primary.set_xlabel("Spatial Domain (x)")
         self.ax_primary.set_ylabel("Amplitude")
         self.ax_primary.set_title("1D Scalar Field", fontsize=12, fontweight="bold")
-        self.line_pos, = self.ax_primary.plot([], [], color="#00ffff", lw=2.5, label="Primary Component")
+        self.line_pos, = self.ax_primary.plot([], [], color=PRIMARY, lw=2.5, label="Primary Component")
         self.artists.append(self.line_pos)
         
         # Secondary1: Space-Time Map
-        self.ax_secondary1.set_facecolor('black')
+        self.ax_secondary1.set_facecolor(AXES_FACE)
         self.max_frames = self.config['max_frames']
         self.history_matrix = np.zeros((self.max_frames, nx))
         
@@ -102,15 +115,19 @@ class Scalar1DRenderer(BaseRenderer):
             vmin=self.vmin, vmax=self.vmax,
             interpolation="nearest"
         )
+        style_axis(self.ax_secondary1, grid=False)
         self.ax_secondary1.set_title("Space-Time Fingerprint Matrix", fontsize=10, fontweight="bold")
         self.ax_secondary1.set_xlabel("Spatial Domain (x)")
         self.ax_secondary1.set_ylabel("t")
-        self.fig.colorbar(self.im, ax=self.ax_secondary1, fraction=0.046, pad=0.04)
+        cbar = self.fig.colorbar(self.im, ax=self.ax_secondary1, fraction=0.046, pad=0.04)
+        style_colorbar(cbar)
         self.artists.append(self.im)
         
         # Telemetry Text
-        self.txt = self.fig.text(0.5, 0.015, "", color="white", fontsize=9, fontfamily="monospace",
-                                 ha="center", bbox=dict(facecolor="#333333", alpha=0.8, edgecolor="none"))
+        self.txt = self.fig.text(
+            0.5, 0.015, "", color=TELEMETRY_TEXT, fontsize=9, fontfamily="monospace",
+            ha="center", bbox=dict(facecolor=TELEMETRY_BG, alpha=0.9, edgecolor=GRID),
+        )
         self.artists.append(self.txt)
 
     def update(self, frame_idx, state, current_time, energies, scheme_name=""):
@@ -176,10 +193,10 @@ class Scalar2DRenderer(BaseRenderer):
             origin="lower",
             interpolation="bicubic"
         )
+        style_axis(self.ax_primary, grid_alpha=0.4)
         self.ax_primary.set_title("2D Field Heatmap", fontsize=12, fontweight="bold")
         self.ax_primary.set_xlabel("X Axis")
         self.ax_primary.set_ylabel("Y Axis")
-        self.ax_primary.grid(True, which='both', color='white', linestyle='-', linewidth=1.5, alpha=0.5)
         self.ax_primary.set_axisbelow(False)
         self.artists.append(self.im)
         
@@ -189,10 +206,11 @@ class Scalar2DRenderer(BaseRenderer):
         self.ax_surface.set_ylabel("Y")
         self.ax_surface.set_zlabel("State")
         self.ax_surface.set_zlim(self.vmin, self.vmax)
-        self.ax_surface.grid(True, which='both', color='gray', linestyle='-', linewidth=1.5, alpha=0.6)
+        style_3d_axis(self.ax_surface)
         self.surf = self.ax_surface.plot_surface(
-            self.X, self.Y, self.current_map, cmap='cool', edgecolor='k', linewidth=0.2,
-            rstride=1, cstride=1, vmin=self.vmin, vmax=self.vmax
+            self.X, self.Y, self.current_map,
+            color=SURFACE_FACE, edgecolor=SURFACE_EDGE, linewidth=0.35, shade=False,
+            rstride=1, cstride=1, vmin=self.vmin, vmax=self.vmax,
         )
         self.artists.append(self.surf) # Note: surface blitting is tricky, might need re-adding
         
@@ -200,15 +218,15 @@ class Scalar2DRenderer(BaseRenderer):
         self.ax_hcross.set_title("Horizontal Centerline", fontsize=10)
         self.ax_hcross.set_xlim(0, nx * dx)
         self.ax_hcross.set_ylim(self.vmin, self.vmax)
-        self.ax_hcross.grid(True, which='both', color='gray', linestyle='-', linewidth=1.5, alpha=0.6)
-        self.line_h, = self.ax_hcross.plot([], [], color="#00ffff", lw=2.5)
+        style_axis(self.ax_hcross)
+        self.line_h, = self.ax_hcross.plot([], [], color=PRIMARY, lw=2.5)
         self.artists.append(self.line_h)
         
         self.ax_vcross.set_title("Vertical Centerline", fontsize=10)
         self.ax_vcross.set_xlim(0, ny * dy)
         self.ax_vcross.set_ylim(self.vmin, self.vmax)
-        self.ax_vcross.grid(True, which='both', color='gray', linestyle='-', linewidth=1.5, alpha=0.6)
-        self.line_v, = self.ax_vcross.plot([], [], color="#ff007f", lw=2.5)
+        style_axis(self.ax_vcross)
+        self.line_v, = self.ax_vcross.plot([], [], color=SECONDARY, lw=2.5)
         self.artists.append(self.line_v)
         
         # Telemetry
@@ -233,8 +251,9 @@ class Scalar2DRenderer(BaseRenderer):
             self.artists.remove(self.surf)
             
         self.surf = self.ax_surface.plot_surface(
-            self.X, self.Y, display_y, cmap='cool', edgecolor='k', linewidth=0.2,
-            rstride=1, cstride=1, vmin=self.vmin, vmax=self.vmax
+            self.X, self.Y, display_y,
+            color=SURFACE_FACE, edgecolor=SURFACE_EDGE, linewidth=0.35, shade=False,
+            rstride=1, cstride=1, vmin=self.vmin, vmax=self.vmax,
         )
         self.artists.append(self.surf)
             
@@ -265,10 +284,11 @@ class Vector2DRenderer(Scalar2DRenderer):
         super().setup()
         # Override primary plot to clear imshow and prepare for contour/quiver
         self.ax_primary.clear()
+        style_axis(self.ax_primary, grid_style=":", grid_width=0.8, grid_alpha=0.5)
         self.ax_primary.set_title("2D Contour & Velocity Field", fontsize=12, fontweight="bold")
         self.ax_primary.set_xlabel("X Axis")
         self.ax_primary.set_ylabel("Y Axis")
-        self.ax_primary.grid(True, which='both', color='gray', linestyle=':', linewidth=0.8, alpha=0.5)
+        self.cbar = None
 
     def update(self, frame_idx, state, current_time, energies, scheme_name=""):
         # Update 3D Surface, Cross Sections, and Telemetry using base class update
@@ -282,8 +302,9 @@ class Vector2DRenderer(Scalar2DRenderer):
             self.artists.remove(self.surf)
             
         self.surf = self.ax_surface.plot_surface(
-            self.X, self.Y, display_y, cmap='cool', edgecolor='k', linewidth=0.2,
-            rstride=1, cstride=1, vmin=self.vmin, vmax=self.vmax
+            self.X, self.Y, display_y,
+            color=SURFACE_FACE, edgecolor=SURFACE_EDGE, linewidth=0.35, shade=False,
+            rstride=1, cstride=1, vmin=self.vmin, vmax=self.vmax,
         )
         self.artists.append(self.surf)
         
@@ -301,6 +322,7 @@ class Vector2DRenderer(Scalar2DRenderer):
             
         # Draw Contour & Quiver plot on the primary 2D axis
         self.ax_primary.clear()
+        style_axis(self.ax_primary, grid_style=":", grid_width=0.8, grid_alpha=0.5)
         self.ax_primary.set_title("2D Contour & Velocity Field", fontsize=12, fontweight="bold")
         self.ax_primary.set_xlabel("X Axis")
         self.ax_primary.set_ylabel("Y Axis")
@@ -329,13 +351,15 @@ class Vector2DRenderer(Scalar2DRenderer):
             contours_f = self.ax_primary.contourf(self.X, self.Y, h, levels=levels, cmap='cool', extend='both')
             # Labeled contour lines overlay
             if (np.max(h) - np.min(h)) > 1e-4:
-                contours = self.ax_primary.contour(self.X, self.Y, h, levels=levels, colors='k', linewidths=0.5, alpha=0.5)
-                self.ax_primary.clabel(contours, inline=True, fontsize=8, fmt='%.2f')
+                contours = self.ax_primary.contour(
+                    self.X, self.Y, h, levels=levels, colors=GRID, linewidths=0.5, alpha=0.7,
+                )
+                self.ax_primary.clabel(contours, inline=True, fontsize=8, fmt='%.2f', colors='black')
             
             # Dynamic colorbar handling
             if not hasattr(self, 'cbar') or self.cbar is None:
                 self.cbar = self.fig.colorbar(contours_f, ax=self.ax_primary, fraction=0.046, pad=0.04)
-                self.cbar.set_label("Magnitude / Depth")
+                style_colorbar(self.cbar, label="Magnitude / Depth")
             else:
                 self.cbar.update_normal(contours_f)
             
@@ -345,5 +369,5 @@ class Vector2DRenderer(Scalar2DRenderer):
             self.ax_primary.quiver(
                 self.X[::sub, ::sub], self.Y[::sub, ::sub],
                 u[::sub, ::sub], v[::sub, ::sub],
-                color='black', scale=None, width=0.003, alpha=0.8
+                color='black', scale=None, width=0.003, alpha=0.85
             )
