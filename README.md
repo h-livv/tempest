@@ -1,14 +1,9 @@
 # Tempest
-### A modular framework for simulating, validating, and learning PDE evolution operators.<br>
+### A framework for simulation, validation, and scientific machine learning of physical systems governed by PDEs.<br>
 
-Tempest is a modular framework for numerical simulation, validation, and scientific machine learning of time-dependent partial differential equations.
+Tempest is a computational framework for numerical simulation, validation, and scientific machine learning of time-dependent partial differential equations.
 
 ---
-
-## Planetary Wave Dynamics
-*Rossby Wave Equation*
-
-<img width="800" height="450" alt="rossby" src="https://github.com/user-attachments/assets/82ec27aa-dc0d-4189-8141-21d1f7395f24" />
 
 ## Gravity Wave Propagation
 *Shallow Water Equations*
@@ -20,9 +15,30 @@ Tempest is a modular framework for numerical simulation, validation, and scienti
 
 <img width="800" height="450" alt="burgers" src="https://github.com/user-attachments/assets/e011231e-536f-457c-83f9-a70292394277" />
 
+## Planetary Wave Dynamics
+*Rossby Wave Equation*
+
+<img width="800" height="450" alt="rossby" src="https://github.com/user-attachments/assets/82ec27aa-dc0d-4189-8141-21d1f7395f24" />
+
 ---
 
-## Validation & Convergence
+## Design Philosophy
+
+Every physical model in Tempest is built from interchangeable components:
+
+- Governing equations
+- Numerical operators
+- Time integrators
+- Boundary conditions
+- Initial conditions
+- Sources
+- Diagnostics
+
+This modular design enables rapid experimentation with new physical systems while reusing a common numerical infrastructure.
+
+---
+
+## Validation Studies
 
 Tempest includes an automated validation and convergence framework for verifying physical fidelity, stability, and asymptotic accuracy across implemented PDEs.
 
@@ -176,17 +192,18 @@ Tempest/
 
 ## Roadmap
 
-### Scientific Applications
+### Physical Models
 
-**Atmospheric and Geophysical Dynamics**
-- Barotropic Vorticity Equation
+- Barotropic Vorticity
 - Incompressible Navier–Stokes
 - Reaction–Diffusion
 - Maxwell Equations
 
-**Fluid Instabilities**
+### Scientific Applications
 - Kelvin–Helmholtz
 - Rayleigh–Taylor
+- Turbulence
+- Geophysical flows
 
 ### Scientific Machine Learning
 
@@ -205,6 +222,6 @@ Tempest/
 
 ## Long-term Vision
 
-Tempest aims to become a unified framework for studying the numerical and learned evolution of physical systems governed by partial differential equations.
+Tempest aims to become a unified framework for simulating, validating, and learning physical systems governed by partial differential equations, bridging classical numerical methods with modern scientific machine learning.
 
 ---
