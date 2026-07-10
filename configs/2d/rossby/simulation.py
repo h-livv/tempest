@@ -11,7 +11,7 @@ grid_configs = [
     {
         "N":  (100, 100),
         "dx": (0.05, 0.05),
-        "dt": 0.01,
+        "dt": 0.05,
     }
 ]
 
@@ -21,7 +21,7 @@ initial_conditions = [init_conditions.ConstantIC(val=0.0, num_fields=1)]
 
 # ── Numerics ──────────────────────────────────────────────────────────────────
 boundary_functions = [boundaries.Dirichlet(left_val=0.0, right_val=0.0)]
-operators_list     = [operators.gradient]
+operators_list     = [operators.upwind]
 integrators_list   = [integrators.rk4]
 
 # ── Forcing ───────────────────────────────────────────────────────────────────
@@ -35,10 +35,10 @@ integrators_list   = [integrators.rk4]
 #   omega=pi          forcing period T = 2 time units
 #   amplitude=1.0     moderate forcing; q stays O(1) over the run
 _source = ZeroMeanGaussianSource(
-    center_ratio=0.6,
-    sigma=0.05,
-    amplitude=0.5,
-    omega=np.pi,
+    center_ratio=0.5,
+    sigma=0.1,
+    amplitude=0.25,
+    omega=(np.pi),
     num_fields=1,
     active_field=0,
 )
@@ -48,6 +48,6 @@ equations_list = [equations.RossbyWave(beta=1.0, source=_source)]
 # ── Run parameters ────────────────────────────────────────────────────────────
 # 20 forcing periods (T=2 each) → ample time for Rossby wave trains to develop
 FINAL_TIME      = 100
-STEPS_PER_FRAME = 50     # one frame every 0.2 time units
+STEPS_PER_FRAME = 10     # one frame every 0.2 time units
 RECORD_INTERVAL = 2
 VISUAL_MODE     = True
