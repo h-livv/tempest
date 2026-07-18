@@ -434,14 +434,12 @@ class RossbyWave(Equation):
             self.poisson = operators.PoissonSolver(q.shape, dx)
 
         psi = self.poisson.solve(q)
-
         padded_psi = boundary(psi, len(dx), self.parity(len(dx)))
-
-        dpsi_dx = operators.gradient(padded_psi, dx)[1]
-        dpsi_dy = operators.gradient(padded_psi, dx)[0]
+        dpsi_dy, dpsi_dx = operators.gradient(padded_psi, dx)
 
         energy = 0.5 * np.sum(dpsi_dx**2 + dpsi_dy**2) * dV
-        return 0.0, 0.0, energy
+        enstrophy = 0.5 * np.sum(q**2) * dV
+        return energy, enstrophy, energy
 
 class BarotropicVorticity(Equation):
     scalar_label = "Vorticity (ζ)"
@@ -513,3 +511,14 @@ class BarotropicVorticity(Equation):
         padded_psi = boundary(psi, len(dx), self.parity(len(dx)))
         dpsi_dy, dpsi_dx = operator(padded_psi, dx)
         return -dpsi_dy, dpsi_dx
+
+    def compute_energies(self, state_data, dx, boundary):
+        dV = np.prod(dx)
+        zeta = state_data[0]
+        psi = self._solve_psi(state_data, dx)
+        padded_psi = boundary(psi, len(dx), self.parity(len(dx)))
+        dpsi_dy, dpsi_dx = operators.gradient(padded_psi, dx)
+        energy = 0.5 * np.sum(dpsi_dx**2 + dpsi_dy**2) * dV
+        enstrophy = 0.5 * np.sum(zeta**2) * dV
+        peak_vorticity = float(np.max(np.abs(zeta)))
+        return energy, enstrophy, energy, peak_vorticity

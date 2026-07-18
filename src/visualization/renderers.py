@@ -4,15 +4,20 @@ from src.visualization.theme import (
     AXES_FACE,
     GRID,
     PRIMARY,
+    SCALAR_FIELD_CMAP,
     SECONDARY,
     SURFACE_MESH_WIDTH,
     TELEMETRY_BG,
     TELEMETRY_TEXT,
+    scalar_field_facecolors,
+    scalar_field_norm,
     style_3d_axis,
     style_axis,
     style_colorbar,
     scalar_axis_label,
     surface_magnitude_facecolors,
+    surface_mesh_stride,
+    format_solver_telemetry,
 )
 
 class RendererRegistry:
@@ -85,17 +90,60 @@ class BaseRenderer:
         return self.artists
 
 
+CONTOUR_LINE_THRESHOLD = 0.001
+TOP_CONTOUR_CUTOFF = 0.20       # skip lowest 30% of [min, max] (top ~70% band)
+TOP_CONTOUR_LEVEL_COUNT = 16    # dense levels within that band
+
+
+def _top_contour_levels(values, cutoff=TOP_CONTOUR_CUTOFF, n_levels=TOP_CONTOUR_LEVEL_COUNT):
+    """Contour levels in the upper portion of the field range, densely sampled."""
+    values = np.asarray(values)
+    vmin = float(np.min(values))
+    vmax = float(np.max(values))
+    span = vmax - vmin
+    if span < 1e-6:
+        return np.array([vmax])
+    vmin_floor = vmin + cutoff * span
+    return np.linspace(vmin_floor, vmax, n_levels)
+
+
+def _line_contour_levels(levels, threshold=CONTOUR_LINE_THRESHOLD):
+    """Keep only contour line levels with |value| above the threshold."""
+    levels = np.asarray(levels)
+    return levels[np.abs(levels) > threshold]
+
+
+def _plot_field_surface(ax, X, Y, z, zlim, norm, cmap=SCALAR_FIELD_CMAP):
+    """Draw a 3D surface colored by scalar values with a shared norm."""
+    ax.set_zlim(zlim)
+    ny, nx = z.shape
+    rstride = surface_mesh_stride(ny)
+    cstride = surface_mesh_stride(nx)
+    return ax.plot_surface(
+        X, Y, z,
+        facecolors=scalar_field_facecolors(z, norm, cmap),
+        edgecolor='black',
+        linewidth=SURFACE_MESH_WIDTH,
+        shade=False,
+        rstride=rstride,
+        cstride=cstride,
+    )
+
+
 def _plot_gradient_surface(ax, X, Y, z, zlim):
     """Draw a 3D surface colored by |z| with a thin black mesh overlay."""
     ax.set_zlim(zlim)
+    ny, nx = z.shape
+    rstride = surface_mesh_stride(ny)
+    cstride = surface_mesh_stride(nx)
     return ax.plot_surface(
         X, Y, z,
         facecolors=surface_magnitude_facecolors(z),
         edgecolor='black',
         linewidth=SURFACE_MESH_WIDTH,
         shade=False,
-        rstride=1,
-        cstride=1,
+        rstride=rstride,
+        cstride=cstride,
     )
 
 @RendererRegistry.register
@@ -160,12 +208,11 @@ class Scalar1DRenderer(BaseRenderer):
             self.history_matrix[frame_idx] = np.abs(display_y)
             self.im.set_data(self.history_matrix)
                 
-        cfl = self.config['dt'] / self.config['characteristic_spacing']
         if frame_idx % 5 == 0:
-            self.txt.set_text(
-                f"SOLVER: {scheme_name.upper()} | TIME: {current_time:.3f}s | FRAME: {frame_idx:03d} | CFL: {cfl:.3f} | "
-                f"ENERGY: {energies[2]:.3f}J"
-            )
+            self.txt.set_text(format_solver_telemetry(
+                self.config.get('eq_name'), scheme_name, current_time, frame_idx,
+                self.config['dt'] / self.config['characteristic_spacing'], energies,
+            ))
 
 @RendererRegistry.register
 class Scalar2DRenderer(BaseRenderer):
@@ -188,13 +235,13 @@ class Scalar2DRenderer(BaseRenderer):
         
         ny, nx = self.config['shape']
         dy, dx = self.config['spacing']
-        
+
         self.Y, self.X = np.meshgrid(
             np.arange(ny) * dy, np.arange(nx) * dx, indexing='ij'
         )
-        
+
         self.current_map = np.zeros((ny, nx))
-        
+
         # Heatmap
         self.im = self.ax_primary.imshow(
             self.current_map,
@@ -248,14 +295,13 @@ class Scalar2DRenderer(BaseRenderer):
         display_y = state.get_scalar() if hasattr(state, 'get_scalar') else (
             state.data[0] if state.data.ndim > 2 else state.data
         )
-        
+
         self.im.set_data(display_y)
-        
-        # Cross sections
+
         ny, nx = display_y.shape
-        self.line_h.set_data(self.X[ny//2, :], display_y[ny//2, :])
-        self.line_v.set_data(self.Y[:, nx//2], display_y[:, nx//2])
-        
+        self.line_h.set_data(self.X[ny // 2, :], display_y[ny // 2, :])
+        self.line_v.set_data(self.Y[:, nx // 2], display_y[:, nx // 2])
+
         # Surface recreation (blitting 3d is limited, standard replace)
         self.surf.remove()
         if self.surf in self.artists:
@@ -266,12 +312,11 @@ class Scalar2DRenderer(BaseRenderer):
         )
         self.artists.append(self.surf)
             
-        cfl = self.config['dt'] / self.config['characteristic_spacing']
         if frame_idx % 5 == 0:
-            self.txt.set_text(
-                f"SOLVER: {scheme_name.upper()} | TIME: {current_time:.3f}s | FRAME: {frame_idx:03d} | CFL: {cfl:.3f} | "
-                f"ENERGY: {energies[2]:.3f}J"
-            )
+            self.txt.set_text(format_solver_telemetry(
+                self.config.get('eq_name'), scheme_name, current_time, frame_idx,
+                self.config['dt'] / self.config['characteristic_spacing'], energies,
+            ))
 
 @RendererRegistry.register
 class Vector1DRenderer(Scalar1DRenderer):
@@ -301,16 +346,22 @@ class Vector2DRenderer(BaseRenderer):
 
         self.current_map = np.zeros((ny, nx))
         self.heatmap_cbar = None
+        init_scalar = (
+            self.initial_state.get_scalar()
+            if self.initial_state is not None and hasattr(self.initial_state, 'get_scalar')
+            else self.current_map
+        )
+        self.field_norm = scalar_field_norm(init_scalar)
 
-        # 3D surface (left) — scalar field with |z| gradient coloring
+        # 3D surface (left) — scalar field with shared norm coloring
         self.ax_surface.set_title("3D Surface", fontsize=12)
         self.ax_surface.set_xlabel("X")
         self.ax_surface.set_ylabel("Y")
         self.ax_surface.set_zlabel(self.scalar_label)
         self.ax_surface.set_zlim(self.vmin, self.vmax)
         style_3d_axis(self.ax_surface)
-        self.surf = _plot_gradient_surface(
-            self.ax_surface, self.X, self.Y, self.current_map, (self.vmin, self.vmax),
+        self.surf = _plot_field_surface(
+            self.ax_surface, self.X, self.Y, self.current_map, (self.vmin, self.vmax), self.field_norm,
         )
         self.artists.append(self.surf)
 
@@ -341,17 +392,17 @@ class Vector2DRenderer(BaseRenderer):
         )
         self.artists.append(self.txt)
 
-    def _update_surface(self, display_y):
+    def _update_surface(self, display_y, norm):
         self.surf.remove()
         if self.surf in self.artists:
             self.artists.remove(self.surf)
 
-        self.surf = _plot_gradient_surface(
-            self.ax_surface, self.X, self.Y, display_y, (self.vmin, self.vmax),
+        self.surf = _plot_field_surface(
+            self.ax_surface, self.X, self.Y, display_y, (self.vmin, self.vmax), norm,
         )
         self.artists.append(self.surf)
 
-    def _update_heatmap(self, state, display_y, u, v):
+    def _update_heatmap(self, state, display_y, u, v, norm):
         self.ax_heatmap.clear()
         style_axis(self.ax_heatmap, grid_style=":", grid_width=0.8, grid_alpha=0.5)
         self.ax_heatmap.set_title("2D Contour Field", fontsize=12)
@@ -359,16 +410,22 @@ class Vector2DRenderer(BaseRenderer):
         self.ax_heatmap.set_ylabel("Y Axis")
 
         ny, nx = display_y.shape
-        levels = np.linspace(self.vmin, self.vmax, 25)
-        span = self.vmax - self.vmin
+        data_span = float(norm.vmax - norm.vmin)
 
-        if span > 1e-4:
+        if data_span > 1e-4:
+            top_levels = _top_contour_levels(display_y)
+            fill_levels = np.unique(np.concatenate(([norm.vmin], top_levels, [norm.vmax])))
             contours_f = self.ax_heatmap.contourf(
-                self.X, self.Y, display_y, levels=levels, cmap='cool', extend='both',
+                self.X, self.Y, display_y,
+                levels=fill_levels,
+                cmap=SCALAR_FIELD_CMAP,
+                norm=norm,
+                extend='both',
             )
-            if (np.max(display_y) - np.min(display_y)) > 1e-4:
+            line_levels = _line_contour_levels(top_levels)
+            if line_levels.size > 0:
                 contours = self.ax_heatmap.contour(
-                    self.X, self.Y, display_y, levels=levels,
+                    self.X, self.Y, display_y, levels=line_levels,
                     colors='black', linewidths=0.5, alpha=0.9,
                 )
                 self.ax_heatmap.clabel(
@@ -384,19 +441,7 @@ class Vector2DRenderer(BaseRenderer):
             else:
                 self.heatmap_cbar.update_normal(contours_f)
 
-        if getattr(state, '_surface_scalar_fn', None) is not None:
-            psi = state.get_surface_scalar()
-            psi_span = np.max(psi) - np.min(psi)
-            if psi_span > 1e-4:
-                psi_levels = np.linspace(np.min(psi), np.max(psi), 15)
-                psi_contours = self.ax_heatmap.contour(
-                    self.X, self.Y, psi, levels=psi_levels,
-                    colors='black', linewidths=0.6, alpha=0.9,
-                )
-                self.ax_heatmap.clabel(
-                    psi_contours, inline=True, fontsize=7, fmt='%.2f', colors='black',
-                )
-        elif u is not None and v is not None:
+        if u is not None and v is not None and getattr(state, '_flow_velocity_fn', None) is None:
             sub = max(1, min(nx, ny) // 20)
             self.ax_heatmap.quiver(
                 self.X[::sub, ::sub], self.Y[::sub, ::sub],
@@ -409,16 +454,16 @@ class Vector2DRenderer(BaseRenderer):
         velocity = state.get_velocity()
         u, v = velocity if velocity is not None else (None, None)
 
-        self._update_heatmap(state, display_y, u, v)
-        self._update_surface(display_y)
+        norm = scalar_field_norm(display_y)
+        self._update_heatmap(state, display_y, u, v, norm)
+        self._update_surface(display_y, norm)
 
         ny, nx = display_y.shape
         self.line_h.set_data(self.X[ny // 2, :], display_y[ny // 2, :])
         self.line_v.set_data(self.Y[:, nx // 2], display_y[:, nx // 2])
 
-        cfl = self.config['dt'] / self.config['characteristic_spacing']
         if frame_idx % 5 == 0:
-            self.txt.set_text(
-                f"SOLVER: {scheme_name.upper()} | TIME: {current_time:.3f}s | FRAME: {frame_idx:03d} | CFL: {cfl:.3f} | "
-                f"ENERGY: {energies[2]:.3f}J"
-            )
+            self.txt.set_text(format_solver_telemetry(
+                self.config.get('eq_name'), scheme_name, current_time, frame_idx,
+                self.config['dt'] / self.config['characteristic_spacing'], energies,
+            ))

@@ -15,18 +15,24 @@ grid_configs = [
 ]
 
 # ── Initial condition ─────────────────────────────────────────────────────────
-initial_conditions = [init_conditions.BarotropicVoricityDoubleGaussianIC(offset=0.2, sigma=0.3, amplitude=1.0, num_fields=1, active_field=0, speed=0.0)]
+initial_conditions = [init_conditions.BarotropicVorticityRingIC(radius=1.0,
+        sigma=0.03,
+        amplitude=2.0,
+        num_fields=1,
+        active_field=0,
+        bg_depth=0.0,
+    )]
 
 # ── Numerics ──────────────────────────────────────────────────────────────────
 boundary_functions = [boundaries.Dirichlet(left_val=0.0, right_val=0.0)]
 operators_list     = [operators.gradient]
 integrators_list   = [integrators.rk4]
 
-equations_list = [equations.BarotropicVorticity(beta=0.0, nu=0.0)]
+equations_list = [equations.BarotropicVorticity(beta=1e-2, nu=1e-4)]
 
 # ── Run parameters ────────────────────────────────────────────────────────────
 # 20 forcing periods (T=2 each)
-FINAL_TIME      = 100
-STEPS_PER_FRAME = 10     # one frame every 0.2 time units
+FINAL_TIME      = 500
+STEPS_PER_FRAME = 25     # one frame every 0.2 time units
 RECORD_INTERVAL = 2
 VISUAL_MODE     = True

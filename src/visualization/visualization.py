@@ -4,12 +4,15 @@ import matplotlib.gridspec as gridspec
 from src.visualization.renderers import RendererRegistry
 from src.visualization.theme import (
     apply_dashboard_theme,
+    BVE_EQ_NAME,
     ENERGY_KE,
     ENERGY_LOSS,
     ENERGY_PE,
     ENERGY_TOTAL,
+    VORTICITY_EQ_NAMES,
     style_axis,
 )
+
 
 class TempestVisualizer:
     def __init__(
@@ -47,6 +50,8 @@ class TempestVisualizer:
             'eq_name': eq_name,
             'scalar_label': scalar_label,
         }
+        self.vorticity_diagnostics = eq_name in VORTICITY_EQ_NAMES
+        self.bve_diagnostics = eq_name == BVE_EQ_NAME
 
         # Energy Trackers
         self.time_history = []
@@ -55,6 +60,8 @@ class TempestVisualizer:
         self.total_history = []
         self.loss_history = []
         self.initial_energy = None
+        self.initial_enstrophy = None
+        self.initial_peak_vorticity = None
 
         # Resolve Renderer
         # We dummy-patch rank and ndim onto pure numpy arrays for fallback compatibility if they aren't fields yet
@@ -100,24 +107,41 @@ class TempestVisualizer:
 
         self.renderer = renderer_class(self.fig, self.slots, self.config, initial_state)
         
-        # Energy Axis Setup
+        # Energy panel
         self.ax_energy = self.fig.add_subplot(self.slots['energy'])
         self.ax_energy.set_xlabel("Elapsed Time (t)")
-        self.ax_energy.set_ylabel("Energy")
         style_axis(self.ax_energy, grid_style="--", grid_alpha=0.5)
-
-        self.line_pe, = self.ax_energy.plot([], [], color=ENERGY_PE, lw=2, label="PE")
-        self.line_ke, = self.ax_energy.plot([], [], color=ENERGY_KE, lw=2, label="KE")
-        self.line_total, = self.ax_energy.plot([], [], color=ENERGY_TOTAL, lw=2.5, label="Total E")
-        self.line_loss, = self.ax_energy.plot([], [], color=ENERGY_LOSS, linestyle="--", lw=2, label="Loss")
-        self.ax_energy.legend(loc="upper right")
         self.ax_energy.set_xlim(0, self.final_time)
         self.energy_axis_initialized = False
+
+        if self.bve_diagnostics:
+            self.ax_energy.set_ylabel("Normalized Metrics")
+            self.line_energy, = self.ax_energy.plot([], [], color=ENERGY_TOTAL, lw=2.5, label="Energy")
+            self.line_enstrophy, = self.ax_energy.plot([], [], color=ENERGY_KE, lw=2, label="Enstrophy")
+            self.line_peak, = self.ax_energy.plot([], [], color=ENERGY_PE, lw=2, label="Peak |ζ|")
+            self.ax_energy.legend(loc="upper right")
+            self.line_pe = self.line_ke = self.line_total = self.line_loss = None
+        elif self.vorticity_diagnostics:
+            self.ax_energy.set_ylabel("Energy / Enstrophy")
+            self.line_energy, = self.ax_energy.plot([], [], color=ENERGY_TOTAL, lw=2.5, label="Energy")
+            self.line_enstrophy, = self.ax_energy.plot([], [], color=ENERGY_KE, lw=2, label="Enstrophy")
+            self.ax_energy.legend(loc="upper right")
+            self.line_peak = None
+            self.line_pe = self.line_ke = self.line_total = self.line_loss = None
+        else:
+            self.ax_energy.set_ylabel("Energy")
+            self.line_pe, = self.ax_energy.plot([], [], color=ENERGY_PE, lw=2, label="PE")
+            self.line_ke, = self.ax_energy.plot([], [], color=ENERGY_KE, lw=2, label="KE")
+            self.line_total, = self.ax_energy.plot([], [], color=ENERGY_TOTAL, lw=2.5, label="Total E")
+            self.line_loss, = self.ax_energy.plot([], [], color=ENERGY_LOSS, linestyle="--", lw=2, label="Loss")
+            self.ax_energy.legend(loc="upper right")
+            self.line_energy = self.line_enstrophy = self.line_peak = None
 
         self.fig.tight_layout(rect=[0, 0.02, 0.95, 1])
 
     def render_frame(self, frame_idx, state, current_time, scheme_name, energies=None):
-        pe, ke, total_e = energies
+        energy, enstrophy, total_e = energies[:3]
+        peak_vorticity = energies[3] if len(energies) > 3 else None
 
         if frame_idx == 0:
             self.time_history.clear()
@@ -125,36 +149,89 @@ class TempestVisualizer:
             self.ke_history.clear()
             self.total_history.clear()
             self.loss_history.clear()
-            self.initial_energy = total_e
+            if self.bve_diagnostics:
+                self.initial_energy = energy if energy != 0 else 1.0
+                self.initial_enstrophy = enstrophy if enstrophy != 0 else 1.0
+                self.initial_peak_vorticity = peak_vorticity if peak_vorticity != 0 else 1.0
+            elif not self.vorticity_diagnostics:
+                self.initial_energy = total_e
 
-        # Delegate Rendering
         self.renderer.update(frame_idx, state, current_time, energies, scheme_name)
 
-        # Update Energy
-        energy_loss = self.initial_energy - total_e
-        
-        if not self.energy_axis_initialized:
-            estimated_max = max(abs(pe), abs(ke), abs(total_e), 1.0)
-            self.ax_energy.set_ylim(-0.1 * estimated_max, 1.1 * estimated_max)
-            self.energy_axis_initialized = True
+        if self.bve_diagnostics:
+            if not self.energy_axis_initialized:
+                self.ax_energy.set_ylim(0.0, 1.1)
+                self.energy_axis_initialized = True
 
-        self.time_history.append(current_time)
-        self.pe_history.append(pe)
-        self.ke_history.append(ke)
-        self.total_history.append(total_e)
-        self.loss_history.append(energy_loss)
+            norm_energy = energy / self.initial_energy
+            norm_enstrophy = enstrophy / self.initial_enstrophy
+            norm_peak = peak_vorticity / self.initial_peak_vorticity
 
-        self.line_pe.set_data(self.time_history, self.pe_history)
-        self.line_ke.set_data(self.time_history, self.ke_history)
-        self.line_total.set_data(self.time_history, self.total_history)
-        self.line_loss.set_data(self.time_history, self.loss_history)
+            self.time_history.append(current_time)
+            self.pe_history.append(norm_energy)
+            self.ke_history.append(norm_enstrophy)
+            self.total_history.append(norm_peak)
 
-        if frame_idx % 15 == 0 and len(self.time_history) > 10:
-            all_energies = self.pe_history + self.ke_history + self.total_history + self.loss_history
-            min_e, max_e = min(all_energies), max(all_energies)
-            if not (np.isnan(min_e) or np.isnan(max_e) or np.isinf(min_e) or np.isinf(max_e)):
-                margin = max(1e-6, 0.15 * max(abs(max_e), abs(min_e)))
-                self.ax_energy.set_ylim(min_e - margin, max_e + margin)
+            self.line_energy.set_data(self.time_history, self.pe_history)
+            self.line_enstrophy.set_data(self.time_history, self.ke_history)
+            self.line_peak.set_data(self.time_history, self.total_history)
+
+            if frame_idx % 15 == 0 and len(self.time_history) > 10:
+                all_values = self.pe_history + self.ke_history + self.total_history
+                min_e, max_e = min(all_values), max(all_values)
+                if not (np.isnan(min_e) or np.isnan(max_e) or np.isinf(min_e) or np.isinf(max_e)):
+                    margin = max(1e-6, 0.15 * max(abs(max_e - 1.0), abs(min_e - 1.0), 0.1))
+                    self.ax_energy.set_ylim(min_e - margin, max_e + margin)
+
+            energy_artists = (self.line_energy, self.line_enstrophy, self.line_peak)
+        elif self.vorticity_diagnostics:
+            if not self.energy_axis_initialized:
+                estimated_max = max(abs(energy), abs(enstrophy), 1.0)
+                self.ax_energy.set_ylim(-0.1 * estimated_max, 1.1 * estimated_max)
+                self.energy_axis_initialized = True
+
+            self.time_history.append(current_time)
+            self.pe_history.append(energy)
+            self.ke_history.append(enstrophy)
+
+            self.line_energy.set_data(self.time_history, self.pe_history)
+            self.line_enstrophy.set_data(self.time_history, self.ke_history)
+
+            if frame_idx % 15 == 0 and len(self.time_history) > 10:
+                all_values = self.pe_history + self.ke_history
+                min_e, max_e = min(all_values), max(all_values)
+                if not (np.isnan(min_e) or np.isnan(max_e) or np.isinf(min_e) or np.isinf(max_e)):
+                    margin = max(1e-6, 0.15 * max(abs(max_e), abs(min_e)))
+                    self.ax_energy.set_ylim(min_e - margin, max_e + margin)
+
+            energy_artists = (self.line_energy, self.line_enstrophy)
+        else:
+            energy_loss = self.initial_energy - total_e
+
+            if not self.energy_axis_initialized:
+                estimated_max = max(abs(energy), abs(enstrophy), abs(total_e), 1.0)
+                self.ax_energy.set_ylim(-0.1 * estimated_max, 1.1 * estimated_max)
+                self.energy_axis_initialized = True
+
+            self.time_history.append(current_time)
+            self.pe_history.append(energy)
+            self.ke_history.append(enstrophy)
+            self.total_history.append(total_e)
+            self.loss_history.append(energy_loss)
+
+            self.line_pe.set_data(self.time_history, self.pe_history)
+            self.line_ke.set_data(self.time_history, self.ke_history)
+            self.line_total.set_data(self.time_history, self.total_history)
+            self.line_loss.set_data(self.time_history, self.loss_history)
+
+            if frame_idx % 15 == 0 and len(self.time_history) > 10:
+                all_energies = self.pe_history + self.ke_history + self.total_history + self.loss_history
+                min_e, max_e = min(all_energies), max(all_energies)
+                if not (np.isnan(min_e) or np.isnan(max_e) or np.isinf(min_e) or np.isinf(max_e)):
+                    margin = max(1e-6, 0.15 * max(abs(max_e), abs(min_e)))
+                    self.ax_energy.set_ylim(min_e - margin, max_e + margin)
+
+            energy_artists = (self.line_pe, self.line_ke, self.line_total, self.line_loss)
 
         if frame_idx == 0 and self.start_delay > 0:
             self.fig.canvas.draw_idle()
@@ -162,7 +239,7 @@ class TempestVisualizer:
             import time
             time.sleep(self.start_delay)
 
-        return tuple(self.renderer.get_artists()) + (self.line_pe, self.line_ke, self.line_total, self.line_loss)
+        return tuple(self.renderer.get_artists()) + energy_artists
 
     def close(self):
         try:
