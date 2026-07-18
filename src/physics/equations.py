@@ -1,5 +1,6 @@
 import numpy as np
 from src.numerics import operators
+from src.mesh.boundaries import Dirichlet
 
 class Equation:
     """Base class for all Tempest equations."""
@@ -419,3 +420,63 @@ class RossbyWave(Equation):
 
         energy = 0.5 * np.sum(dpsi_dx**2 + dpsi_dy**2) * dV
         return 0.0, 0.0, energy
+
+class BarotropicVorticity(Equation):
+    def __init__(self, beta, nu, source=None):
+        self.__name__ = 'barotropic_voricity'
+        self.beta = beta
+        self.nu = nu
+        self.source = source
+        self.spatial_order = 1
+        self.poisson = None
+
+    def parity(self, grid_ndim):
+        return [1]
+
+    def __call__(self, t, state_data, dx, boundary, operator):
+        if operator.__name__ == 'laplacian':
+            raise ValueError(
+                "CRITICAL PHYSICS ERROR: You are controlling the operator of the voricity and advection term in Barotropic Voricity equation "
+                "You cannot pass 'laplacian' (2nd-order) as its operator."
+            )
+
+        if not isinstance(boundary, Dirichlet):
+            raise ValueError(
+                "CRITICAL PHYSICS ERROR: BarotropicVorticity currently requires Dirichlet boundaries "
+                "when using PoissonSolver."
+            )
+
+        zeta = state_data[0]
+
+        if self.poisson is None:
+            self.poisson = operators.PoissonSolver(zeta.shape, dx)
+
+        psi = self.poisson.solve(zeta)
+
+        padded_psi = boundary(psi, len(dx), self.parity(len(dx)))
+
+        padded_zeta = boundary(zeta, len(dx), self.parity(len(dx)))
+
+        dpsi = operator(padded_psi, dx)
+        dzeta = operator(padded_zeta, dx)
+
+        dpsi_dy, dpsi_dx = dpsi
+        dzeta_dy, dzeta_dx = dzeta
+
+        jacob = dpsi_dx * dzeta_dy - dpsi_dy * dzeta_dx
+
+        print("zeta", np.nanmin(zeta), np.nanmax(zeta))
+        print("psi ", np.nanmin(psi), np.nanmax(psi))
+        print("dpsi", np.nanmin(dpsi_dx), np.nanmax(dpsi_dx))
+        print("dzeta", np.nanmin(dzeta_dx), np.nanmax(dzeta_dx))
+        print("jacob", np.nanmin(jacob), np.nanmax(jacob))
+
+        dzeta_dt = -jacob - self.beta*dpsi_dx + self.nu*operators.laplacian(padded_zeta, dx)
+
+        rhs = np.stack([dzeta_dt], axis=0)
+
+        if self.source is not None:
+            src = self.source(t)
+            rhs += src
+
+        return rhs
