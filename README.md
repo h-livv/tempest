@@ -1,24 +1,30 @@
 # Tempest
-### A framework for simulation, validation, and scientific machine learning of physical systems governed by PDEs.<br>
+### A framework for simulating, validating, and learning PDE-governed physical systems.
 
-Tempest is a computational framework for numerical simulation, validation, and scientific machine learning of time-dependent partial differential equations.
+Tempest is a modular scientific computing framework for numerical simulation, validation, and scientific machine learning of time-dependent partial differential equations.
 
 ---
 
 ## Gravity Wave Propagation
 *Shallow Water Equations*
 
-<img width="800" height="450" alt="shallow" src="https://github.com/user-attachments/assets/6585a65e-72be-4f24-9f34-894323d2e1c4" />
+<img width="800" height="450" alt="shallow" src="https://github.com/user-attachments/assets/4eabee3e-07dc-462d-8a30-7ed781453bd7" />
 
-## Nonlinear Shock Formation
-*Burgers' Equation*
-
-<img width="800" height="450" alt="burgers" src="https://github.com/user-attachments/assets/e011231e-536f-457c-83f9-a70292394277" />
+*Simulation of free-surface gravity waves and nonlinear dam-break evolution.*
 
 ## Planetary Wave Dynamics
 *Rossby Wave Equation*
 
-<img width="800" height="450" alt="rossby" src="https://github.com/user-attachments/assets/82ec27aa-dc0d-4189-8141-21d1f7395f24" />
+<img width="800" height="450" alt="rossby" src="https://github.com/user-attachments/assets/858071c7-f7e5-4a2c-b85f-504fbadf9754" />
+
+*Westward-propagating planetary waves induced by the β-effect.*
+
+## Vortex Dynamics in Hurricane Eyewalls
+*Barotropic Vorticity Equation*
+
+<img width="800" height="450" alt="BVE" src="https://github.com/user-attachments/assets/fafc635c-1e9a-4431-9a3e-fa2267f5ad9a" />
+
+*Idealized annular vortex instability producing coherent vortex structures relevant to hurricane eyewall dynamics.*
 
 ---
 
@@ -59,7 +65,7 @@ Detailed validation outputs, convergence studies, and numerical diagnostics are 
 
 ---
 
-## Features
+## Capabilities
 
 **Simulation infrastructure**
 - Structured 1D and 2D grids
@@ -74,6 +80,7 @@ Detailed validation outputs, convergence studies, and numerical diagnostics are 
 - Burgers' equation
 - Shallow water equations
 - Rossby wave equation
+- Barotropic Vorticity Equation
 
 **Time Integrators**
 - Explicit Euler
@@ -194,7 +201,6 @@ Tempest/
 
 ### Physical Models
 
-- Barotropic Vorticity
 - Incompressible Navier–Stokes
 - Reaction–Diffusion
 - Maxwell Equations
@@ -222,6 +228,6 @@ Tempest/
 
 ## Long-term Vision
 
-Tempest aims to become a unified framework for simulating, validating, and learning physical systems governed by partial differential equations, bridging classical numerical methods with modern scientific machine learning.
+Tempest aims to become a unified framework for simulating, validating, and learning physical systems governed by partial differential equations, integrating numerical simulation and learned surrogate modeling within a common scientific computing framework.
 
 ---
