@@ -84,11 +84,36 @@ class Simulation:
             grid_size=self.grid.shape,
         )
 
+        self._bind_flow_velocity()
+
 
 
     # ------------------------------------------------------------------
     # Internal Helpers
     # ------------------------------------------------------------------
+
+    def _bind_flow_velocity(self) -> None:
+        """Attach equation-derived visualization hooks to the state field."""
+        spacing = self.grid.spacing
+        boundary = self.config.boundary
+        operator = self.config.operator
+        equation = self.equation
+
+        get_velocity = getattr(equation, 'get_velocity', None)
+        if callable(get_velocity):
+            def velocity_fn(data):
+                return get_velocity(data, spacing, boundary, operator)
+
+            if velocity_fn(self.state.data) is not None:
+                self.state.bind_velocity(velocity_fn)
+
+        get_surface_scalar = getattr(equation, 'get_surface_scalar', None)
+        if callable(get_surface_scalar):
+            def surface_fn(data):
+                return get_surface_scalar(data, spacing, boundary, operator)
+
+            if surface_fn(self.state.data) is not None:
+                self.state.bind_surface_scalar(surface_fn)
 
     def _extract_field(self) -> np.ndarray:
         """Extracts the primary 1-D/N-D array from the current Field for diagnostic plotting."""
@@ -208,6 +233,7 @@ class Simulation:
             max_frames,
             steps_per_frame,
             final_time=config.final_time,
+            scalar_label=getattr(self.equation, 'scalar_label', None),
         )
 
         # Initial Snapshot before time integration loops

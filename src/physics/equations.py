@@ -4,8 +4,18 @@ from src.mesh.boundaries import Dirichlet
 
 class Equation:
     """Base class for all Tempest equations."""
+    scalar_label = "State"
+
     def __call__(self, t, state_data, dx, boundary, operator):
         raise NotImplementedError
+
+    def get_velocity(self, state_data, dx, boundary, operator):
+        """Return derived (u, v) velocity for visualization, or None."""
+        return None
+
+    def get_surface_scalar(self, state_data, dx, boundary, operator):
+        """Return an alternate scalar for the 3D surface plot, or None."""
+        return None
 
     def parity(self, grid_ndim):
         """Returns the reflection parity of each component. By default, scalar fields are fully symmetric [1]."""
@@ -39,6 +49,8 @@ class Equation:
 
 class AdvectionEquation(Equation):
     """Linear advection equation."""
+    scalar_label = "Scalar"
+
     def __init__(self, velocity):
         self.__name__ = 'advection'
         self.velocity = velocity
@@ -97,6 +109,8 @@ class AdvectionEquation(Equation):
 
 class WaveEquation(Equation):
     """Wave propagation equation."""
+    scalar_label = "Displacement"
+
     def __init__(self, wave_speed):
         self.__name__ = 'wave'
         self.wave_speed_val = wave_speed
@@ -156,6 +170,8 @@ class WaveEquation(Equation):
 
 class DiffusionEquation(Equation):
     """Diffusion equation."""
+    scalar_label = "Scalar"
+
     def __init__(self, diffusivity):
         self.__name__ = 'diffusion'
         self.diffusivity = diffusivity
@@ -197,6 +213,8 @@ class DiffusionEquation(Equation):
 
 class ShallowWaterEquation(Equation):
     """Shallow water equation."""
+    scalar_label = "Height (h)"
+
     def __init__(self):
         self.__name__ = 'shallow_water'
         self.spatial_order = 1
@@ -302,6 +320,8 @@ class ShallowWaterEquation(Equation):
 
 class BurgersEquation(Equation):
     """Burgers' equation."""
+    scalar_label = "Velocity (u)"
+
     def __init__(self, viscosity):
         self.__name__ = 'burgers'
         self.viscosity = viscosity
@@ -371,6 +391,8 @@ class BurgersEquation(Equation):
 
 class RossbyWave(Equation):
     """Rossby wave equation."""
+    scalar_label = "Potential vorticity (q)"
+
     def __init__(self, beta, source=None):
         self.__name__ = 'rossby_wave'
         self.beta = beta
@@ -422,6 +444,8 @@ class RossbyWave(Equation):
         return 0.0, 0.0, energy
 
 class BarotropicVorticity(Equation):
+    scalar_label = "Vorticity (ζ)"
+
     def __init__(self, beta, nu, source=None):
         self.__name__ = 'barotropic_voricity'
         self.beta = beta
@@ -465,12 +489,6 @@ class BarotropicVorticity(Equation):
 
         jacob = dpsi_dx * dzeta_dy - dpsi_dy * dzeta_dx
 
-        print("zeta", np.nanmin(zeta), np.nanmax(zeta))
-        print("psi ", np.nanmin(psi), np.nanmax(psi))
-        print("dpsi", np.nanmin(dpsi_dx), np.nanmax(dpsi_dx))
-        print("dzeta", np.nanmin(dzeta_dx), np.nanmax(dzeta_dx))
-        print("jacob", np.nanmin(jacob), np.nanmax(jacob))
-
         dzeta_dt = -jacob - self.beta*dpsi_dx + self.nu*operators.laplacian(padded_zeta, dx)
 
         rhs = np.stack([dzeta_dt], axis=0)
@@ -480,3 +498,18 @@ class BarotropicVorticity(Equation):
             rhs += src
 
         return rhs
+
+    def _solve_psi(self, state_data, dx):
+        zeta = state_data[0]
+        if self.poisson is None:
+            self.poisson = operators.PoissonSolver(zeta.shape, dx)
+        return self.poisson.solve(zeta)
+
+    def get_surface_scalar(self, state_data, dx, boundary, operator):
+        return self._solve_psi(state_data, dx)
+
+    def get_velocity(self, state_data, dx, boundary, operator):
+        psi = self._solve_psi(state_data, dx)
+        padded_psi = boundary(psi, len(dx), self.parity(len(dx)))
+        dpsi_dy, dpsi_dx = operator(padded_psi, dx)
+        return -dpsi_dy, dpsi_dx

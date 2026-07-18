@@ -17,11 +17,12 @@ class TempestVisualizer:
         initial_state,
         dx,
         dt,
-        eq_name, # Ignored for logic, kept for backward compatibility if signature is frozen
+        eq_name,
         max_frames,
         steps_per_frame,
         start_delay=0.0,
         final_time=None,
+        scalar_label=None,
     ):
         
         # Geometry extraction
@@ -43,7 +44,8 @@ class TempestVisualizer:
             'shape': initial_state.grid.shape if is_field else initial_state.shape,
             'spacing': initial_state.grid.spacing if is_field else (dx if isinstance(dx, tuple) else (dx,)),
             'characteristic_spacing': initial_state.grid.characteristic_spacing() if is_field else (min(dx) if isinstance(dx, tuple) else dx),
-            'eq_name': eq_name
+            'eq_name': eq_name,
+            'scalar_label': scalar_label,
         }
 
         # Energy Trackers
@@ -61,6 +63,7 @@ class TempestVisualizer:
             setattr(initial_state, 'ndim', initial_state.ndim)
 
         renderer_class = RendererRegistry.resolve(initial_state)
+        has_flow = getattr(initial_state, 'has_flow', False)
 
         apply_dashboard_theme()
 
@@ -74,14 +77,25 @@ class TempestVisualizer:
                 'secondary1': gs[0, 1],
                 'energy': gs[1, :]
             }
+        elif has_flow:
+            gs = gridspec.GridSpec(2, 1, figure=self.fig, height_ratios=[2, 1])
+            gs_top = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=gs[0], wspace=0.25)
+            gs_bottom = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=gs[1], wspace=0.3)
+            self.slots = {
+                'surface': gs_top[0, 0],
+                'heatmap': gs_top[0, 1],
+                'secondary2': gs_bottom[0, 0],
+                'secondary3': gs_bottom[0, 1],
+                'energy': gs_bottom[0, 2],
+            }
         else:
             gs = gridspec.GridSpec(2, 3, figure=self.fig, height_ratios=[2, 1], width_ratios=[1, 1, 2])
             self.slots = {
-                'primary': gs[0, 2],        # Heatmap as a square on the right (slightly extended)
-                'secondary1': gs[0, :2],    # 3D Surface as the main attraction on the left
-                'secondary2': gs[1, 0],     # Horiz Cross
-                'secondary3': gs[1, 1],     # Vert Cross
-                'energy': gs[1, 2]          # Energy Stats
+                'primary': gs[0, 2],
+                'secondary1': gs[0, :2],
+                'secondary2': gs[1, 0],
+                'secondary3': gs[1, 1],
+                'energy': gs[1, 2],
             }
 
         self.renderer = renderer_class(self.fig, self.slots, self.config, initial_state)
@@ -100,7 +114,7 @@ class TempestVisualizer:
         self.ax_energy.set_xlim(0, self.final_time)
         self.energy_axis_initialized = False
 
-        self.fig.tight_layout()
+        self.fig.tight_layout(rect=[0, 0.02, 0.95, 1])
 
     def render_frame(self, frame_idx, state, current_time, scheme_name, energies=None):
         pe, ke, total_e = energies

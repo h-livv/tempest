@@ -22,7 +22,7 @@ boundary_functions = [boundaries.Dirichlet(left_val=0.0, right_val=0.0)]
 operators_list     = [operators.gradient]
 integrators_list   = [integrators.rk4]
 
-equations_list = [equations.BarotropicVorticity(beta=1.0, nu=0.001)]
+equations_list = [equations.BarotropicVorticity(beta=0.0, nu=0.0)]
 
 # ── Run parameters ────────────────────────────────────────────────────────────
 # 20 forcing periods (T=2 each)
