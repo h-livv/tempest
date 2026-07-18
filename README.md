@@ -15,7 +15,7 @@ Tempest is a computational framework for numerical simulation, validation, and s
 
 <img width="800" height="450" alt="rossby" src="https://github.com/user-attachments/assets/858071c7-f7e5-4a2c-b85f-504fbadf9754" />
 
-## Rotating Vortex Dynamics
+## Vortex Dynamics in Hurricane Eyewalls
 *Barotropic Vorticity Equation*
 
 <img width="800" height="450" alt="BVE" src="https://github.com/user-attachments/assets/fafc635c-1e9a-4431-9a3e-fa2267f5ad9a" />
