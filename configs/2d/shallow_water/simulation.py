@@ -18,6 +18,6 @@ equations_list = [equations.ShallowWaterEquation()]
 integrators_list = [flux_methods.lax_f]
 
 FINAL_TIME = 3
-STEPS_PER_FRAME = 3
+STEPS_PER_FRAME = 2
 RECORD_INTERVAL = 1
 VISUAL_MODE = True

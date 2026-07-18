@@ -904,3 +904,346 @@ class BarotropicVoricityDoubleGaussianIC(InitialCondition):
             state[2] = self.speed * dir_x * (g1 - g2) # X-velocity component (axis 1)
             
         return state
+
+class BarotropicVorticityRingIC(InitialCondition):
+    """Ring vortex (cyclone-like eye) initial condition."""
+    __name__ = "barotropic_vorticity_ring"
+
+    def __init__(
+        self,
+        radius=0.18,
+        sigma=0.03,
+        amplitude=2.0,
+        num_fields=1,
+        active_field=0,
+        bg_depth=0.0,
+    ):
+        self.radius = radius
+        self.sigma = sigma
+        self.amplitude = amplitude
+        self.num_fields = num_fields
+        self.active_field = active_field
+        self.bg_depth = bg_depth
+
+    def __call__(self, grid):
+        r_sq = 0.0
+
+        for coord in grid.coordinates:
+            L = coord.max() - coord.min()
+            center = coord.min() + 0.5 * L
+            r_sq += (coord - center) ** 2
+
+        r = np.sqrt(r_sq)
+
+        theta = np.arctan2(grid.coordinates[1], grid.coordinates[0])
+
+        ring = np.exp(-((r - self.radius) ** 2) / (2 * self.sigma ** 2))
+
+        ring *= 1 + 0.1*np.random.randn(*ring.shape)
+
+        state = np.zeros((self.num_fields, *grid.shape))
+        state[self.active_field] = self.bg_depth + self.amplitude * ring
+
+        return state
+
+class BarotropicVorticitySpiralIC(InitialCondition):
+    """Spiral vortex initial condition."""
+    __name__ = "barotropic_vorticity_spiral"
+
+    def __init__(
+        self,
+        sigma=0.08,
+        amplitude=2.0,
+        epsilon=0.25,
+        arms=3,
+        twist=18.0,
+        num_fields=1,
+        active_field=0,
+        bg_depth=0.0,
+    ):
+        self.sigma = sigma
+        self.amplitude = amplitude
+        self.epsilon = epsilon
+        self.arms = arms
+        self.twist = twist
+        self.num_fields = num_fields
+        self.active_field = active_field
+        self.bg_depth = bg_depth
+
+    def __call__(self, grid):
+        y = grid.coordinates[0]
+        x = grid.coordinates[1]
+
+        Ly = y.max() - y.min()
+        Lx = x.max() - x.min()
+
+        yc = y.min() + 0.5 * Ly
+        xc = x.min() + 0.5 * Lx
+
+        dx = x - xc
+        dy = y - yc
+
+        r = np.sqrt(dx**2 + dy**2)
+        theta = np.arctan2(dy, dx)
+
+        base = np.exp(-(r**2) / (2 * self.sigma**2))
+
+        spiral = 1.0 + self.epsilon * np.cos(
+            self.arms * theta - self.twist * r
+        )
+
+        state = np.zeros((self.num_fields, *grid.shape))
+        state[self.active_field] = self.bg_depth + self.amplitude * base * spiral
+
+        return state
+
+class BarotropicVorticityDoubleRingIC(InitialCondition):
+    """Double ring vortex initial condition."""
+    __name__ = "barotropic_vorticity_double_ring"
+
+    def __init__(
+        self,
+        offset=0.2,
+        radius=0.12,
+        sigma=0.025,
+        amplitude=2.0,
+        num_fields=1,
+        active_field=0,
+        bg_depth=0.0,
+    ):
+        self.offset = offset
+        self.radius = radius
+        self.sigma = sigma
+        self.amplitude = amplitude
+        self.num_fields = num_fields
+        self.active_field = active_field
+        self.bg_depth = bg_depth
+
+    def __call__(self, grid):
+        r1_sq = 0.0
+        r2_sq = 0.0
+
+        for coord in grid.coordinates:
+            L = coord.max() - coord.min()
+            center = coord.min() + 0.5 * L
+
+            c1 = center - self.offset * L
+            c2 = center + self.offset * L
+
+            r1_sq += (coord - c1) ** 2
+            r2_sq += (coord - c2) ** 2
+
+        r1 = np.sqrt(r1_sq)
+        r2 = np.sqrt(r2_sq)
+
+        ring1 = np.exp(-((r1 - self.radius) ** 2) / (2 * self.sigma ** 2))
+        ring2 = np.exp(-((r2 - self.radius) ** 2) / (2 * self.sigma ** 2))
+
+        state = np.zeros((self.num_fields, *grid.shape))
+        state[self.active_field] = self.bg_depth + self.amplitude * (ring1 + ring2)
+
+        return state\
+
+class BarotropicVorticitySpiralRingIC(InitialCondition):
+    """Spiral phase-shifted ring vortex."""
+
+    __name__ = "barotropic_vorticity_spiral_ring"
+
+    def __init__(
+        self,
+        radius=0.18,
+        sigma=0.025,
+        amplitude=2.0,
+        spiral_strength=0.08,
+        arms=4,
+        twist=12.0,
+        num_fields=1,
+        active_field=0,
+        bg_depth=0.0,
+    ):
+        self.radius = radius
+        self.sigma = sigma
+        self.amplitude = amplitude
+        self.spiral_strength = spiral_strength
+        self.arms = arms
+        self.twist = twist
+        self.num_fields = num_fields
+        self.active_field = active_field
+        self.bg_depth = bg_depth
+
+    def __call__(self, grid):
+
+        y = grid.coordinates[0]
+        x = grid.coordinates[1]
+
+        Ly = y.max() - y.min()
+        Lx = x.max() - x.min()
+
+        yc = y.min() + 0.5 * Ly
+        xc = x.min() + 0.5 * Lx
+
+        dx = x - xc
+        dy = y - yc
+
+        r = np.sqrt(dx**2 + dy**2)
+        theta = np.arctan2(dy, dx)
+
+        shifted_radius = (
+            self.radius
+            + self.spiral_strength
+            * np.sin(
+                self.arms * theta
+                - self.twist * r
+            )
+        )
+
+        ring = np.exp(
+            -((r - shifted_radius) ** 2)
+            / (2 * self.sigma**2)
+        )
+
+        state = np.zeros((self.num_fields, *grid.shape))
+        state[self.active_field] = (
+            self.bg_depth
+            + self.amplitude * ring
+        )
+
+        return state
+
+
+class BarotropicVorticitySatelliteIC(InitialCondition):
+    """Central vortex surrounded by weak random satellite vortices."""
+
+    __name__ = "barotropic_vorticity_satellite"
+
+    def __init__(
+        self,
+        sigma=0.18,
+        satellite_sigma=0.05,
+        amplitude=2.0,
+        satellite_amplitude=0.25,
+        satellites=12,
+        seed=42,
+        num_fields=1,
+        active_field=0,
+        bg_depth=0.0,
+    ):
+        self.sigma = sigma
+        self.satellite_sigma = satellite_sigma
+        self.amplitude = amplitude
+        self.satellite_amplitude = satellite_amplitude
+        self.satellites = satellites
+        self.seed = seed
+        self.num_fields = num_fields
+        self.active_field = active_field
+        self.bg_depth = bg_depth
+
+    def __call__(self, grid):
+
+        rng = np.random.default_rng(self.seed)
+
+        y = grid.coordinates[0]
+        x = grid.coordinates[1]
+
+        Ly = y.max() - y.min()
+        Lx = x.max() - x.min()
+
+        yc = y.min() + 0.5 * Ly
+        xc = x.min() + 0.5 * Lx
+
+        dx = x - xc
+        dy = y - yc
+
+        r2 = dx**2 + dy**2
+
+        zeta = self.amplitude * np.exp(
+            -r2/(2*self.sigma**2)
+        )
+
+        for _ in range(self.satellites):
+
+            radius = rng.uniform(0.25,0.9)
+
+            theta = rng.uniform(0,2*np.pi)
+
+            xs = xc + radius*np.cos(theta)
+            ys = yc + radius*np.sin(theta)
+
+            rsq = (x-xs)**2 + (y-ys)**2
+
+            zeta += (
+                self.satellite_amplitude
+                *
+                np.exp(
+                    -rsq/(2*self.satellite_sigma**2)
+                )
+            )
+
+        state = np.zeros((self.num_fields,*grid.shape))
+        state[self.active_field] = self.bg_depth + zeta
+
+        return state
+
+class BarotropicVorticitySpiralBandIC(InitialCondition):
+
+    __name__ = "barotropic_vorticity_spiral_band"
+
+    def __init__(
+        self,
+        amplitude=0.18,
+        sigma=0.035,
+        vortices=24,
+        a=0.08,
+        b=0.22,
+        turns=2.5,
+        num_fields=1,
+        active_field=0,
+        bg_depth=0.0,
+    ):
+
+        self.amplitude = amplitude
+        self.sigma = sigma
+        self.vortices = vortices
+        self.a = a
+        self.b = b
+        self.turns = turns
+        self.num_fields = num_fields
+        self.active_field = active_field
+        self.bg_depth = bg_depth
+
+    def __call__(self, grid):
+
+        y = grid.coordinates[0]
+        x = grid.coordinates[1]
+
+        Ly = y.max()-y.min()
+        Lx = x.max()-x.min()
+
+        yc = y.min()+0.5*Ly
+        xc = x.min()+0.5*Lx
+
+        zeta = np.zeros_like(x)
+
+        theta_max = self.turns*2*np.pi
+
+        for theta in np.linspace(0,theta_max,self.vortices):
+
+            r = self.a*np.exp(self.b*theta)
+
+            xs = xc + r*np.cos(theta)
+            ys = yc + r*np.sin(theta)
+
+            rsq = (x-xs)**2+(y-ys)**2
+
+            zeta += (
+                self.amplitude
+                *
+                np.exp(
+                    -rsq/(2*self.sigma**2)
+                )
+            )
+
+        state = np.zeros((self.num_fields,*grid.shape))
+        state[self.active_field] = self.bg_depth + zeta
+
+        return state

@@ -145,12 +145,12 @@ class Simulation:
             true_u = np.zeros_like(actual_u)
 
         # Track stability diagnostics (potential, kinetic, and total energy)
-        _, _, total_e = stability.tracking(
+        total_e = stability.tracking(
             self.state,
             self.grid,
             self.config.boundary,
             self.equation,
-        )
+        )[2]
 
         self.tracker.record(self.time, actual_u, true_u, total_e)
 
