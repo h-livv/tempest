@@ -821,3 +821,86 @@ class RossbySinusoidalVorticityIC(InitialCondition):
         state = np.zeros((self.num_fields, *grid.shape))
         state[self.active_field] = val
         return state
+
+class BarotropicVoricityGaussianIC(InitialCondition):
+    """A barotropic voricity initial condition."""
+    __name__ = "barotropic_voricity"
+
+    def __init__(self, center_ratio=0.5, sigma=0.05, amplitude=1.0, num_fields=1, active_field=0):
+        self.num_fields = num_fields
+        self.active_field = active_field
+        self.center_ratio = center_ratio
+        self.sigma = sigma
+        self.amplitude = amplitude
+
+    def __call__(self, grid):
+        if grid.ndim != 2:
+            raise NotImplementedError("BarotropicVoricityIC only supports 2D grids.")
+
+        y, x = grid.coordinates
+        yc = y.min() + self.center_ratio * (y.max() - y.min())
+        xc = x.min() + self.center_ratio * (x.max() - x.min())
+
+        r = (x - xc)**2 + (y - yc)**2
+
+        val = self.amplitude*np.exp(-r / (2 * self.sigma**2))
+
+        state = np.zeros((self.num_fields, *grid.shape))
+        state[self.active_field] = val
+        return state
+
+class BarotropicVoricityDoubleGaussianIC(InitialCondition):
+    """A double Gaussian initial condition for the barotropic vorticity equation."""
+    __name__ = "barotropic_voricity_double_gaussian"
+
+    def __init__(self, offset=0.2, sigma=0.05, amplitude=2.0, num_fields=1, active_field=0, bg_depth=0.0, speed = 0.0):
+        self.num_fields = num_fields
+        self.active_field = active_field
+        self.offset = offset
+        self.sigma = sigma
+        self.amplitude = amplitude
+        self.speed = speed
+        self.bg_depth = bg_depth
+
+    def __call__(self, grid):
+        r1_sq = 0.0
+        r2_sq = 0.0
+        centers = []
+        for d in range(grid.ndim):
+            coord = grid.coordinates[d]
+            L = coord.max() - coord.min()
+            center = coord.min() + 0.5 * L
+            c1 = center - self.offset * L
+            c2 = center + self.offset * L
+            r1_sq += (coord - c1)**2
+            r2_sq += (coord - c2)**2
+            centers.append((c1, c2))
+            
+        g1 = np.exp(-r1_sq / (2 * self.sigma**2))
+        g2 = np.exp(-r2_sq / (2 * self.sigma**2))
+        
+        pos = self.bg_depth + self.amplitude * (g1 + g2)
+        state = np.zeros((self.num_fields, *grid.shape))
+        state[self.active_field] = pos
+        
+        # Set velocity fields so humps travel towards each other
+        if self.num_fields == 2:
+            coord = grid.coordinates[0]
+            c1, c2 = centers[0]
+            if self.is_wave:
+                # 1D Wave equation velocity: du/dt = -c du/dx.
+                # Left hump (g1) goes right (+speed): v1 = speed * (x - c1)/sigma^2 * g1
+                # Right hump (g2) goes left (-speed): v2 = -speed * (x - c2)/sigma^2 * g2
+                state[1] = self.speed * (((coord - c1) / self.sigma**2) * g1 - ((coord - c2) / self.sigma**2) * g2)
+            else:
+                # 1D transport (Shallow Water): left hump (g1) goes right (+speed), right hump (g2) goes left (-speed)
+                state[1] = self.speed * (g1 - g2)
+                
+        elif self.num_fields == 3 and grid.ndim == 2:
+            # 2D Shallow Water: humps travel towards each other along the diagonal
+            # Unit direction vector: [1.0, 1.0] / sqrt(2)
+            dir_y, dir_x = 1.0 / np.sqrt(2.0), 1.0 / np.sqrt(2.0)
+            state[1] = self.speed * dir_y * (g1 - g2) # Y-velocity component (axis 0)
+            state[2] = self.speed * dir_x * (g1 - g2) # X-velocity component (axis 1)
+            
+        return state
