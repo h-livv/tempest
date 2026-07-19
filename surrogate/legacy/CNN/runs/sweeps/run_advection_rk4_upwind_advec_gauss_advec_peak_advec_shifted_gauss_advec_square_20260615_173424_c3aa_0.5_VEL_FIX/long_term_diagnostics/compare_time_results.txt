@@ -1,4 +1,0 @@
-=== Computation Time Comparison (Micro-Benchmark) ===
-Numerical Solver (RK4 Upwind): 188.7423 seconds
-ML Inference (CNN Surrogate): 0.7061 seconds
-Speedup: 267.31x faster
