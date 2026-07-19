@@ -59,7 +59,7 @@ def main():
         run_dir = args.run_dir
     else:
         print("No run directory provided. Searching for the latest run...")
-        runs_base_dir = os.path.join("ml", "runs")
+        runs_base_dir = os.path.join("ml", "CNN", "runs")
         all_runs = []
         for category in ["single", "sweeps"]:
             cat_dir = os.path.join(runs_base_dir, category)

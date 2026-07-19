@@ -11,9 +11,8 @@ import sys
 import uuid
 import glob
 
-# Add parent directory to sys path so we can import ml.registry
+# Add parent directory to sys path so we can import modules if needed
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from ml.registry import log_run
 
 # --- Setup ---
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -141,7 +140,7 @@ clean_op = str(op_name).replace(" ", "_").lower()
 clean_ic = str("_".join(sorted(ic_list)) if ic_list else "unknown_ic").replace(" ", "_").lower()
 
 run_dir_name = f"run_{clean_eq}_{clean_int}_{clean_op}_{clean_ic}_{timestamp}_{uid}"
-run_dir = os.path.join("ml", "runs", "sweeps" if run_type == "sweep" else "single", run_dir_name)
+run_dir = os.path.join("ml", "CNN", "runs", "sweeps" if run_type == "sweep" else "single", run_dir_name)
 plots_dir = os.path.join(run_dir, "plots")
 os.makedirs(plots_dir, exist_ok=True)
 
@@ -334,6 +333,5 @@ for idx, info in enumerate(dataset_info):
             plt.savefig(os.path.join(plots_dir, f"final_rollout_{ic_name}_T{history_idx}.png"))
             plt.close()
 
-# Log to master registry
-log_run(run_type, "ml", "advection", "cnn", "mixed" if run_type == "sweep" else "single_ic", run_dir, metadata={"epochs": epochs, "loaded_datasets": len(tensor_list)})
+# Save info (Registry removed)
 print(f"✅ Training complete. All artifacts saved successfully to {run_dir}")

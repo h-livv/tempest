@@ -18,7 +18,7 @@ import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
 
-RUNS_BASE_DIR = os.path.join("ml", "runs")
+RUNS_BASE_DIR = os.path.join("ml", "CNN", "runs")
 
 
 def _build_video_from_frames(frames_dir: str, output_path: str, fps: int = 30) -> None:
