@@ -36,7 +36,7 @@ def main():
     
     # 1. Find latest ML run to load model
     # Note: script is run from project root typically
-    ml_runs_dir = os.path.join("ml", "runs", "sweeps")
+    ml_runs_dir = os.path.join("ml", "CNN", "runs", "sweeps")
     latest_ml_run = get_latest_dir(ml_runs_dir)
     if not latest_ml_run:
         print("No ML runs found.")
@@ -44,7 +44,7 @@ def main():
         
     model_path = os.path.join(latest_ml_run, "advec_model.pt")
     if not os.path.exists(model_path):
-        print(f"Model not found at {model_path}. You need to train advec_cnn.py first.")
+        print(f"Model not found at {model_path}. You need to train CNN.py first.")
         sys.exit(1)
         
     model = ConvSurrogate(grid_size=5000).to(device)

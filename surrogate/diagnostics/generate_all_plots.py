@@ -93,7 +93,7 @@ def generate_plots_for_run(run_dir):
         plt.close()
 
 def main():
-    sweeps_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "runs", "sweeps")
+    sweeps_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "CNN", "runs", "sweeps")
     if not os.path.exists(sweeps_dir):
         print(f"Sweeps directory not found at {sweeps_dir}")
         return

@@ -46,7 +46,7 @@ def get_latest_run(base_dirs):
 def main():
     print("=== Inference Speedup Benchmark ===")
     
-    run_dir = get_latest_run(["ml/runs/sweeps", "ml/runs/single"])
+    run_dir = get_latest_run(["ml/CNN/runs/sweeps", "ml/CNN/runs/single"])
     if not run_dir:
         print("Error: Could not find ML run directory.")
         sys.exit(1)
