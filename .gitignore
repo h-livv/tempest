@@ -43,7 +43,8 @@ wandb/
 logs/
 
 # videos
-#*.mp4
+*.mp4
+*.png
 
 # temp
 tmp/
