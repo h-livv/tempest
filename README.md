@@ -153,7 +153,7 @@ results = Simulation(config).run()
 
 Tempest includes an experimental Scientific Machine Learning (SciML) framework for learning PDE evolution operators directly from high-fidelity numerical simulations.
 
-Experimental investigation of neural surrogates for PDE evolution, including studies of autoregressive stability, spectral representations, and generalization.
+It explores experimental investigation of neural surrogates for PDE evolution, including studies of autoregressive stability, spectral representations, and generalization.
 
 **Current capabilities:**
 
