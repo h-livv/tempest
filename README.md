@@ -1,7 +1,7 @@
 # Tempest
-### A framework for simulating, validating, and learning PDE-governed physical systems.
+### A computational physics laboratory for implementing and exploring numerical methods and scientific machine learning for partial differential equations.
 
-Tempest is a modular scientific computing framework for numerical simulation, validation, and scientific machine learning of time-dependent partial differential equations.
+Tempest provides a modular environment for implementing numerical methods, reproducing results from literature, validating algorithms against analytical solutions, and exploring scientific machine learning techniques.
 
 ---
 
@@ -61,11 +61,11 @@ Further details are available in:
 - [Validation Study](docs/validation_study_final.md)
 - [Burgers Validation](docs/burgers_validation.md)
 
-Detailed validation outputs, convergence studies, and numerical diagnostics are available in the `/outputs` directory.
+Detailed validation outputs, convergence studies, and numerical diagnostics are generated in the `/outputs` directory.
 
 ---
 
-## Capabilities
+## Implemented methods
 
 **Simulation infrastructure**
 - Structured 1D and 2D grids
@@ -102,7 +102,8 @@ Detailed validation outputs, convergence studies, and numerical diagnostics are 
 
 **Scientific Machine Learning**
 - Experimental CNN and spectral surrogate models for PDE evolution
-- Foundation for generalized neural operators and Fourier Neural Operators (FNOs)
+- Simplified one-layer spectral model
+- Basic FNO model
 
 ---
 
@@ -152,7 +153,7 @@ results = Simulation(config).run()
 
 Tempest includes an experimental Scientific Machine Learning (SciML) framework for learning PDE evolution operators directly from high-fidelity numerical simulations.
 
-Current work investigates both convolutional and spectral surrogate models for the linear advection equation, serving as a stepping stone toward neural operator architectures such as Fourier Neural Operators (FNOs).
+Experimental investigation of neural surrogates for PDE evolution, including studies of autoregressive stability, spectral representations, and generalization.
 
 **Current capabilities:**
 
@@ -168,8 +169,6 @@ The complete development process, experiments, and analyses are documented in:
 
 - [CNN Surrogate](docs/CNN_surrogate.md)
 - [Spectral Surrogate](docs/spectral_surrogate.md)
-
-These investigations form the foundation for future work on neural operators, spectral PDE solvers, and learned scientific simulators within Tempest.
 
 ---
 
@@ -197,37 +196,31 @@ Tempest/
 ```
 ---
 
-## Roadmap
+## Research Directions
 
-### Physical Models
-
-- Incompressible Navier–Stokes
-- Reaction–Diffusion
-- Maxwell Equations
-
-### Scientific Applications
-- Kelvin–Helmholtz
-- Rayleigh–Taylor
-- Turbulence
-- Geophysical flows
+### Numerical Methods
+- High-resolution finite-volume schemes
+- Adaptive mesh refinement
+- Conservative discretizations
+- Structure-preserving integrators
 
 ### Scientific Machine Learning
 
-- Multi-dimensional surrogates
 - Neural operators
-- Fourier operator learning
+- Long-horizon stability
+- Physics-informed architectures
 - Hybrid numerical–learned solvers
 
-### Framework Development
-
-- Additional PDE families
-- Higher-dimensional validation
-- GPU acceleration
+### Physical Systems
+- Turbulence
+- Geophysical flows
+- Electromagnetism
+- Nonlinear wave dynamics
 
 ---
 
 ## Long-term Vision
 
-Tempest aims to become a unified framework for simulating, validating, and learning physical systems governed by partial differential equations, integrating numerical simulation and learned surrogate modeling within a common scientific computing framework.
+Tempest serves as an experimental platform for computational physics, bringing together numerical simulation, validation, and scientific machine learning in a modular environment for exploring PDE-governed systems.
 
 ---
