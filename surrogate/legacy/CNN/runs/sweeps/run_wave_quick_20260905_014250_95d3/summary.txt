@@ -1,0 +1,5 @@
+train_time_s=0.9
+gaussian: rel_l2=0.946993 rmse=0.432554 r2=-0.283258
+square: rel_l2=0.935066 rmse=0.323922 r2=-0.311498
+sine_wave: rel_l2=1.265455 rmse=0.631133 r2=-0.601375
+shifted_gaussian: rel_l2=0.946993 rmse=0.432554 r2=-0.283258

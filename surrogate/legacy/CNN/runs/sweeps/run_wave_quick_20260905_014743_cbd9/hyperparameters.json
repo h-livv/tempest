@@ -1,0 +1,16 @@
+{
+  "equation": "wave",
+  "model": "WaveStepCNN_unrolled",
+  "epochs": 200,
+  "batch_size": 32,
+  "unroll": 8,
+  "learning_rate": 0.001,
+  "train_ics": [
+    "gaussian",
+    "square",
+    "sine_wave"
+  ],
+  "test_ics": [
+    "shifted_gaussian"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "equation": "wave",
+  "learning_rate": 0.005,
+  "epochs": 400,
+  "batch_size": 64,
+  "max_unroll_steps": 8,
+  "train_ics": [
+    "gaussian",
+    "square",
+    "sine_wave"
+  ],
+  "test_ics": [
+    "shifted_gaussian"
+  ],
+  "seed": 42,
+  "init": "symmetric"
+}

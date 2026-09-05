@@ -200,3 +200,6 @@ Areas of ongoing interest include:
 Rather than serving as a general-purpose PDE framework, Tempest is an evolving computational physics laboratory.
 
 Its purpose is to implement numerical methods from the literature, reproduce canonical benchmark problems, validate algorithms against known solutions, and explore how classical numerical simulation and scientific machine learning can be combined to better understand PDE-governed systems.
+
+## Status (as of 2026-09-06)
+Archived. Numerical PDE solver and data generation.

@@ -1,0 +1,10 @@
+train_time_s=5.73
+gaussian_horizon_5: rel_l2=0.093616
+gaussian_horizon_10: rel_l2=0.291978
+gaussian_horizon_20: rel_l2=0.540865
+gaussian_horizon_50: rel_l2=0.751510
+gaussian_horizon_100: rel_l2=20.715740
+gaussian: rel_l2=26660068892082176.000000 r2=-1015842349532377911801012169998336.000000
+square: rel_l2=inf r2=-inf
+sine_wave: rel_l2=inf r2=-inf
+shifted_gaussian: rel_l2=12558812938502144.000000 r2=-225424342361418671139055015559168.000000

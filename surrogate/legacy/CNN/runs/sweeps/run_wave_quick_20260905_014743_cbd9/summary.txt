@@ -1,0 +1,5 @@
+train_time_s=11.60
+gaussian: rel_l2=inf rmse=inf r2=-inf
+square: rel_l2=inf rmse=inf r2=-inf
+sine_wave: rel_l2=inf rmse=inf r2=-inf
+shifted_gaussian: rel_l2=inf rmse=inf r2=-inf

@@ -1,0 +1,16 @@
+{
+  "equation": "wave",
+  "model": "WaveConv1d",
+  "epochs": 120,
+  "batch_size": 64,
+  "unroll_steps": 4,
+  "learning_rate": 0.001,
+  "train_ics": [
+    "gaussian",
+    "square",
+    "sine_wave"
+  ],
+  "test_ics": [
+    "shifted_gaussian"
+  ]
+}
