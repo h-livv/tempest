@@ -6,7 +6,7 @@
 > <br>
 > Tempest is no longer under active development. It was a modular computational physics laboratory built to study numerical methods through implementation.
 > <br>
-> It combines PDE solvers, interchangeable numerical schemes, validation and diagnostic tooling, and interactive visualization in a common simulation environment. The project was also used to experiment with learned approximations to PDE evolution.
+> It combines PDE solvers, interchangeable numerical schemes, validation and diagnostic tooling, and interactive visualization. The project was also used to experiment with learned approximations to PDE evolution.
 
 ---
 
