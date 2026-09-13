@@ -27,8 +27,8 @@ ENERGY_KE = "#ff6b9d"
 ENERGY_TOTAL = "#00ff88"
 ENERGY_LOSS = "#ff5555"
 
-VORTICITY_EQ_NAMES = frozenset({'barotropic_voricity', 'rossby_wave'})
-BVE_EQ_NAME = 'barotropic_voricity'
+VORTICITY_EQ_NAMES = frozenset({'barotropic_vorticity', 'rossby_wave'})
+BVE_EQ_NAME = 'barotropic_vorticity'
 
 DASHBOARD_RCPARAMS = {
     "figure.facecolor": BACKGROUND,

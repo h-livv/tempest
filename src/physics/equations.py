@@ -445,7 +445,7 @@ class BarotropicVorticity(Equation):
     scalar_label = "Vorticity (ζ)"
 
     def __init__(self, beta, nu, source=None):
-        self.__name__ = 'barotropic_voricity'
+        self.__name__ = 'barotropic_vorticity'
         self.beta = beta
         self.nu = nu
         self.source = source
@@ -458,7 +458,7 @@ class BarotropicVorticity(Equation):
     def __call__(self, t, state_data, dx, boundary, operator):
         if operator.__name__ == 'laplacian':
             raise ValueError(
-                "CRITICAL PHYSICS ERROR: You are controlling the operator of the voricity and advection term in Barotropic Voricity equation "
+                "CRITICAL PHYSICS ERROR: You are controlling the operator of the vorticity and advection term in Barotropic Vorticity equation "
                 "You cannot pass 'laplacian' (2nd-order) as its operator."
             )
 
