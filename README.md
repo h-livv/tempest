@@ -2,9 +2,8 @@
 
 ### A computational physics laboratory for exploring numerical methods and scientific machine learning for partial differential equations.
 
-Tempest is an experimental environment for learning computational physics through implementation. It brings together classical numerical solvers, validation studies, and machine learning experiments to explore the behavior of PDE-governed systems.
-
-The project emphasizes understanding numerical methods from first principles by reproducing benchmark problems, validating against analytical solutions, and investigating the strengths and limitations of different algorithms.
+> **Status: Archived (September 2026).**
+> Tempest is no longer under active development. It was a modular computational physics laboratory built to study numerical methods through implementation. It combines PDE solvers, interchangeable numerical schemes, validation and diagnostic tooling, and interactive visualization in a common simulation environment. The project was also used to experiment with learned approximations to PDE evolution.
 
 ---
 
@@ -32,11 +31,11 @@ The project emphasizes understanding numerical methods from first principles by 
 
 <img width="800" height="450" alt="BVE" src="https://github.com/user-attachments/assets/fafc635c-1e9a-4431-9a3e-fa2267f5ad9a" />
 
-*Idealized annular vortex instability producing coherent vortex structures relevant to hurricane eyewall dynamics.*
+*Idealized vortex instability producing coherent structures in rotating flows.*
 
 ---
 
-## Current Capabilities
+## Implemented Methods
 
 ### Physical Models
 
@@ -77,7 +76,26 @@ The project emphasizes understanding numerical methods from first principles by 
 
 ---
 
-## Design Philosophy
+## Scientific Machine Learning
+
+Tempest also explored learned approximations to PDE evolution operators using supervised learning.
+
+Experiments focused on:
+
+- stable autoregressive rollout
+- spectral representations
+- translation equivariance
+- long-horizon prediction
+- numerical stability of learned solvers
+
+See:
+
+- [CNN Surrogate](docs/CNN_surrogate.md)
+- [Spectral Surrogate](docs/spectral_surrogate.md)
+
+---
+
+## Architecture
 
 Every simulation is assembled from interchangeable components:
 
@@ -89,39 +107,21 @@ Every simulation is assembled from interchangeable components:
 * Source terms
 * Diagnostics
 
-This modular structure allows new physical systems and numerical methods to be explored while reusing a common simulation engine.
+This modular structure allows different physical systems and numerical methods to be explored while reusing a common simulation engine.
 
 ---
 
 ## Validation
 
-Implemented methods are validated against analytical solutions whenever possible. The repository includes convergence studies, stability analyses, and numerical diagnostics for the implemented PDEs.
+Implemented methods were validated against analytical solutions whenever possible. The repository contains convergence studies, stability analyses, and numerical diagnostics for the implemented PDEs.
 
-Further details are available in:
+Further details are documented in:
 
 * [Validation Study](docs/validation_study_final.md)
 * [Burgers Validation](docs/burgers_validation.md)
 
 ---
 
-## Scientific Machine Learning
-
-Tempest also explores data-driven approximations of PDE evolution operators using supervised learning.
-
-Current work investigates:
-
-* Stable autoregressive rollout
-* Spectral representations
-* Translation equivariance
-* Long-horizon prediction
-* Numerical stability of learned solvers
-
-Experiments and analyses are documented in:
-
-* [CNN Surrogate](docs/CNN_surrogate.md)
-* [Spectral Surrogate](docs/spectral_surrogate.md)
-
----
 
 ## Quick Start
 
@@ -137,69 +137,4 @@ Run a simulation:
 python main.py configs/1d/advection/simulation.py
 ```
 
-Or construct simulations directly through the API:
-
-```python
-from src.core.config import SimulationConfig
-from src.core.simulation import Simulation
-from src.physics.init_conditions import GaussianIC
-from src.physics.equations import AdvectionEquation
-from src.numerics.operators import upwind
-from src.mesh.boundaries import periodic
-from src.numerics.integrators import rk4
-
-config = SimulationConfig(
-    shape=(100,),
-    spacing=(0.01,),
-    dt=0.005,
-    final_time=2.0,
-    steps_per_frame=10,
-    equation=AdvectionEquation(velocity=1.0),
-    operator=upwind,
-    boundary=periodic,
-    integrator=rk4,
-    initial_condition=GaussianIC(sigma=10.0, center_ratio=0.5)
-)
-
-results = Simulation(config).run()
-```
-
 ---
-
-## Future Directions
-
-Tempest is intended to grow alongside my exploration of computational physics.
-
-Areas of ongoing interest include:
-
-### Numerical Methods
-
-* Finite-volume methods
-* Adaptive mesh refinement
-* Conservative discretizations
-* Structure-preserving integrators
-
-### Scientific Machine Learning
-
-* Neural operators
-* Physics-informed learning
-* Hybrid numerical–learned solvers
-* Long-horizon stability
-
-### Physical Systems
-
-* Turbulence
-* Geophysical fluid dynamics
-* Electromagnetism
-* Nonlinear wave dynamics
-
----
-
-## Long-Term Vision
-
-Rather than serving as a general-purpose PDE framework, Tempest is an evolving computational physics laboratory.
-
-Its purpose is to implement numerical methods from the literature, reproduce canonical benchmark problems, validate algorithms against known solutions, and explore how classical numerical simulation and scientific machine learning can be combined to better understand PDE-governed systems.
-
-## Status (as of 2026-09-06)
-Archived. Numerical PDE solver and data generation.
