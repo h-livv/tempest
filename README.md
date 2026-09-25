@@ -2,9 +2,7 @@
 
 ### A computational physics laboratory for studying **numerical and learned methods for partial differential equations**.
 
-Tempest provides a common environment for implementing PDEs, comparing numerical
-schemes, validating solutions, and experimentally studying learned
-approximations to PDE evolution.
+Tempest is a record of that work: explicit finite-difference schemes for a few textbook PDEs, and experiments on learning a time step from the fields those schemes produced.
 
 > **Status:** Not currently active. Tempest is where I explored numerical
 > methods for PDEs and learned surrogate solvers. I’m keeping it here as a record of that
@@ -26,13 +24,13 @@ scientific machine-learning approaches.
 
 <img width="800" height="450"
 alt="shallow"
-src="https://github.com/user-attachments/assets/4eabee3e-07dc-462d-8a30-7ed781453bd7" />
+src="docs/assets/shallow.gif" />
 
 Gravity-wave and dam-break dynamics.
 
 ### Burgers' Equation
 
-<img width="800" height="450" alt="BVE" src="https://github.com/user-attachments/assets/4a6cbf23-918f-421f-9040-eeaf0341900a" />
+<img width="800" height="450" alt="burgers" src="docs/assets/burgers.gif" />
 
 Non-linear shock formation.
 
@@ -40,7 +38,7 @@ Non-linear shock formation.
 
 <img width="800" height="450"
 alt="rossby"
-src="https://github.com/user-attachments/assets/858071c7-f7e5-4a2c-b85f-504fbadf9754" />
+src="docs/assets/rossby.gif" />
 
 Planetary-wave propagation from the β-effect.
 
@@ -72,11 +70,10 @@ evolution, including:
 * autoregressive long-horizon prediction
 * generalization across unseen initial conditions
 
-These experiments examine questions such as stability, spectral representation,
-translation structure, and long-horizon error accumulation.
+The learned models were trained on trajectories this solver had already written out. They are 1D next-step maps: a convolutional kernel for advection, a small spectral network, and a 1D Fourier neural operator. One-step error was often small. Closed-loop rollouts accumulated error, and the spectral model failed on translated initial conditions.
 
-See [`CNN Surrogate`](docs/CNN_surrogate.md) and
-[`Spectral Surrogate`](docs/spectral_surrogate.md).
+See [`CNN Surrogate`](docs/CNN_surrogate.md), [`Spectral Surrogate`](docs/spectral_surrogate.md), and [`FNO rollout instability`](docs/fno_rollout_instability.md).
+
 
 ## Validation
 
@@ -111,10 +108,11 @@ Boundary / initial conditions
 Diagnostics
 ```
 
-This makes different physical systems and computational methods directly
-comparable within the same environment.
+Each run is a Python config: grid, initial condition, boundary, spatial operator, equation, and time integrator.
 
-## Quick Start
+## Reproducing a Run
+
+>`requirements.txt` is a frozen environment from the machine used here, not a supported install.
 
 ```bash
 git clone https://github.com/h-livv/tempest.git
